@@ -35,3 +35,25 @@ htmlcov/
 电脑使用/command_tabs.json
 转化节点/nodes.md
 config.json
+
+# 覆盖率与测试相关
+.coverage
+htmlcov/
+.pytest_cache/
+
+AGENTS.md
+CLAUDE.md
+CHANGELOG.md
+/.spec-workflow/
+/.serena/
+/.roo/
+/.claude/
+/.snow/
+
+# 测试文件（仅开发时使用）
+tests/
+**/tests/
+test_*.py
+*_test.py
+*.test.js
+tests/desktop_tools_*.test.js
