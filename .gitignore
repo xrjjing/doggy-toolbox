@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# 打包产物
+build/
+dist/
+*.egg-info/
+*.egg
+*.spec
+
+# 日志与临时文件
+*.log
+*.tmp
+*.swp
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# 测试覆盖率
+.coverage
+htmlcov/
+.pytest_cache/
+
+# 用户数据（含敏感信息）
+电脑使用/credentials.json
+电脑使用/commands.json
+电脑使用/command_tabs.json
+转化节点/nodes.md
+config.json

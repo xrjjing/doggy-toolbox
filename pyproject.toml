@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "doggy-toolbox"
+version = "1.0.0"
+description = "狗狗百宝箱 - 实用的开发者工具集桌面应用"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+keywords = ["toolbox", "developer", "desktop", "pywebview", "utilities"]
+authors = [
+    {name = "xrj", email = "your.email@example.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Utilities",
+]
+
+dependencies = [
+    "pywebview>=4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pyinstaller>=6.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-username/doggy-toolbox"
+Repository = "https://github.com/your-username/doggy-toolbox.git"
+Issues = "https://github.com/your-username/doggy-toolbox/issues"
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = ["-ra", "-q"]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
