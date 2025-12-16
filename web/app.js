@@ -1,3 +1,31 @@
+/*
+==================== 性能瓶颈与优化建议（文档区，不影响运行逻辑） ====================
+
+现状（以当前仓库文件为准）：
+- web/index.html 约 3663 行，且包含 30+ 工具脚本标签，集中在文档末尾加载。
+- web/app.js 约 6310 行，DOMContentLoaded 内串行调用 40+ 初始化函数。
+- waitForPywebview() 在"非 pywebview 环境"会最多等待 5 秒，导致首屏白等。
+- HTML 内嵌所有工具页面：DOM 体积大、样式/布局计算重、首次解析时间长。
+
+🔧 懒初始化（非关键工具）策略（推荐落地顺序）：
+1) 定义"关键初始化"仅保留：导航、主题、当前页（默认 credentials）所需的最小渲染与数据加载。
+2) 为工具页建立 PAGE_INIT_MAP：page -> initXxxTool()，在首次进入页面时才调用（只执行一次）。
+3) 对"进入即更新"的逻辑（如 updateJwtTool / updateTimeTool）保持在 handlePageEnter()；
+   但确保其依赖的 initXxxTool() 已在进入前执行（ensurePageInitialized(page)）。
+4) 把"可延后"的初始化放到空闲期：
+   - requestIdleCallback(fn, {timeout: 1000})，并用 setTimeout(fn, 0) 兜底（兼容性）。
+   - 对事件监听器密集的工具，首次进入再绑定，避免抢占首屏主线程。
+
+🚀 模块加载优化建议（从易到难）：
+1) 统一改用 defer（本补丁已给出），保证脚本不阻塞 HTML 解析。
+2) 合并/打包 tools_m*_utils.js（Vite/Rollup/esbuild），减少请求与解析开销；开启压缩与 tree-shaking。
+3) 迁移为 ESM：index.html 只保留 app.js（type="module"），工具模块通过 import() 动态加载并按页分包。
+4) CDN 依赖（js-yaml/fast-xml-parser）：
+   - 若运行环境允许外网：按需加载（首次使用该工具再加载）；
+   - 若外网不稳定/离线：本地化 vendor 并打包进构建产物，避免首屏卡在网络。
+5) 页面拆分：将各工具页面抽成 <template> 或独立片段文件，首次访问 fetch 注入并缓存，降低初始 DOM 体积。
+*/
+
 // ==================== 模块加载错误边界 ====================
 
 // 页面到模块的映射表
@@ -108,6 +136,14 @@ function closeErrorBanner() {
     }
 }
 
+// 启动加载遮罩：在关键初始化完成后关闭
+function hideAppLoading() {
+    const el = document.getElementById('app-loading');
+    if (!el) return;
+    el.classList.add('is-hidden');
+    el.setAttribute('aria-busy', 'false');
+}
+
 // ==================== 原有全局状态 ====================
 
 // 全局状态
@@ -132,58 +168,62 @@ let urlMode = 'encode'; // URL 编解码模式：encode/decode
 
 // 初始化
 document.addEventListener('DOMContentLoaded', async () => {
-    // 🔴 首先检测模块加载情况（错误边界）
-    checkModuleLoading();
+    try {
+        // 🔴 首先检测模块加载情况（错误边界）
+        checkModuleLoading();
 
-    await waitForPywebview();
-    initNavigation();
-    initTheme();
-    initConverterOutput();
-    initBase64Tool();
-    initUuidTool();
-    initNamingTool();
-    initJwtTool();
-    initTimeTool();
-    initHashTool();
-    initCryptoTool();
-    initDiffTool();
-    initB64HexTool();
-    initUrlTool();
-    initRadixTool();
-    initUnicodeTool();
-    initCharCountTool();
-    initPasswordTool();
-    initHmacTool();
-    initRsaTool();
-    initJsonTool();
-    initDataConvertTool();
-    initTableJsonTool();
-    initTextTool();
-    initRegexTool();
-    initCurlTool();
-    initColorTool();
-    initIpTool();
-    initCronTool();
-    initSqlTool();
-    initDateCalcTool();
-    initCsvTool();
-    initMarkdownTool();
-    initGitTool();
-    initDockerTool();
-    initJsonSchemaTool();
-    initHttpTool();
-    initWebSocketTool();
-    initMockTool();
-    initMaskTool();
-    loadCredentials();
-    await loadTabs();
-    loadCommands();
-    loadNodes();
+        await waitForPywebview();
+        initNavigation();
+        initTheme();
+        initConverterOutput();
+        initBase64Tool();
+        initUuidTool();
+        initNamingTool();
+        initJwtTool();
+        initTimeTool();
+        initHashTool();
+        initCryptoTool();
+        initDiffTool();
+        initB64HexTool();
+        initUrlTool();
+        initRadixTool();
+        initUnicodeTool();
+        initCharCountTool();
+        initPasswordTool();
+        initHmacTool();
+        initRsaTool();
+        initJsonTool();
+        initDataConvertTool();
+        initTableJsonTool();
+        initTextTool();
+        initRegexTool();
+        initCurlTool();
+        initColorTool();
+        initIpTool();
+        initCronTool();
+        initSqlTool();
+        initDateCalcTool();
+        initCsvTool();
+        initMarkdownTool();
+        initGitTool();
+        initDockerTool();
+        initJsonSchemaTool();
+        initHttpTool();
+        initWebSocketTool();
+        initMockTool();
+        initMaskTool();
+        loadCredentials();
+        await loadTabs();
+        loadCommands();
+        loadNodes();
 
-    // 记录初始激活页面，处理页面进入逻辑（避免仅依赖点击导航）
-    const initial = document.querySelector('.page.active')?.id?.replace(/^page-/, '');
-    activePage = initial || 'credentials';
-    handlePageEnter(activePage);
+        // 记录初始激活页面，处理页面进入逻辑（避免仅依赖点击导航）
+        const initial = document.querySelector('.page.active')?.id?.replace(/^page-/, '');
+        activePage = initial || 'credentials';
+        handlePageEnter(activePage);
+    } finally {
+        hideAppLoading();
+    }
 });
 
 function waitForPywebview() {
@@ -191,7 +231,16 @@ function waitForPywebview() {
         if (window.pywebview && window.pywebview.api) {
             resolve();
         } else {
-            window.addEventListener('pywebviewready', resolve);
+            // 添加超时机制，最多等待 5 秒
+            const timeout = setTimeout(() => {
+                console.warn('pywebview 初始化超时，继续加载页面');
+                resolve();
+            }, 5000);
+
+            window.addEventListener('pywebviewready', () => {
+                clearTimeout(timeout);
+                resolve();
+            });
         }
     });
 }

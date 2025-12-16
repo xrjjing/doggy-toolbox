@@ -123,29 +123,30 @@
 
 | # | 功能名称 | 模块 | 状态 | 优先级 | 说明 |
 |---|---------|------|------|--------|------|
-| 6 | HTTP 请求测试 | M24 | ⬜ | 高 | 类似简化版 Postman，支持 GET/POST/PUT/DELETE 等 |
-| 7 | WebSocket 测试 | M25 | ⬜ | 中 | WebSocket 连接测试，消息收发 |
+| 6 | HTTP 请求测试 | M24 | ✅ | 高 | 类似简化版 Postman，支持 GET/POST/PUT/DELETE 等 |
+| 7 | WebSocket 测试 | M25 | ✅ | 中 | WebSocket 连接测试，消息收发 |
 
 **M24 功能详情：**
-- [ ] HTTP 方法支持 (GET/POST/PUT/DELETE/PATCH/HEAD/OPTIONS)
-- [ ] 请求头编辑
-- [ ] Query 参数编辑
-- [ ] 请求体编辑 (JSON/Form/Raw)
-- [ ] 响应展示 (Headers/Body/状态码/耗时)
-- [ ] JSON 响应自动格式化
-- [ ] 请求历史记录
-- [ ] 请求保存与管理
-- [ ] cURL 导入/导出
+- [x] HTTP 方法支持 (GET/POST/PUT/DELETE/PATCH/HEAD/OPTIONS)
+- [x] 请求头编辑
+- [x] Query 参数编辑
+- [x] 请求体编辑 (JSON/Form/Raw)
+- [x] 响应展示 (Headers/Body/状态码/耗时/大小)
+- [x] JSON 响应自动格式化
+- [ ] 请求历史记录（待实现）
+- [ ] 请求保存与管理（待实现）
+- [x] cURL 导入/导出
 
 **M25 功能详情：**
-- [ ] WebSocket 连接建立
-- [ ] 自定义请求头
-- [ ] 消息发送 (文本/JSON)
-- [ ] 消息接收与展示
-- [ ] 连接状态显示
-- [ ] 消息历史记录
-- [ ] 自动重连选项
-- [ ] Ping/Pong 支持
+- [x] WebSocket 连接建立
+- [ ] 自定义请求头（待实现）
+- [x] 消息发送 (文本/JSON)
+- [x] 消息接收与展示
+- [x] 连接状态显示
+- [x] 消息历史记录
+- [x] 自动重连选项
+- [x] Ping/Pong 支持
+- [x] JSON 自动格式化
 
 ---
 

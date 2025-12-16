@@ -5,6 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>狗狗百宝箱</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* ========== 启动加载遮罩（首屏防误触 + 初始化可视化） ========== */
+        .app-loading {
+            position: fixed;
+            inset: 0;
+            z-index: 9998; /* 低于全局错误横幅 (9999) */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.35);
+            background: color-mix(in srgb, var(--bg-primary) 92%, transparent);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            transition: opacity 180ms ease, visibility 180ms ease;
+        }
+
+        .app-loading.is-hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .app-loading-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 18px 20px;
+            border-radius: 14px;
+            background: rgba(0, 0, 0, 0.25);
+            background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .app-loading-spinner {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.18);
+            border: 3px solid color-mix(in srgb, var(--accent) 25%, var(--border));
+            border-top-color: var(--accent);
+            animation: appLoadingSpin 0.9s linear infinite;
+        }
+
+        .app-loading-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            letter-spacing: 0.2px;
+        }
+
+        @keyframes appLoadingSpin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .app-loading { transition: none; }
+            .app-loading-spinner { animation-duration: 1.6s; }
+        }
+    </style>
 </head>
 <body>
     <!-- 全局错误横幅 -->
@@ -16,6 +76,13 @@
                 <p id="error-banner-text"></p>
             </div>
             <button class="error-close" onclick="closeErrorBanner()">✕</button>
+        </div>
+    </div>
+    <!-- 启动加载遮罩：在 JS 完成关键初始化前阻止误操作 -->
+    <div id="app-loading" class="app-loading" aria-live="polite" aria-busy="true">
+        <div class="app-loading-inner">
+            <div class="app-loading-spinner" aria-hidden="true"></div>
+            <div class="app-loading-text">正在加载…</div>
         </div>
     </div>
     <div class="app">
@@ -146,6 +213,14 @@
 	                        <li class="nav-item" data-page="tool-json-schema">
 	                            <span class="nav-icon">📐</span>
 	                            <span class="nav-text">JSON Schema</span>
+	                        </li>
+	                        <li class="nav-item" data-page="tool-http">
+	                            <span class="nav-icon">🌐</span>
+	                            <span class="nav-text">HTTP 请求测试</span>
+	                        </li>
+	                        <li class="nav-item" data-page="tool-websocket">
+	                            <span class="nav-icon">🔌</span>
+	                            <span class="nav-text">WebSocket 测试</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-data-convert">
 	                            <span class="nav-icon">🔄</span>
@@ -3617,39 +3692,39 @@
     </div>
 
 	    <!-- CDN: js-yaml for YAML parsing -->
-	    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js"></script>
+	    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js" defer></script>
 	    <!-- CDN: fast-xml-parser for XML parsing -->
-	    <script src="https://cdn.jsdelivr.net/npm/fast-xml-parser@4/dist/fxparser.min.js"></script>
-	    <script src="tools_m2_utils.js"></script>
-	    <script src="tools_m3_utils.js"></script>
-	    <script src="tools_m4_utils.js"></script>
-	    <script src="tools_m5_utils.js"></script>
-	    <script src="tools_m6_utils.js"></script>
-	    <script src="tools_m7_utils.js"></script>
-	    <script src="tools_m8_utils.js"></script>
-	    <script src="tools_m9_utils.js"></script>
-	    <script src="tools_m10_utils.js"></script>
-	    <script src="tools_m11_utils.js"></script>
-	    <script src="tools_m12_utils.js"></script>
-	    <script src="tools_m13_utils.js"></script>
-	    <script src="tools_m14_utils.js"></script>
-	    <script src="tools_m15_utils.js"></script>
-	    <script src="tools_m18_utils.js"></script>
-	    <script src="tools_m19_utils.js"></script>
-	    <script src="tools_m20_utils.js"></script>
-	    <script src="tools_m21_utils.js"></script>
-	    <script src="tools_m22_utils.js"></script>
-	    <script src="tools_m23_utils.js"></script>
-	    <script src="tools_m24_utils.js"></script>
-	    <script src="tools_m25_utils.js"></script>
-	    <script src="tools_m26_utils.js"></script>
-	    <script src="tools_m27_utils.js"></script>
-	    <script src="tools_m28_utils.js"></script>
-	    <script src="tools_m29_utils.js"></script>
-	    <script src="tools_m30_utils.js"></script>
-	    <script src="tools_m31_utils.js"></script>
-	    <script src="tools_m32_utils.js"></script>
-	    <script src="tools_m16_utils.js"></script>
-	    <script src="app.js"></script>
+	    <script src="https://cdn.jsdelivr.net/npm/fast-xml-parser@4/dist/fxparser.min.js" defer></script>
+	    <script src="tools_m2_utils.js" defer></script>
+	    <script src="tools_m3_utils.js" defer></script>
+	    <script src="tools_m4_utils.js" defer></script>
+	    <script src="tools_m5_utils.js" defer></script>
+	    <script src="tools_m6_utils.js" defer></script>
+	    <script src="tools_m7_utils.js" defer></script>
+	    <script src="tools_m8_utils.js" defer></script>
+	    <script src="tools_m9_utils.js" defer></script>
+	    <script src="tools_m10_utils.js" defer></script>
+	    <script src="tools_m11_utils.js" defer></script>
+	    <script src="tools_m12_utils.js" defer></script>
+	    <script src="tools_m13_utils.js" defer></script>
+	    <script src="tools_m14_utils.js" defer></script>
+	    <script src="tools_m15_utils.js" defer></script>
+	    <script src="tools_m18_utils.js" defer></script>
+	    <script src="tools_m19_utils.js" defer></script>
+	    <script src="tools_m20_utils.js" defer></script>
+	    <script src="tools_m21_utils.js" defer></script>
+	    <script src="tools_m22_utils.js" defer></script>
+	    <script src="tools_m23_utils.js" defer></script>
+	    <script src="tools_m24_utils.js" defer></script>
+	    <script src="tools_m25_utils.js" defer></script>
+	    <script src="tools_m26_utils.js" defer></script>
+	    <script src="tools_m27_utils.js" defer></script>
+	    <script src="tools_m28_utils.js" defer></script>
+	    <script src="tools_m29_utils.js" defer></script>
+	    <script src="tools_m30_utils.js" defer></script>
+	    <script src="tools_m31_utils.js" defer></script>
+	    <script src="tools_m32_utils.js" defer></script>
+	    <script src="tools_m16_utils.js" defer></script>
+	    <script src="app.js" defer></script>
 	</body>
 	</html>
