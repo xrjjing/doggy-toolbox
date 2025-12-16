@@ -31,6 +31,7 @@ const PAGE_MODULE_MAP = {
     'tool-docker': 'DogToolboxM27Utils',
     'tool-json-schema': 'DogToolboxM28Utils',
     'tool-http': 'DogToolboxM24Utils',
+    'tool-websocket': 'DogToolboxM25Utils',
     'tool-mock': 'DogToolboxM29Utils',
     'tool-desensitize': 'DogToolboxM30Utils',
     'tool-mask': 'DogToolboxM30Utils',
@@ -171,6 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initDockerTool();
     initJsonSchemaTool();
     initHttpTool();
+    initWebSocketTool();
     initMockTool();
     initMaskTool();
     loadCredentials();
@@ -5815,6 +5817,191 @@ function exportCurl() {
 
     // 切换到 cURL 标签
     switchHttpTab('curl');
+}
+
+// ==================== M25 WebSocket 测试 ====================
+let wsConnection = null;
+let wsMessages = [];
+let wsAutoReconnect = false;
+let wsReconnectTimer = null;
+
+function initWebSocketTool() {
+    // 初始化完成
+}
+
+function clearWebSocketTool() {
+    if (wsConnection) {
+        wsConnection.close();
+        wsConnection = null;
+    }
+    document.getElementById('ws-url').value = '';
+    document.getElementById('ws-message-input').value = '';
+    clearWebSocketMessages();
+    updateWebSocketStatus('未连接', 'disconnected');
+}
+
+function clearWebSocketMessages() {
+    wsMessages = [];
+    document.getElementById('ws-messages-list').innerHTML = '';
+}
+
+function updateWebSocketStatus(text, status) {
+    const statusEl = document.getElementById('ws-status');
+    const btnEl = document.getElementById('ws-connect-btn');
+
+    statusEl.textContent = text;
+    statusEl.className = `ws-status ws-status-${status}`;
+
+    if (status === 'connected') {
+        btnEl.textContent = '断开';
+        btnEl.classList.remove('btn-primary');
+        btnEl.classList.add('btn-danger');
+    } else {
+        btnEl.textContent = '连接';
+        btnEl.classList.remove('btn-danger');
+        btnEl.classList.add('btn-primary');
+    }
+}
+
+function addWebSocketMessage(type, content) {
+    const message = DogToolboxM25Utils.formatMessage(type, content);
+    wsMessages.push(message);
+
+    const messagesList = document.getElementById('ws-messages-list');
+    const messageEl = document.createElement('div');
+    messageEl.className = `ws-message ws-message-${type}`;
+
+    const formatJson = document.getElementById('ws-format-json').checked;
+    let displayContent = content;
+
+    if (formatJson && type !== 'system') {
+        displayContent = DogToolboxM25Utils.tryFormatJson(content);
+    }
+
+    messageEl.innerHTML = `
+        <div class="ws-message-header">
+            <span class="ws-message-type">${type === 'sent' ? '发送' : type === 'received' ? '接收' : '系统'}</span>
+            <span class="ws-message-time">${message.timestamp}</span>
+        </div>
+        <div class="ws-message-content">${escapeHtml(displayContent)}</div>
+    `;
+
+    messagesList.appendChild(messageEl);
+    messagesList.scrollTop = messagesList.scrollHeight;
+}
+
+function toggleWebSocketConnection() {
+    if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+        // 断开连接
+        wsAutoReconnect = false;
+        wsConnection.close();
+    } else {
+        // 建立连接
+        connectWebSocket();
+    }
+}
+
+function connectWebSocket() {
+    const url = document.getElementById('ws-url').value.trim();
+
+    if (!url) {
+        addWebSocketMessage('system', '错误：请输入 WebSocket URL');
+        return;
+    }
+
+    if (!DogToolboxM25Utils.isValidWsUrl(url)) {
+        addWebSocketMessage('system', '错误：无效的 WebSocket URL（必须以 ws:// 或 wss:// 开头）');
+        return;
+    }
+
+    try {
+        updateWebSocketStatus('连接中...', 'connecting');
+        wsConnection = new WebSocket(url);
+        wsAutoReconnect = document.getElementById('ws-auto-reconnect').checked;
+
+        wsConnection.onopen = function() {
+            updateWebSocketStatus('已连接', 'connected');
+            addWebSocketMessage('system', `已连接到 ${url}`);
+
+            if (wsReconnectTimer) {
+                clearTimeout(wsReconnectTimer);
+                wsReconnectTimer = null;
+            }
+        };
+
+        wsConnection.onmessage = function(event) {
+            addWebSocketMessage('received', event.data);
+        };
+
+        wsConnection.onerror = function(error) {
+            addWebSocketMessage('system', '连接错误');
+            updateWebSocketStatus('错误', 'error');
+        };
+
+        wsConnection.onclose = function(event) {
+            updateWebSocketStatus('已断开', 'disconnected');
+            addWebSocketMessage('system', `连接已关闭 (code: ${event.code})`);
+
+            // 自动重连
+            if (wsAutoReconnect && !wsReconnectTimer) {
+                addWebSocketMessage('system', '5 秒后自动重连...');
+                wsReconnectTimer = setTimeout(() => {
+                    wsReconnectTimer = null;
+                    connectWebSocket();
+                }, 5000);
+            }
+        };
+
+    } catch (e) {
+        addWebSocketMessage('system', `连接失败：${e.message || String(e)}`);
+        updateWebSocketStatus('失败', 'error');
+    }
+}
+
+function sendWebSocketMessage() {
+    if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) {
+        addWebSocketMessage('system', '错误：未连接到 WebSocket 服务器');
+        return;
+    }
+
+    const messageInput = document.getElementById('ws-message-input');
+    const message = messageInput.value.trim();
+
+    if (!message) {
+        return;
+    }
+
+    const messageType = document.querySelector('input[name="ws-message-type"]:checked').value;
+
+    try {
+        let sendData = message;
+
+        if (messageType === 'json') {
+            // 验证 JSON 格式
+            JSON.parse(message);
+        }
+
+        wsConnection.send(sendData);
+        addWebSocketMessage('sent', sendData);
+        messageInput.value = '';
+
+    } catch (e) {
+        addWebSocketMessage('system', `发送失败：${e.message || String(e)}`);
+    }
+}
+
+function sendWebSocketPing() {
+    if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) {
+        addWebSocketMessage('system', '错误：未连接到 WebSocket 服务器');
+        return;
+    }
+
+    try {
+        wsConnection.send('ping');
+        addWebSocketMessage('sent', 'ping');
+    } catch (e) {
+        addWebSocketMessage('system', `Ping 失败：${e.message || String(e)}`);
+    }
 }
 
 // ==================== M29 Mock 数据生成 ====================
