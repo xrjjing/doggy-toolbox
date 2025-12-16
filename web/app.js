@@ -138,10 +138,17 @@ function closeErrorBanner() {
 
 // 启动加载遮罩：在关键初始化完成后关闭
 function hideAppLoading() {
+    // 先移除启动态，让主应用进入渲染树
+    document.documentElement.classList.remove('is-booting');
+
     const el = document.getElementById('app-loading');
     if (!el) return;
-    el.classList.add('is-hidden');
-    el.setAttribute('aria-busy', 'false');
+
+    // 下一帧再隐藏遮罩，确保至少显示一帧加载动画
+    requestAnimationFrame(() => {
+        el.classList.add('is-hidden');
+        el.setAttribute('aria-busy', 'false');
+    });
 }
 
 // ==================== 原有全局状态 ====================
