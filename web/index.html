@@ -87,7 +87,9 @@
             .app-loading-spinner { animation-duration: 1.6s; }
         }
     </style>
-    <link rel="stylesheet" href="styles.css">
+    <!-- 异步加载 styles.css，避免阻塞首次绘制 -->
+    <link rel="preload" href="styles.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="styles.css"></noscript>
 </head>
 <body>
     <!-- 全局错误横幅 -->

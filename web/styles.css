@@ -4160,6 +4160,7 @@ select option {
     flex-direction: column;
     gap: 24px;
     height: calc(100vh - 200px);
+    overflow: hidden; /* 防止整体溢出 */
 }
 
 .http-request,
@@ -4167,7 +4168,8 @@ select option {
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    min-height: 0; /* 关键：允许 flex 子元素收缩 */
+    overflow: hidden; /* 防止溢出到其他区域 */
 }
 
 .http-url-bar {
@@ -4223,6 +4225,8 @@ select option {
     display: none;
     flex: 1;
     min-height: 0;
+    overflow-y: auto; /* 添加滚动，防止内容溢出 */
+    padding-right: 8px; /* 为滚动条留空间 */
 }
 
 .http-tab-content.active {
@@ -4234,6 +4238,8 @@ select option {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    overflow-y: auto; /* 允许滚动 */
+    max-height: 100%; /* 限制最大高度 */
 }
 
 .http-kv-row {
@@ -4344,6 +4350,7 @@ select option {
     flex-direction: column;
     gap: 24px;
     height: calc(100vh - 200px);
+    overflow: hidden; /* 防止整体溢出 */
 }
 
 .websocket-connection {
@@ -4388,6 +4395,7 @@ select option {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow: hidden; /* 防止溢出到其他区域 */
 }
 
 .websocket-send-header,
@@ -4422,6 +4430,7 @@ select option {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    overflow: hidden; /* 防止内容溢出 */
 }
 
 #ws-message-input {

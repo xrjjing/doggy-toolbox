@@ -46,6 +46,7 @@ def main():
         width=1200,
         height=800,
         min_size=(800, 600),
+        background_color="#1f2937",  # 深色背景,避免白屏闪烁 (对应 hsl(220, 15%, 14%))
     )
     webview.start(debug=False)
     sys.exit()

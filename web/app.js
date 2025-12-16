@@ -179,6 +179,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 🔴 首先检测模块加载情况（错误边界）
         checkModuleLoading();
 
+        // 🎨 关键：先让浏览器绘制一次,确保加载动画可见
+        await new Promise(resolve => requestAnimationFrame(resolve));
+
         await waitForPywebview();
         initNavigation();
         initTheme();

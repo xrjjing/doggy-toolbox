@@ -49,6 +49,7 @@ CHANGELOG.md
 /.roo/
 /.claude/
 /.snow/
+docs/
 
 # 测试文件（仅开发时使用）
 tests/
