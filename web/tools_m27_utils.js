@@ -453,6 +453,113 @@
         return parts.join(' ');
     }
 
+    // ==================== docker service (Swarm) ====================
+
+    /**
+     * 生成 docker service 命令
+     * @param {string} action - 操作类型：create, ls, ps, logs, scale, update, rm
+     * @param {string} serviceName - 服务名称
+     * @param {object} options - 选项
+     * @returns {string} 生成的命令
+     */
+    function generateServiceCommand(action, serviceName, options = {}) {
+        const opts = normalizeOptions(options);
+        const act = (action || '').toLowerCase();
+
+        if (act === 'create') {
+            if (!serviceName) throw new Error('服务名称不能为空');
+            const parts = ['docker service create'];
+            if (opts.name) parts.push(`--name ${escapeArg(opts.name)}`);
+            if (opts.replicas) parts.push(`--replicas ${opts.replicas}`);
+            if (opts.image) parts.push(escapeArg(opts.image));
+            return parts.join(' ');
+        }
+
+        if (act === 'ls') {
+            return 'docker service ls';
+        }
+
+        if (act === 'ps') {
+            if (!serviceName) throw new Error('服务名称不能为空');
+            return `docker service ps ${escapeArg(serviceName)}`;
+        }
+
+        if (act === 'logs') {
+            if (!serviceName) throw new Error('服务名称不能为空');
+            const parts = ['docker service logs'];
+            if (opts.follow) parts.push('-f');
+            parts.push(escapeArg(serviceName));
+            return parts.join(' ');
+        }
+
+        if (act === 'scale') {
+            if (!serviceName) throw new Error('服务名称不能为空');
+            const replicas = opts.replicas || 1;
+            return `docker service scale ${escapeArg(serviceName)}=${replicas}`;
+        }
+
+        if (act === 'update') {
+            if (!serviceName) throw new Error('服务名称不能为空');
+            const parts = ['docker service update'];
+            if (opts.image) parts.push(`--image ${escapeArg(opts.image)}`);
+            if (opts.replicas) parts.push(`--replicas ${opts.replicas}`);
+            parts.push(escapeArg(serviceName));
+            return parts.join(' ');
+        }
+
+        if (act === 'rm') {
+            if (!serviceName) throw new Error('服务名称不能为空');
+            return `docker service rm ${escapeArg(serviceName)}`;
+        }
+
+        throw new Error(`未知的 service 操作: ${action}`);
+    }
+
+    // ==================== docker stack (Swarm) ====================
+
+    /**
+     * 生成 docker stack 命令
+     * @param {string} action - 操作类型：deploy, ls, ps, services, rm
+     * @param {string} stackName - 堆栈名称
+     * @param {object} options - 选项
+     * @returns {string} 生成的命令
+     */
+    function generateStackCommand(action, stackName, options = {}) {
+        const opts = normalizeOptions(options);
+        const act = (action || '').toLowerCase();
+
+        if (act === 'deploy') {
+            if (!stackName) throw new Error('堆栈名称不能为空');
+            const parts = ['docker stack deploy'];
+            if (opts.composeFile) {
+                parts.push(`-c ${escapeArg(opts.composeFile)}`);
+            }
+            parts.push(escapeArg(stackName));
+            return parts.join(' ');
+        }
+
+        if (act === 'ls') {
+            return 'docker stack ls';
+        }
+
+        if (act === 'ps') {
+            if (!stackName) throw new Error('堆栈名称不能为空');
+            return `docker stack ps ${escapeArg(stackName)}`;
+        }
+
+        if (act === 'services') {
+            if (!stackName) throw new Error('堆栈名称不能为空');
+            return `docker stack services ${escapeArg(stackName)}`;
+        }
+
+        if (act === 'rm') {
+            if (!stackName) throw new Error('堆栈名称不能为空');
+            return `docker stack rm ${escapeArg(stackName)}`;
+        }
+
+        throw new Error(`未知的 stack 操作: ${action}`);
+    }
+
     // 导出 API
     return {
         generateRunCommand,
@@ -464,6 +571,8 @@
         generateImagesCommand,
         generatePullPushCommand,
         generateContainerCommand,
+        generateServiceCommand,
+        generateStackCommand,
         // 仅供测试
         _escapeArg: escapeArg
     };

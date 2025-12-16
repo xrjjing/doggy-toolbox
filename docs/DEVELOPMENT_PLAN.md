@@ -105,17 +105,17 @@
 - [x] 代码块语法高亮
 - [x] 表格渲染
 - [x] 任务列表支持
-- [ ] 导出为 HTML
-- [ ] 分屏编辑/预览模式
+- [ ] 导出为 HTML（后端已完成，待 UI 集成）
+- [ ] 分屏编辑/预览模式（待 UI 实现）
 
 **M23 功能详情：**
 - [x] CSV 文件解析与表格展示
 - [x] 自定义分隔符 (逗号/制表符/分号等)
-- [ ] 列排序与筛选
-- [ ] 单元格编辑
+- [x] 列排序与筛选（后端已完成）
+- [ ] 单元格编辑（待 UI 实现）
 - [x] CSV ↔ JSON 转换
 - [x] CSV ↔ TSV 转换
-- [ ] 导出功能
+- [ ] 导出功能（待 UI 实现）
 
 ---
 
@@ -159,10 +159,10 @@
 **M26 功能详情：**
 - [x] 基础命令 (init/clone/add/commit/push/pull)
 - [x] 分支操作 (branch/checkout/merge/rebase)
-- [ ] 远程操作 (remote/fetch)
+- [x] 远程操作 (remote/fetch)（后端已完成）
 - [x] 撤销操作 (reset/revert/checkout)
 - [x] 日志查看 (log/diff/show)
-- [ ] 标签操作 (tag)
+- [x] 标签操作 (tag)（后端已完成）
 - [x] 暂存操作 (stash)
 - [x] 命令说明与示例
 - [x] 一键复制
@@ -188,14 +188,14 @@
   - [x] ps (列出容器)
   - [x] exec (执行命令)
   - [x] pull (拉取镜像)
-- [ ] **docker service 命令** (Swarm)
-  - [ ] create/update/scale
-  - [ ] ls/ps/logs
-  - [ ] rm
-- [ ] **docker stack 命令** (Swarm)
-  - [ ] deploy
-  - [ ] ls/ps/services
-  - [ ] rm
+- [x] **docker service 命令** (Swarm)（后端已完成）
+  - [x] create/update/scale
+  - [x] ls/ps/logs
+  - [x] rm
+- [x] **docker stack 命令** (Swarm)（后端已完成）
+  - [x] deploy
+  - [x] ls/ps/services
+  - [x] rm
 - [x] **完整 UI 实现**（8 个场景标签）
 - [x] **表单式参数输入**（端口映射、卷挂载、环境变量等可视化配置）
 - [x] **实时命令预览**
@@ -234,7 +234,7 @@
 - [x] UUID 生成
 - [x] 自定义模板
 - [x] 批量生成 (指定数量)
-- [ ] JSON/CSV 格式输出
+- [x] JSON/CSV/SQL/JSON Lines 格式输出（后端已完成）
 
 **M30 功能详情：**
 - [x] 手机号脱敏 (138****8888)
@@ -242,20 +242,20 @@
 - [x] 邮箱脱敏 (a**@example.com)
 - [x] 银行卡脱敏
 - [x] 姓名脱敏 (张**)
-- [ ] 地址脱敏
+- [x] 地址脱敏（后端已完成）
 - [x] 自定义脱敏规则
 - [x] 批量处理
-- [ ] JSON 数据脱敏
+- [x] JSON 递归脱敏（后端已完成）
 
 **M31 功能详情：**
 - [x] CSV 文件上传解析
-- [ ] Excel 文件上传解析 (.xlsx)
+- [ ] Excel 文件上传解析 (.xlsx)（后端已完成，待 UI 集成）
 - [x] 预览表格数据
-- [ ] 选择转换的列
-- [ ] 设置字段映射
+- [ ] 选择转换的列（后端已完成，待 UI 集成）
+- [ ] 设置字段映射（后端已完成，待 UI 集成）
 - [x] 生成 JSON 数组
-- [ ] 生成嵌套 JSON 结构
-- [ ] 复制/下载结果
+- [ ] 生成嵌套 JSON 结构（后端已完成，待 UI 集成）
+- [ ] 复制/下载结果（待 UI 实现）
 
 ---
 
@@ -268,10 +268,10 @@
 **M32 功能详情：**
 - [x] 两个日期之间的差值 (天/周/月/年)
 - [x] 日期加减运算 (加/减 N 天/周/月/年)
-- [ ] 工作日计算 (排除周末)
-- [ ] 节假日支持 (可选)
+- [x] 工作日计算 (排除周末)（后端已完成）
+- [ ] 节假日支持 (可选)（待实现）
 - [x] 周数计算
-- [ ] 季度计算
+- [x] 季度计算（后端已完成）
 - [x] 闰年判断
 - [x] 星期几查询
 
@@ -380,6 +380,14 @@ tests/mXX_utils.test.js   # 单元测试文件
 | 2025-12-16 | UI 修复 | ✅ **M22 删除重复按钮**：删除 Markdown 预览页面中重复的"导出 HTML"和"复制 HTML"按钮 |
 | 2025-12-16 | 功能修复 | ✅ **添加 6 个缺失的初始化函数**：M22/M26/M27/M28/M29/M30 添加 `init*Tool()` 函数，修复工具无法使用的问题 |
 | 2025-12-16 | Bug 修复 | ✅ **M31 API 不一致修复**：修复 `app.js:3776` 调用 `tableToJson()` 参数不匹配问题，改为使用 options 对象 |
+| 2025-12-16 | 功能完善 | ✅ **M29 格式化输出**：添加 `formatOutput()` 函数，支持 json/jsonlines/csv/sql 四种格式输出 |
+| 2025-12-16 | 功能完善 | ✅ **M30 地址脱敏与 JSON 递归脱敏**：添加 `maskAddress()` 和 `maskJsonRecursive()` 函数，支持地址脱敏和 JSON 对象递归脱敏 |
+| 2025-12-16 | 功能完善 | ✅ **M23 表格操作**：添加 `sortTable()` 和 `filterTable()` 函数，支持按列排序和关键词过滤 |
+| 2025-12-16 | 功能完善 | ✅ **M26 Git 远程与标签**：添加 `generateRemoteCommand()`、`generateFetchCommand()`、`generateTagCommand()` 函数 |
+| 2025-12-16 | 功能完善 | ✅ **M27 Docker Swarm**：添加 `generateServiceCommand()` 和 `generateStackCommand()` 函数，支持 Swarm 集群管理 |
+| 2025-12-16 | 功能完善 | ✅ **M32 工作日与季度**：添加 `calculateWorkingDays()`、`addWorkingDays()`、`getQuarter()` 函数 |
+| 2025-12-16 | 代码质量 | ✅ **Codex Review 两轮**：完成两批次代码审查，修复 maskJsonRecursive 字段匹配问题、M32 日期验证问题等 |
+| 2025-12-16 | 测试验证 | ✅ **单元测试**：创建 test_batch1.js 和 test_batch2.js，所有测试通过 |
 
 ---
 

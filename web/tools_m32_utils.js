@@ -294,6 +294,107 @@
     }
 
     // ==================== 导出 API ====================
+    // ==================== 工作日计算 ====================
+    /**
+     * 判断是否为周末
+     * @param {Date} date - 日期对象
+     * @returns {boolean}
+     */
+    function isWeekend(date) {
+        const day = date.getDay();
+        return day === 0 || day === 6; // 0=周日, 6=周六
+    }
+
+    /**
+     * 计算两个日期之间的工作日天数（排除周末）
+     * @param {string|Date} startDate - 开始日期
+     * @param {string|Date} endDate - 结束日期
+     * @returns {number} 工作日天数
+     */
+    function calculateWorkingDays(startDate, endDate) {
+        const start = startDate instanceof Date ? startDate : parseDate(startDate);
+        const end = endDate instanceof Date ? endDate : parseDate(endDate);
+
+        // 验证日期有效性
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            throw new Error('无效的日期');
+        }
+
+        // 标准化为零点
+        const startNorm = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+        const endNorm = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+
+        if (endNorm < startNorm) return 0;
+
+        let count = 0;
+        const current = new Date(startNorm);
+
+        while (current <= endNorm) {
+            if (!isWeekend(current)) {
+                count++;
+            }
+            current.setDate(current.getDate() + 1);
+        }
+
+        return count;
+    }
+
+    /**
+     * 在指定日期上增加工作日
+     * @param {string|Date} date - 起始日期
+     * @param {number} days - 要增加的工作日天数（可以为负数）
+     * @returns {Date} 计算后的日期
+     */
+    function addWorkingDays(date, days) {
+        const d = date instanceof Date ? new Date(date) : parseDate(date);
+
+        // 验证日期有效性
+        if (isNaN(d.getTime())) {
+            throw new Error('无效的日期');
+        }
+
+        let remaining = Math.abs(days);
+        const step = days >= 0 ? 1 : -1;
+
+        while (remaining > 0) {
+            d.setDate(d.getDate() + step);
+            if (!isWeekend(d)) {
+                remaining--;
+            }
+        }
+
+        return d;
+    }
+
+    // ==================== 季度计算 ====================
+    /**
+     * 获取日期所属季度
+     * @param {string|Date} date - 日期
+     * @returns {object} { year, quarter, startDate, endDate }
+     */
+    function getQuarter(date) {
+        const d = date instanceof Date ? date : parseDate(date);
+        const year = d.getFullYear();
+        const month = d.getMonth(); // 0-11
+
+        const quarter = Math.floor(month / 3) + 1; // 1-4
+
+        // 计算季度的开始和结束日期
+        const startMonth = (quarter - 1) * 3;
+        const endMonth = startMonth + 2;
+
+        const startDate = new Date(year, startMonth, 1);
+        const endDate = new Date(year, endMonth + 1, 0); // 下个月的第0天 = 本月最后一天
+
+        return {
+            year: year,
+            quarter: quarter,
+            startDate: formatDate(startDate, 'YYYY-MM-DD'),
+            endDate: formatDate(endDate, 'YYYY-MM-DD'),
+            description: `${year}年第${quarter}季度`
+        };
+    }
+
     return {
         parseDate,
         formatDate,
@@ -304,6 +405,10 @@
         getWeekday,
         getWeekNumber,
         calculateAge,
-        getRemainingDays
+        getRemainingDays,
+        isWeekend,
+        calculateWorkingDays,
+        addWorkingDays,
+        getQuarter
     };
 });

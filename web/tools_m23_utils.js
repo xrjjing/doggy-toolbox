@@ -222,10 +222,63 @@
         return stringifyCSV(data, options);
     }
 
+    /**
+     * 表格排序：按指定列排序
+     * @param {Array<Array>} data - 二维数组
+     * @param {number} columnIndex - 列索引
+     * @param {string} direction - 排序方向：'asc' 或 'desc'
+     * @returns {Array<Array>} 排序后的新数组
+     */
+    function sortTable(data, columnIndex, direction = 'asc') {
+        if (!Array.isArray(data) || data.length === 0) return data;
+
+        const dir = direction === 'desc' ? -1 : 1;
+
+        return [...data].sort((a, b) => {
+            const va = a[columnIndex];
+            const vb = b[columnIndex];
+
+            // 尝试数字比较
+            const na = Number(va);
+            const nb = Number(vb);
+            const bothNum = !isNaN(na) && !isNaN(nb);
+
+            if (bothNum) {
+                return (na - nb) * dir;
+            }
+
+            // 字符串比较
+            const sa = va == null ? '' : String(va);
+            const sb = vb == null ? '' : String(vb);
+            return sa.localeCompare(sb) * dir;
+        });
+    }
+
+    /**
+     * 表格过滤：根据关键词过滤行
+     * @param {Array<Array>} data - 二维数组
+     * @param {string} filterText - 过滤关键词
+     * @returns {Array<Array>} 过滤后的新数组
+     */
+    function filterTable(data, filterText) {
+        if (!Array.isArray(data) || !filterText) return data;
+
+        const keyword = filterText.toLowerCase();
+
+        return data.filter(row =>
+            row.some(cell => {
+                const cellStr = cell == null ? '' : String(cell);
+                return cellStr.toLowerCase().includes(keyword);
+            })
+        );
+    }
+
     return {
         parseCSV,
         stringifyCSV,
         csvToJson,
-        jsonToCsv
+        jsonToCsv,
+        sortTable,
+        filterTable
     };
 });

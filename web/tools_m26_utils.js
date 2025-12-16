@@ -524,6 +524,153 @@
         ];
     }
 
+    /**
+     * 生成远程仓库命令
+     * @param {string} action - 操作类型：add, set-url, remove, show
+     * @param {string} name - 远程仓库名称
+     * @param {string} url - 仓库 URL（add 和 set-url 需要）
+     * @returns {object} { command, description }
+     */
+    function generateRemoteCommand(action, name, url) {
+        const remoteName = name || 'origin';
+        const act = (action || '').toLowerCase();
+
+        if (act === 'add') {
+            if (!url) throw new Error('添加远程仓库需要提供 URL');
+            return {
+                command: `git remote add ${escapeArg(remoteName)} ${escapeArg(url)}`,
+                description: `添加远程仓库 ${remoteName}`
+            };
+        }
+
+        if (act === 'set-url') {
+            if (!url) throw new Error('修改远程仓库 URL 需要提供新 URL');
+            return {
+                command: `git remote set-url ${escapeArg(remoteName)} ${escapeArg(url)}`,
+                description: `修改远程仓库 ${remoteName} 的 URL`
+            };
+        }
+
+        if (act === 'remove') {
+            return {
+                command: `git remote remove ${escapeArg(remoteName)}`,
+                description: `删除远程仓库 ${remoteName}`
+            };
+        }
+
+        if (act === 'show') {
+            return {
+                command: `git remote show ${escapeArg(remoteName)}`,
+                description: `查看远程仓库 ${remoteName} 详情`
+            };
+        }
+
+        if (act === 'rename') {
+            if (!url) throw new Error('重命名需要提供新名称');
+            return {
+                command: `git remote rename ${escapeArg(remoteName)} ${escapeArg(url)}`,
+                description: `将远程仓库 ${remoteName} 重命名为 ${url}`
+            };
+        }
+
+        throw new Error(`未知的远程操作: ${action}`);
+    }
+
+    /**
+     * 生成抓取命令
+     * @param {string} remote - 远程仓库名称，默认 origin
+     * @param {object} options - 选项
+     *   - all: 抓取所有远程仓库
+     *   - prune: 删除远程已删除的分支
+     *   - tags: 抓取所有标签
+     * @returns {object} { command, description }
+     */
+    function generateFetchCommand(remote = 'origin', options = {}) {
+        const parts = ['git fetch'];
+        const descriptions = [];
+
+        if (options.all) {
+            parts.push('--all');
+            descriptions.push('抓取所有远程仓库');
+        } else {
+            parts.push(escapeArg(remote));
+            descriptions.push(`从 ${remote} 抓取`);
+        }
+
+        if (options.prune) {
+            parts.push('--prune');
+            descriptions.push('清理已删除的远程分支');
+        }
+
+        if (options.tags) {
+            parts.push('--tags');
+            descriptions.push('抓取所有标签');
+        }
+
+        return {
+            command: parts.join(' '),
+            description: descriptions.join('，')
+        };
+    }
+
+    /**
+     * 生成标签命令
+     * @param {string} action - 操作类型：create, delete, push, list
+     * @param {string} tagName - 标签名称
+     * @param {object} options - 选项
+     *   - message: 附注标签的消息（create 时使用）
+     *   - annotate: 是否创建附注标签（create 时使用）
+     *   - force: 是否强制操作
+     *   - remote: 远程仓库名称（push 时使用）
+     * @returns {object} { command, description }
+     */
+    function generateTagCommand(action, tagName, options = {}) {
+        const act = (action || '').toLowerCase();
+
+        if (act === 'create') {
+            if (!tagName) throw new Error('创建标签需要提供标签名称');
+
+            if (options.annotate && options.message) {
+                return {
+                    command: `git tag -a ${escapeArg(tagName)} -m ${escapeArg(options.message)}`,
+                    description: `创建附注标签 ${tagName}`
+                };
+            }
+
+            return {
+                command: `git tag ${escapeArg(tagName)}`,
+                description: `创建轻量标签 ${tagName}`
+            };
+        }
+
+        if (act === 'delete') {
+            if (!tagName) throw new Error('删除标签需要提供标签名称');
+            return {
+                command: `git tag -d ${escapeArg(tagName)}`,
+                description: `删除本地标签 ${tagName}`
+            };
+        }
+
+        if (act === 'push') {
+            if (!tagName) throw new Error('推送标签需要提供标签名称');
+            const remote = options.remote || 'origin';
+            const force = options.force ? ' -f' : '';
+            return {
+                command: `git push${force} ${escapeArg(remote)} ${escapeArg(tagName)}`,
+                description: `推送标签 ${tagName} 到 ${remote}${force ? '（强制）' : ''}`
+            };
+        }
+
+        if (act === 'list') {
+            return {
+                command: 'git tag --list',
+                description: '列出所有标签'
+            };
+        }
+
+        throw new Error(`未知的标签操作: ${action}`);
+    }
+
     // 导出 API
     return {
         generateCloneCommand,
@@ -534,6 +681,9 @@
         generateStashCommand,
         generateResetCommand,
         generateLogCommand,
-        getCommonTemplates
+        getCommonTemplates,
+        generateRemoteCommand,
+        generateFetchCommand,
+        generateTagCommand
     };
 });

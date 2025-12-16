@@ -539,6 +539,57 @@
         return generateMock(template, count);
     }
 
+    // ========== 格式化输出 ==========
+    /**
+     * 将 mock 数据按指定格式序列化输出
+     * @param {Array<Object>} data - 数据数组
+     * @param {'json'|'jsonlines'|'csv'|'sql'} format - 输出格式
+     * @returns {string} 格式化后的字符串
+     */
+    function formatOutput(data, format) {
+        const rows = Array.isArray(data) ? data : [];
+        const fmt = (format || '').toLowerCase();
+
+        if (fmt === 'jsonlines') {
+            return rows.map(r => JSON.stringify(r)).join('\n');
+        }
+
+        if (fmt === 'csv') {
+            if (!rows.length) return '';
+            const headers = Object.keys(rows[0]);
+            const esc = v => {
+                if (v === null || v === undefined) return '';
+                const s = String(v);
+                const needsWrap = /[",\n]/.test(s);
+                const body = s.replace(/"/g, '""');
+                return needsWrap ? `"${body}"` : body;
+            };
+            const lines = [
+                headers.join(','),
+                ...rows.map(r => headers.map(h => esc(r[h])).join(','))
+            ];
+            return lines.join('\n');
+        }
+
+        if (fmt === 'sql') {
+            if (!rows.length) return '';
+            const table = 'mock_table';
+            const cols = Object.keys(rows[0]);
+            const escVal = v => {
+                if (v === null || v === undefined) return 'NULL';
+                if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+                return `'${String(v).replace(/'/g, "''")}'`;
+            };
+            const values = rows
+                .map(r => `(${cols.map(c => escVal(r[c])).join(', ')})`)
+                .join(',\n');
+            return `INSERT INTO ${table} (${cols.join(', ')}) VALUES\n${values};`;
+        }
+
+        // 默认或 json
+        return JSON.stringify(rows, null, 2);
+    }
+
     // ========== 导出接口 ==========
     return {
         // 基础数据生成函数
@@ -566,6 +617,9 @@
         parseTemplate,
         generateFromTemplate,
         generateMock,
-        generateFromPreset
+        generateFromPreset,
+
+        // 格式化输出
+        formatOutput
     };
 });

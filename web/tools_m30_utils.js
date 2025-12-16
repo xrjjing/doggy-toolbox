@@ -351,6 +351,110 @@
         };
     }
 
+    // ==================== 地址脱敏 ====================
+    /**
+     * 地址脱敏：保留前后各 3-4 字符，中间替换为 *
+     * @param {string} address - 地址字符串
+     * @param {string} maskChar - 脱敏字符，默认 '*'
+     * @returns {string} 脱敏后的地址
+     */
+    function maskAddress(address, maskChar = '*') {
+        if (!address || typeof address !== 'string') return '';
+
+        const cleaned = address.trim();
+        if (cleaned.length <= 8) return maskChar.repeat(3);
+
+        return `${cleaned.slice(0, 4)}${maskChar.repeat(3)}${cleaned.slice(-3)}`;
+    }
+
+    // ==================== JSON 递归脱敏 ====================
+    const DEFAULT_SENSITIVE_FIELDS = ['email', 'phone', 'mobile', 'tel', 'id', 'idcard', 'idCard', 'ssn', 'address', 'card', 'creditcard', 'creditCard', 'bankcard', 'bankCard'];
+    const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    const PHONE_RE = /^\+?\d[\d\-\s]{6,}$/;
+    const IDCARD_RE = /^[0-9A-Za-z]{8,20}$/;
+
+    /**
+     * 根据值的类型自动脱敏
+     * @param {any} val - 待脱敏的值
+     * @param {string} maskChar - 脱敏字符
+     * @returns {any} 脱敏后的值
+     */
+    function maskValueByType(val, maskChar = '*') {
+        if (val === null || val === undefined) return val;
+
+        const s = String(val);
+
+        // 邮箱
+        if (EMAIL_RE.test(s)) {
+            return s.replace(/(^.).*(@.*$)/, `$1${maskChar.repeat(3)}$2`);
+        }
+
+        // 手机号
+        if (PHONE_RE.test(s)) {
+            const cleaned = s.replace(/[\s\-]/g, '');
+            if (cleaned.length >= 7) {
+                return cleaned.slice(0, 3) + maskChar.repeat(4) + cleaned.slice(-4);
+            }
+        }
+
+        // 身份证
+        if (IDCARD_RE.test(s) && s.length >= 8) {
+            return s.slice(0, 3) + maskChar.repeat(4) + s.slice(-3);
+        }
+
+        return s;
+    }
+
+    /**
+     * JSON 递归脱敏：深度遍历对象，对敏感字段进行脱敏
+     * @param {any} node - JSON 对象或数组
+     * @param {Array<string>} fieldKeys - 额外的敏感字段名列表
+     * @param {string} maskChar - 脱敏字符，默认 '*'
+     * @returns {any} 脱敏后的新对象
+     */
+    function maskJsonRecursive(node, fieldKeys = [], maskChar = '*') {
+        const customKeys = (fieldKeys || []).map(k => String(k).toLowerCase());
+
+        const isTargetKey = (key) => {
+            const lowerKey = String(key).toLowerCase();
+            // 精确匹配，避免误判 orderId、grid 等字段
+            return DEFAULT_SENSITIVE_FIELDS.includes(lowerKey) ||
+                   customKeys.includes(lowerKey);
+        };
+
+        const walk = (value) => {
+            // 数组：递归处理每个元素
+            if (Array.isArray(value)) {
+                return value.map(walk);
+            }
+
+            // 对象：递归处理每个属性
+            if (value && typeof value === 'object') {
+                const result = {};
+                Object.keys(value).forEach(key => {
+                    const val = value[key];
+                    if (isTargetKey(key)) {
+                        // 敏感字段：如果值是对象/数组，递归处理；否则脱敏
+                        if (val && typeof val === 'object') {
+                            result[key] = walk(val);
+                        } else {
+                            result[key] = maskValueByType(val, maskChar);
+                        }
+                    } else {
+                        // 非敏感字段：递归处理
+                        result[key] = walk(val);
+                    }
+                });
+                return result;
+            }
+
+            // 基本类型：直接返回
+            return value;
+        };
+
+        return walk(node);
+    }
+
     // 导出 API
     return {
         maskPhone,
@@ -361,6 +465,8 @@
         maskCustom,
         batchMask,
         detectType,
-        smartMask
+        smartMask,
+        maskAddress,
+        maskJsonRecursive
     };
 });
