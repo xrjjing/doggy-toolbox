@@ -1649,6 +1649,7 @@
 		                                    <button class="btn btn-sm btn-ghost format-btn" id="table-out-tsv" onclick="setTableOutputFormat('tsv')">TSV</button>
 		                                </div>
 		                                <button class="btn btn-sm btn-ghost" onclick="copyTableOutput(this)">复制</button>
+		                                <button class="btn btn-sm btn-ghost" onclick="downloadTableOutput()">下载</button>
 		                            </div>
 		                        </div>
 		                        <div class="panel-body">
@@ -2285,6 +2286,7 @@
 		                                <option value=";">分号 (;)</option>
 		                                <option value="|">竖线 (|)</option>
 		                            </select>
+		                            <button class="btn btn-sm btn-ghost" onclick="detectCsvDelimiter()" title="自动检测分隔符">自动检测</button>
 		                        </div>
 		                    </div>
 		                </div>
@@ -2298,12 +2300,17 @@
 		                        <p class="subtitle">实时预览 Markdown 渲染效果</p>
 		                    </div>
 		                    <div class="page-actions">
+		                        <div class="format-toggle">
+		                            <button class="btn btn-sm btn-ghost format-btn view-mode-btn active" data-mode="split" onclick="setMarkdownViewMode('split')" title="分屏模式">分屏</button>
+		                            <button class="btn btn-sm btn-ghost format-btn view-mode-btn" data-mode="edit" onclick="setMarkdownViewMode('edit')" title="仅编辑">编辑</button>
+		                            <button class="btn btn-sm btn-ghost format-btn view-mode-btn" data-mode="preview" onclick="setMarkdownViewMode('preview')" title="仅预览">预览</button>
+		                        </div>
 		                        <button class="btn btn-ghost" onclick="clearMarkdownTool()">清空</button>
 		                    </div>
 		                </div>
 		                <div class="markdown-tool">
-		                    <div class="converter-layout">
-		                        <div class="converter-panel">
+		                    <div class="converter-layout" id="markdown-layout">
+		                        <div class="converter-panel" id="markdown-edit-panel">
 		                            <div class="panel-header">
 		                                <h3>Markdown 输入</h3>
 		                            </div>
@@ -2311,7 +2318,7 @@
 		                                <textarea id="markdown-input" placeholder="# 标题&#10;&#10;输入 **Markdown** 文本..." spellcheck="false" oninput="updateMarkdownTool()"></textarea>
 		                            </div>
 		                        </div>
-		                        <div class="converter-panel">
+		                        <div class="converter-panel" id="markdown-preview-panel">
 		                            <div class="panel-header">
 		                                <h3>预览</h3>
 		                                <div class="panel-actions">
@@ -3093,12 +3100,206 @@
 		                                <h3>生成的 Schema</h3>
 		                                <div class="panel-actions">
 		                                    <button class="btn btn-sm btn-ghost" onclick="copyJsonSchemaOutput(this)">复制</button>
+		                                    <button class="btn btn-sm btn-ghost" onclick="downloadJsonSchema()">下载</button>
 		                                </div>
 		                            </div>
 		                            <div class="panel-body">
 		                                <textarea id="jsonschema-output" readonly placeholder="JSON Schema 将显示在这里..." spellcheck="false"></textarea>
 		                            </div>
 		                        </div>
+		                    </div>
+		                    <div class="jsonschema-options">
+		                        <div class="option-group">
+		                            <label class="tool-check">
+		                                <input type="checkbox" id="jsonschema-all-required" checked onchange="updateJsonSchemaTool()">
+		                                <span>所有字段必填</span>
+		                            </label>
+		                        </div>
+		                        <div class="option-group">
+		                            <label class="tool-check">
+		                                <input type="checkbox" id="jsonschema-infer-enum" onchange="updateJsonSchemaTool()">
+		                                <span>推断枚举值（数组元素）</span>
+		                            </label>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>
+
+		            <!-- HTTP 请求测试页面 -->
+		            <section id="page-tool-http" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>HTTP 请求测试</h1>
+		                        <p class="subtitle">类似 Postman 的 HTTP 请求测试工具</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearHttpTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="http-tool">
+		                    <!-- 请求配置 -->
+		                    <div class="http-request">
+		                        <div class="http-url-bar">
+		                            <select id="http-method" class="http-method-select">
+		                                <option value="GET">GET</option>
+		                                <option value="POST">POST</option>
+		                                <option value="PUT">PUT</option>
+		                                <option value="DELETE">DELETE</option>
+		                                <option value="PATCH">PATCH</option>
+		                                <option value="HEAD">HEAD</option>
+		                                <option value="OPTIONS">OPTIONS</option>
+		                            </select>
+		                            <input type="text" id="http-url" placeholder="https://api.example.com/endpoint" class="http-url-input">
+		                            <button class="btn btn-primary" onclick="sendHttpRequest()">发送</button>
+		                        </div>
+
+		                        <!-- 请求选项卡 -->
+		                        <div class="http-tabs">
+		                            <button class="http-tab active" data-tab="params" onclick="switchHttpTab('params')">Query 参数</button>
+		                            <button class="http-tab" data-tab="headers" onclick="switchHttpTab('headers')">请求头</button>
+		                            <button class="http-tab" data-tab="body" onclick="switchHttpTab('body')">请求体</button>
+		                            <button class="http-tab" data-tab="curl" onclick="switchHttpTab('curl')">cURL</button>
+		                        </div>
+
+		                        <!-- Query 参数 -->
+		                        <div class="http-tab-content active" id="http-tab-params">
+		                            <div class="http-kv-editor" id="http-params-editor">
+		                                <div class="http-kv-row">
+		                                    <input type="text" placeholder="Key" class="http-kv-key">
+		                                    <input type="text" placeholder="Value" class="http-kv-value">
+		                                    <button class="btn btn-sm btn-ghost" onclick="addHttpParam()">+</button>
+		                                </div>
+		                            </div>
+		                        </div>
+
+		                        <!-- 请求头 -->
+		                        <div class="http-tab-content" id="http-tab-headers">
+		                            <div class="http-kv-editor" id="http-headers-editor">
+		                                <div class="http-kv-row">
+		                                    <input type="text" placeholder="Header Name" class="http-kv-key">
+		                                    <input type="text" placeholder="Header Value" class="http-kv-value">
+		                                    <button class="btn btn-sm btn-ghost" onclick="addHttpHeader()">+</button>
+		                                </div>
+		                            </div>
+		                        </div>
+
+		                        <!-- 请求体 -->
+		                        <div class="http-tab-content" id="http-tab-body">
+		                            <div class="http-body-type">
+		                                <label>
+		                                    <input type="radio" name="http-body-type" value="none" checked onchange="switchHttpBodyType('none')">
+		                                    <span>None</span>
+		                                </label>
+		                                <label>
+		                                    <input type="radio" name="http-body-type" value="json" onchange="switchHttpBodyType('json')">
+		                                    <span>JSON</span>
+		                                </label>
+		                                <label>
+		                                    <input type="radio" name="http-body-type" value="form" onchange="switchHttpBodyType('form')">
+		                                    <span>Form</span>
+		                                </label>
+		                                <label>
+		                                    <input type="radio" name="http-body-type" value="raw" onchange="switchHttpBodyType('raw')">
+		                                    <span>Raw</span>
+		                                </label>
+		                            </div>
+		                            <div id="http-body-editor" style="display: none;">
+		                                <textarea id="http-body-text" placeholder="请求体内容..." spellcheck="false"></textarea>
+		                            </div>
+		                        </div>
+
+		                        <!-- cURL -->
+		                        <div class="http-tab-content" id="http-tab-curl">
+		                            <textarea id="http-curl-input" placeholder="粘贴 cURL 命令..." spellcheck="false"></textarea>
+		                            <div class="http-curl-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="importCurl()">导入</button>
+		                                <button class="btn btn-sm btn-ghost" onclick="exportCurl()">导出</button>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 响应展示 -->
+		                    <div class="http-response">
+		                        <div class="http-response-header">
+		                            <h3>响应</h3>
+		                            <div class="http-response-meta" id="http-response-meta"></div>
+		                        </div>
+		                        <div class="http-response-tabs">
+		                            <button class="http-tab active" data-tab="response-body" onclick="switchHttpResponseTab('response-body')">Body</button>
+		                            <button class="http-tab" data-tab="response-headers" onclick="switchHttpResponseTab('response-headers')">Headers</button>
+		                        </div>
+		                        <div class="http-response-content">
+		                            <div class="http-tab-content active" id="http-tab-response-body">
+		                                <textarea id="http-response-body" readonly placeholder="响应内容将显示在这里..." spellcheck="false"></textarea>
+		                            </div>
+		                            <div class="http-tab-content" id="http-tab-response-headers">
+		                                <textarea id="http-response-headers-text" readonly placeholder="响应头将显示在这里..." spellcheck="false"></textarea>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>
+
+		            <!-- WebSocket 测试页面 -->
+		            <section id="page-tool-websocket" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>WebSocket 测试</h1>
+		                        <p class="subtitle">WebSocket 连接测试与消息收发</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearWebSocketTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="websocket-tool">
+		                    <!-- 连接配置 -->
+		                    <div class="websocket-connection">
+		                        <div class="websocket-url-bar">
+		                            <input type="text" id="ws-url" placeholder="wss://echo.websocket.org" class="ws-url-input">
+		                            <button class="btn btn-primary" id="ws-connect-btn" onclick="toggleWebSocketConnection()">连接</button>
+		                            <span class="ws-status" id="ws-status">未连接</span>
+		                        </div>
+		                        <div class="websocket-options">
+		                            <label class="tool-check">
+		                                <input type="checkbox" id="ws-auto-reconnect">
+		                                <span>自动重连</span>
+		                            </label>
+		                            <label class="tool-check">
+		                                <input type="checkbox" id="ws-format-json" checked>
+		                                <span>自动格式化 JSON</span>
+		                            </label>
+		                        </div>
+		                    </div>
+
+		                    <!-- 消息发送 -->
+		                    <div class="websocket-send">
+		                        <div class="websocket-send-header">
+		                            <h3>发送消息</h3>
+		                            <div class="websocket-send-type">
+		                                <label>
+		                                    <input type="radio" name="ws-message-type" value="text" checked>
+		                                    <span>文本</span>
+		                                </label>
+		                                <label>
+		                                    <input type="radio" name="ws-message-type" value="json">
+		                                    <span>JSON</span>
+		                                </label>
+		                            </div>
+		                        </div>
+		                        <textarea id="ws-message-input" placeholder="输入要发送的消息..." spellcheck="false"></textarea>
+		                        <div class="websocket-send-actions">
+		                            <button class="btn btn-primary" onclick="sendWebSocketMessage()">发送</button>
+		                            <button class="btn btn-ghost" onclick="sendWebSocketPing()">Ping</button>
+		                        </div>
+		                    </div>
+
+		                    <!-- 消息历史 -->
+		                    <div class="websocket-messages">
+		                        <div class="websocket-messages-header">
+		                            <h3>消息历史</h3>
+		                            <button class="btn btn-sm btn-ghost" onclick="clearWebSocketMessages()">清空历史</button>
+		                        </div>
+		                        <div class="websocket-messages-list" id="ws-messages-list"></div>
 		                    </div>
 		                </div>
 		            </section>
@@ -3200,7 +3401,13 @@
 		                                <option value="email">邮箱</option>
 		                                <option value="bankcard">银行卡</option>
 		                                <option value="name">姓名</option>
+		                                <option value="address">地址</option>
+		                                <option value="json">JSON 递归脱敏</option>
 		                            </select>
+		                        </div>
+		                        <div class="form-group" id="mask-json-fields-group" style="display: none;">
+		                            <label>敏感字段（逗号分隔）：</label>
+		                            <input type="text" id="mask-json-fields" placeholder="phone,idcard,email,name..." oninput="updateMaskTool()">
 		                        </div>
 		                    </div>
 		                </div>
@@ -3433,6 +3640,8 @@
 	    <script src="tools_m21_utils.js"></script>
 	    <script src="tools_m22_utils.js"></script>
 	    <script src="tools_m23_utils.js"></script>
+	    <script src="tools_m24_utils.js"></script>
+	    <script src="tools_m25_utils.js"></script>
 	    <script src="tools_m26_utils.js"></script>
 	    <script src="tools_m27_utils.js"></script>
 	    <script src="tools_m28_utils.js"></script>

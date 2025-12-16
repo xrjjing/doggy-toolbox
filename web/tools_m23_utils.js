@@ -273,12 +273,43 @@
         );
     }
 
+    /**
+     * 自动检测分隔符
+     * @param {string} text - CSV 文本
+     * @returns {string} 检测到的分隔符
+     */
+    function detectDelimiter(text) {
+        const lines = String(text ?? '').split(/\r?\n/).filter(l => l.trim());
+        if (lines.length === 0) return ',';
+
+        const firstLine = lines[0];
+        const candidates = [',', '\t', ';', '|'];
+        const counts = {};
+
+        for (const delim of candidates) {
+            const escaped = delim.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            counts[delim] = (firstLine.match(new RegExp(escaped, 'g')) || []).length;
+        }
+
+        let maxCount = 0;
+        let detected = ',';
+        for (const delim of candidates) {
+            if (counts[delim] > maxCount) {
+                maxCount = counts[delim];
+                detected = delim;
+            }
+        }
+
+        return detected;
+    }
+
     return {
         parseCSV,
         stringifyCSV,
         csvToJson,
         jsonToCsv,
         sortTable,
-        filterTable
+        filterTable,
+        detectDelimiter
     };
 });

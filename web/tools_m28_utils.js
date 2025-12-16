@@ -18,17 +18,25 @@
     /**
      * 从 JSON 数据生成 JSON Schema
      * @param {string} json - JSON 字符串
+     * @param {object} options - 选项
+     * @param {boolean} options.allRequired - 是否所有字段必填（默认 true）
+     * @param {boolean} options.inferEnum - 是否推断枚举值（默认 false）
      * @returns {{schema: object|null, error: string|null}}
      */
-    function generateSchema(json) {
+    function generateSchema(json, options = {}) {
         const text = String(json ?? '').trim();
         if (!text) {
             return { schema: null, error: 'JSON 数据不能为空' };
         }
 
+        const opts = {
+            allRequired: options.allRequired !== false,
+            inferEnum: options.inferEnum === true
+        };
+
         try {
             const data = JSON.parse(text);
-            const schema = inferSchema(data);
+            const schema = inferSchema(data, opts);
             return { schema, error: null };
         } catch (e) {
             return { schema: null, error: `JSON 解析错误: ${e.message}` };
@@ -38,9 +46,15 @@
     /**
      * 推断数据的 Schema
      * @param {*} value - 任意 JSON 值
+     * @param {object} options - 选项
      * @returns {object} - JSON Schema 对象
      */
-    function inferSchema(value) {
+    function inferSchema(value, options = {}) {
+        const opts = {
+            allRequired: options.allRequired !== false,
+            inferEnum: options.inferEnum === true
+        };
+
         // null
         if (value === null) {
             return { type: 'null' };
@@ -71,19 +85,25 @@
             }
 
             // 推断数组元素的 schema（取第一个元素）
-            // 实际应用中可以合并多个元素的 schema，这里简化处理
-            const itemSchema = inferSchema(value[0]);
+            const itemSchema = inferSchema(value[0], opts);
 
             // 检查所有元素是否同类型
             const allSameType = value.every(item => {
-                const schema = inferSchema(item);
+                const schema = inferSchema(item, opts);
                 return schema.type === itemSchema.type;
             });
+
+            // 如果启用枚举推断且所有元素是基本类型
+            if (opts.inferEnum && allSameType && ['string', 'integer', 'number'].includes(itemSchema.type)) {
+                const uniqueValues = [...new Set(value)];
+                if (uniqueValues.length <= 10 && uniqueValues.length < value.length) {
+                    return { type: 'array', items: { type: itemSchema.type, enum: uniqueValues } };
+                }
+            }
 
             if (allSameType) {
                 return { type: 'array', items: itemSchema };
             } else {
-                // 如果类型不一致，使用空 schema
                 return { type: 'array', items: {} };
             }
         }
@@ -95,9 +115,10 @@
 
             for (const key in value) {
                 if (Object.prototype.hasOwnProperty.call(value, key)) {
-                    properties[key] = inferSchema(value[key]);
-                    // 所有键都视为必填（可以根据需要调整）
-                    required.push(key);
+                    properties[key] = inferSchema(value[key], opts);
+                    if (opts.allRequired) {
+                        required.push(key);
+                    }
                 }
             }
 

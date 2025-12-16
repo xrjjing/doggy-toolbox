@@ -30,8 +30,10 @@ const PAGE_MODULE_MAP = {
     'tool-git': 'DogToolboxM26Utils',
     'tool-docker': 'DogToolboxM27Utils',
     'tool-json-schema': 'DogToolboxM28Utils',
+    'tool-http': 'DogToolboxM24Utils',
     'tool-mock': 'DogToolboxM29Utils',
     'tool-desensitize': 'DogToolboxM30Utils',
+    'tool-mask': 'DogToolboxM30Utils',
     'tool-table-json': 'DogToolboxM31Utils',
     'tool-datecalc': 'DogToolboxM32Utils'
 };
@@ -168,6 +170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initGitTool();
     initDockerTool();
     initJsonSchemaTool();
+    initHttpTool();
     initMockTool();
     initMaskTool();
     loadCredentials();
@@ -3803,6 +3806,25 @@ function copyTableOutput(btn) {
     copyToolText(btn, outputEl.value, { showTextFeedback: true });
 }
 
+function downloadTableOutput() {
+    const output = document.getElementById('table-output')?.value;
+    if (!output) return;
+
+    const format = tableOutputFormat || 'json';
+    const ext = format === 'json' ? 'json' : (format === 'tsv' ? 'tsv' : 'csv');
+    const mimeType = format === 'json' ? 'application/json' : 'text/csv';
+
+    const blob = new Blob([output], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `data.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
 /* ========== M11: 文本去重/排序 ========== */
 function initTextTool() {
     const inputEl = document.getElementById('text-input');
@@ -4740,6 +4762,45 @@ async function importBackup(event) {
 }
 
 // ==================== M22 Markdown 预览工具 ====================
+let markdownViewMode = 'split';
+
+function setMarkdownViewMode(mode) {
+    if (!['split', 'edit', 'preview'].includes(mode)) return;
+    markdownViewMode = mode;
+
+    const editPanel = document.getElementById('markdown-edit-panel');
+    const previewPanel = document.getElementById('markdown-preview-panel');
+    const layout = document.getElementById('markdown-layout');
+
+    // 更新按钮状态
+    document.querySelectorAll('.view-mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+
+    if (!editPanel || !previewPanel || !layout) return;
+
+    // 重置样式
+    editPanel.style.display = '';
+    previewPanel.style.display = '';
+    editPanel.style.flex = '';
+    previewPanel.style.flex = '';
+
+    switch (mode) {
+        case 'edit':
+            previewPanel.style.display = 'none';
+            editPanel.style.flex = '1';
+            break;
+        case 'preview':
+            editPanel.style.display = 'none';
+            previewPanel.style.flex = '1';
+            break;
+        case 'split':
+        default:
+            // 默认分屏模式，两个面板各占一半
+            break;
+    }
+}
+
 function clearMarkdownTool() {
     document.getElementById('markdown-input').value = '';
     document.getElementById('markdown-preview').innerHTML = '';
@@ -5411,6 +5472,8 @@ function updateJsonSchemaTool() {
     const input = document.getElementById('jsonschema-input').value;
     const outputEl = document.getElementById('jsonschema-output');
     const errorsEl = document.getElementById('jsonschema-errors');
+    const allRequiredEl = document.getElementById('jsonschema-all-required');
+    const inferEnumEl = document.getElementById('jsonschema-infer-enum');
 
     errorsEl.innerHTML = '';
 
@@ -5419,13 +5482,18 @@ function updateJsonSchemaTool() {
         return;
     }
 
-    try {
-        const data = JSON.parse(input);
-        const schema = DogToolboxM28Utils.generateSchema(data);
-        outputEl.value = JSON.stringify(schema, null, 2);
-    } catch (e) {
-        errorsEl.innerHTML = `<div class="error-message">错误：${escapeHtml(e.message || String(e))}</div>`;
+    const options = {
+        allRequired: allRequiredEl?.checked ?? true,
+        inferEnum: inferEnumEl?.checked ?? false
+    };
+
+    const result = DogToolboxM28Utils.generateSchema(input, options);
+
+    if (result.error) {
+        errorsEl.innerHTML = `<div class="error-message">错误：${escapeHtml(result.error)}</div>`;
         outputEl.value = '';
+    } else {
+        outputEl.value = JSON.stringify(result.schema, null, 2);
     }
 }
 
@@ -5433,6 +5501,320 @@ function copyJsonSchemaOutput(btn) {
     const output = document.getElementById('jsonschema-output').value;
     if (!output) return;
     copyToolText(btn, output, { showTextFeedback: true });
+}
+
+function downloadJsonSchema() {
+    const output = document.getElementById('jsonschema-output').value;
+    if (!output) return;
+
+    const blob = new Blob([output], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'schema.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// ==================== M24 HTTP 请求测试 ====================
+let httpBodyType = 'none';
+
+function initHttpTool() {
+    // 初始化默认请求头
+    const headersEditor = document.getElementById('http-headers-editor');
+    if (headersEditor) {
+        headersEditor.innerHTML = `
+            <div class="http-kv-row">
+                <input type="text" placeholder="Header Name" class="http-kv-key" value="Content-Type">
+                <input type="text" placeholder="Header Value" class="http-kv-value" value="application/json">
+                <button class="btn btn-sm btn-ghost" onclick="removeHttpKvRow(this)">-</button>
+            </div>
+            <div class="http-kv-row">
+                <input type="text" placeholder="Header Name" class="http-kv-key">
+                <input type="text" placeholder="Header Value" class="http-kv-value">
+                <button class="btn btn-sm btn-ghost" onclick="addHttpHeader()">+</button>
+            </div>
+        `;
+    }
+}
+
+function clearHttpTool() {
+    document.getElementById('http-url').value = '';
+    document.getElementById('http-method').value = 'GET';
+    document.getElementById('http-body-text').value = '';
+    document.getElementById('http-response-body').value = '';
+    document.getElementById('http-response-headers-text').value = '';
+    document.getElementById('http-response-meta').innerHTML = '';
+    document.getElementById('http-curl-input').value = '';
+
+    // 重置参数和请求头
+    const paramsEditor = document.getElementById('http-params-editor');
+    if (paramsEditor) {
+        paramsEditor.innerHTML = `
+            <div class="http-kv-row">
+                <input type="text" placeholder="Key" class="http-kv-key">
+                <input type="text" placeholder="Value" class="http-kv-value">
+                <button class="btn btn-sm btn-ghost" onclick="addHttpParam()">+</button>
+            </div>
+        `;
+    }
+
+    initHttpTool();
+}
+
+function switchHttpTab(tab) {
+    // 切换标签激活状态
+    document.querySelectorAll('.http-tabs .http-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+
+    // 切换内容显示
+    document.querySelectorAll('.http-request .http-tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === `http-tab-${tab}`);
+    });
+}
+
+function switchHttpResponseTab(tab) {
+    // 切换标签激活状态
+    document.querySelectorAll('.http-response-tabs .http-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+
+    // 切换内容显示
+    document.querySelectorAll('.http-response-content .http-tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === `http-tab-${tab}`);
+    });
+}
+
+function switchHttpBodyType(type) {
+    httpBodyType = type;
+    const editor = document.getElementById('http-body-editor');
+    if (type === 'none') {
+        editor.style.display = 'none';
+    } else {
+        editor.style.display = 'block';
+    }
+}
+
+function addHttpParam() {
+    const editor = document.getElementById('http-params-editor');
+    const lastRow = editor.querySelector('.http-kv-row:last-child');
+    const newRow = document.createElement('div');
+    newRow.className = 'http-kv-row';
+    newRow.innerHTML = `
+        <input type="text" placeholder="Key" class="http-kv-key">
+        <input type="text" placeholder="Value" class="http-kv-value">
+        <button class="btn btn-sm btn-ghost" onclick="addHttpParam()">+</button>
+    `;
+
+    // 将最后一行的 + 按钮改为 - 按钮
+    const lastBtn = lastRow.querySelector('button');
+    lastBtn.textContent = '-';
+    lastBtn.onclick = function() { removeHttpKvRow(this); };
+
+    editor.appendChild(newRow);
+}
+
+function addHttpHeader() {
+    const editor = document.getElementById('http-headers-editor');
+    const lastRow = editor.querySelector('.http-kv-row:last-child');
+    const newRow = document.createElement('div');
+    newRow.className = 'http-kv-row';
+    newRow.innerHTML = `
+        <input type="text" placeholder="Header Name" class="http-kv-key">
+        <input type="text" placeholder="Header Value" class="http-kv-value">
+        <button class="btn btn-sm btn-ghost" onclick="addHttpHeader()">+</button>
+    `;
+
+    // 将最后一行的 + 按钮改为 - 按钮
+    const lastBtn = lastRow.querySelector('button');
+    lastBtn.textContent = '-';
+    lastBtn.onclick = function() { removeHttpKvRow(this); };
+
+    editor.appendChild(newRow);
+}
+
+function removeHttpKvRow(btn) {
+    const row = btn.closest('.http-kv-row');
+    row.remove();
+}
+
+function getHttpParams() {
+    const params = {};
+    document.querySelectorAll('#http-params-editor .http-kv-row').forEach(row => {
+        const key = row.querySelector('.http-kv-key').value.trim();
+        const value = row.querySelector('.http-kv-value').value.trim();
+        if (key) {
+            params[key] = value;
+        }
+    });
+    return params;
+}
+
+function getHttpHeaders() {
+    const headers = {};
+    document.querySelectorAll('#http-headers-editor .http-kv-row').forEach(row => {
+        const key = row.querySelector('.http-kv-key').value.trim();
+        const value = row.querySelector('.http-kv-value').value.trim();
+        if (key) {
+            headers[key] = value;
+        }
+    });
+    return headers;
+}
+
+async function sendHttpRequest() {
+    const method = document.getElementById('http-method').value;
+    const url = document.getElementById('http-url').value.trim();
+    const responseBodyEl = document.getElementById('http-response-body');
+    const responseHeadersEl = document.getElementById('http-response-headers-text');
+    const responseMetaEl = document.getElementById('http-response-meta');
+
+    if (!url) {
+        responseBodyEl.value = '错误：请输入 URL';
+        return;
+    }
+
+    try {
+        // 构建完整 URL（带参数）
+        const params = getHttpParams();
+        const fullUrl = DogToolboxM24Utils.buildUrl(url, params);
+
+        // 构建请求配置
+        const config = {
+            method: method,
+            headers: getHttpHeaders()
+        };
+
+        // 添加请求体
+        if (httpBodyType !== 'none' && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+            const body = document.getElementById('http-body-text').value;
+            if (body) {
+                config.body = body;
+            }
+        }
+
+        // 发送请求
+        responseMetaEl.innerHTML = '<span style="color: #666;">发送中...</span>';
+        const startTime = Date.now();
+
+        const response = await fetch(fullUrl, config);
+        const endTime = Date.now();
+        const duration = endTime - startTime;
+
+        // 获取响应头
+        const responseHeaders = {};
+        response.headers.forEach((value, key) => {
+            responseHeaders[key] = value;
+        });
+
+        // 获取响应体
+        const contentType = response.headers.get('content-type') || '';
+        let responseBody;
+
+        if (contentType.includes('application/json')) {
+            const json = await response.json();
+            responseBody = JSON.stringify(json, null, 2);
+        } else {
+            responseBody = await response.text();
+        }
+
+        // 显示响应
+        responseBodyEl.value = responseBody;
+        responseHeadersEl.value = Object.keys(responseHeaders)
+            .map(key => `${key}: ${responseHeaders[key]}`)
+            .join('\n');
+
+        // 显示元信息
+        const statusColor = response.ok ? '#10b981' : '#ef4444';
+        const size = new Blob([responseBody]).size;
+        responseMetaEl.innerHTML = `
+            <span style="color: ${statusColor}; font-weight: bold;">Status: ${response.status} ${response.statusText}</span>
+            <span style="margin-left: 16px;">Time: ${DogToolboxM24Utils.formatResponseTime(duration)}</span>
+            <span style="margin-left: 16px;">Size: ${DogToolboxM24Utils.formatResponseSize(size)}</span>
+        `;
+
+    } catch (e) {
+        responseBodyEl.value = `错误：${e.message || String(e)}`;
+        responseMetaEl.innerHTML = '<span style="color: #ef4444;">请求失败</span>';
+    }
+}
+
+function importCurl() {
+    const curlInput = document.getElementById('http-curl-input').value;
+    if (!curlInput.trim()) return;
+
+    const config = DogToolboxM24Utils.parseCurl(curlInput);
+
+    if (config.error) {
+        alert(config.error);
+        return;
+    }
+
+    // 设置 URL 和方法
+    document.getElementById('http-url').value = config.url;
+    document.getElementById('http-method').value = config.method;
+
+    // 设置请求头
+    const headersEditor = document.getElementById('http-headers-editor');
+    headersEditor.innerHTML = '';
+    Object.keys(config.headers).forEach(key => {
+        const row = document.createElement('div');
+        row.className = 'http-kv-row';
+        row.innerHTML = `
+            <input type="text" placeholder="Header Name" class="http-kv-key" value="${escapeHtml(key)}">
+            <input type="text" placeholder="Header Value" class="http-kv-value" value="${escapeHtml(config.headers[key])}">
+            <button class="btn btn-sm btn-ghost" onclick="removeHttpKvRow(this)">-</button>
+        `;
+        headersEditor.appendChild(row);
+    });
+
+    // 添加空行
+    const emptyRow = document.createElement('div');
+    emptyRow.className = 'http-kv-row';
+    emptyRow.innerHTML = `
+        <input type="text" placeholder="Header Name" class="http-kv-key">
+        <input type="text" placeholder="Header Value" class="http-kv-value">
+        <button class="btn btn-sm btn-ghost" onclick="addHttpHeader()">+</button>
+    `;
+    headersEditor.appendChild(emptyRow);
+
+    // 设置请求体
+    if (config.body) {
+        document.querySelector('input[name="http-body-type"][value="raw"]').checked = true;
+        switchHttpBodyType('raw');
+        document.getElementById('http-body-text').value = config.body;
+    }
+
+    alert('cURL 命令已导入');
+}
+
+function exportCurl() {
+    const method = document.getElementById('http-method').value;
+    const url = document.getElementById('http-url').value.trim();
+
+    if (!url) {
+        alert('请先输入 URL');
+        return;
+    }
+
+    const params = getHttpParams();
+    const fullUrl = DogToolboxM24Utils.buildUrl(url, params);
+
+    const config = {
+        method: method,
+        url: fullUrl,
+        headers: getHttpHeaders(),
+        body: httpBodyType !== 'none' ? document.getElementById('http-body-text').value : ''
+    };
+
+    const curl = DogToolboxM24Utils.generateCurl(config);
+    document.getElementById('http-curl-input').value = curl;
+
+    // 切换到 cURL 标签
+    switchHttpTab('curl');
 }
 
 // ==================== M29 Mock 数据生成 ====================
@@ -5518,6 +5900,12 @@ function updateMaskTool() {
     const input = document.getElementById('mask-input').value;
     const type = document.getElementById('mask-type').value;
     const outputEl = document.getElementById('mask-output');
+    const jsonFieldsGroup = document.getElementById('mask-json-fields-group');
+
+    // 显示/隐藏 JSON 字段输入框
+    if (jsonFieldsGroup) {
+        jsonFieldsGroup.style.display = type === 'json' ? 'block' : 'none';
+    }
 
     if (!input.trim()) {
         outputEl.value = '';
@@ -5528,6 +5916,13 @@ function updateMaskTool() {
         let result;
         if (type === 'auto') {
             result = DogToolboxM30Utils.smartMask(input);
+        } else if (type === 'json') {
+            // JSON 递归脱敏模式
+            const jsonFieldsEl = document.getElementById('mask-json-fields');
+            const customFields = jsonFieldsEl ? jsonFieldsEl.value.split(',').map(f => f.trim()).filter(Boolean) : [];
+            const parsed = JSON.parse(input);
+            const masked = DogToolboxM30Utils.maskJsonRecursive(parsed, customFields);
+            result = JSON.stringify(masked, null, 2);
         } else {
             const lines = input.split('\n');
             const masked = lines.map(line => {
@@ -5543,6 +5938,8 @@ function updateMaskTool() {
                         return DogToolboxM30Utils.maskBankCard(line.trim());
                     case 'name':
                         return DogToolboxM30Utils.maskName(line.trim());
+                    case 'address':
+                        return DogToolboxM30Utils.maskAddress(line.trim());
                     default:
                         return line;
                 }
@@ -5658,6 +6055,19 @@ function clearCsvTool() {
 function copyCsvOutput(btn) {
     const outputEl = document.getElementById('csv-output');
     copyToolText(btn, outputEl?.value || '', { showTextFeedback: true });
+}
+
+function detectCsvDelimiter() {
+    const inputEl = document.getElementById('csv-input');
+    const delimiterEl = document.getElementById('csv-delimiter');
+    if (!inputEl || !delimiterEl || !window.DogToolboxM23Utils) return;
+
+    const input = inputEl.value;
+    if (!input.trim()) return;
+
+    const detected = window.DogToolboxM23Utils.detectDelimiter(input);
+    delimiterEl.value = detected;
+    updateCsvTool();
 }
 
 // ==================== M22 Markdown 工具初始化 ====================
