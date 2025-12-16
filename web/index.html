@@ -7,6 +7,17 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- 全局错误横幅 -->
+    <div id="global-error-banner" class="global-error-banner" style="display: none;">
+        <div class="error-banner-content">
+            <span class="error-icon">⚠️</span>
+            <div class="error-message">
+                <strong>模块加载失败</strong>
+                <p id="error-banner-text"></p>
+            </div>
+            <button class="error-close" onclick="closeErrorBanner()">✕</button>
+        </div>
+    </div>
     <div class="app">
         <nav class="sidebar">
             <div class="logo">
@@ -78,6 +89,10 @@
 	                            <span class="nav-icon">🔢</span>
 	                            <span class="nav-text">进制转换</span>
 	                        </li>
+	                        <li class="nav-item" data-page="tool-unicode">
+	                            <span class="nav-icon">🔠</span>
+	                            <span class="nav-text">Unicode 编解码</span>
+	                        </li>
 	                    </ul>
 	                </li>
 
@@ -105,6 +120,14 @@
 	                            <span class="nav-icon">🔑</span>
 	                            <span class="nav-text">密码生成器</span>
 	                        </li>
+	                        <li class="nav-item" data-page="tool-hmac">
+	                            <span class="nav-icon">🔏</span>
+	                            <span class="nav-text">HMAC 计算</span>
+	                        </li>
+	                        <li class="nav-item" data-page="tool-rsa">
+	                            <span class="nav-icon">🔐</span>
+	                            <span class="nav-text">RSA 加解密</span>
+	                        </li>
 	                    </ul>
 	                </li>
 
@@ -120,9 +143,17 @@
 	                            <span class="nav-icon">📋</span>
 	                            <span class="nav-text">JSON 格式化</span>
 	                        </li>
+	                        <li class="nav-item" data-page="tool-json-schema">
+	                            <span class="nav-icon">📐</span>
+	                            <span class="nav-text">JSON Schema</span>
+	                        </li>
 	                        <li class="nav-item" data-page="tool-data-convert">
 	                            <span class="nav-icon">🔄</span>
 	                            <span class="nav-text">数据格式转换</span>
+	                        </li>
+	                        <li class="nav-item" data-page="tool-table-json">
+	                            <span class="nav-icon">📊</span>
+	                            <span class="nav-text">Excel/CSV 转 JSON</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-text">
 	                            <span class="nav-icon">📑</span>
@@ -140,9 +171,21 @@
 	                            <span class="nav-icon">📊</span>
 	                            <span class="nav-text">字符统计</span>
 	                        </li>
+	                        <li class="nav-item" data-page="tool-mask">
+	                            <span class="nav-icon">🔒</span>
+	                            <span class="nav-text">数据脱敏</span>
+	                        </li>
 	                        <li class="nav-item" data-page="tool-sql">
 	                            <span class="nav-icon">🗃️</span>
 	                            <span class="nav-text">SQL 格式化</span>
+	                        </li>
+	                        <li class="nav-item" data-page="tool-csv">
+	                            <span class="nav-icon">📊</span>
+	                            <span class="nav-text">CSV 处理</span>
+	                        </li>
+	                        <li class="nav-item" data-page="tool-markdown">
+	                            <span class="nav-icon">📝</span>
+	                            <span class="nav-text">Markdown 预览</span>
 	                        </li>
 	                    </ul>
 	                </li>
@@ -163,6 +206,10 @@
 	                            <span class="nav-icon">⏱️</span>
 	                            <span class="nav-text">时间戳转换</span>
 	                        </li>
+	                        <li class="nav-item" data-page="tool-datecalc">
+	                            <span class="nav-icon">📅</span>
+	                            <span class="nav-text">日期计算器</span>
+	                        </li>
 	                        <li class="nav-item" data-page="tool-naming">
 	                            <span class="nav-icon">🏷️</span>
 	                            <span class="nav-text">变量命名转换</span>
@@ -182,6 +229,24 @@
 	                        <li class="nav-item" data-page="tool-cron">
 	                            <span class="nav-icon">⏰</span>
 	                            <span class="nav-text">Cron 解析</span>
+	                        </li>
+	                    </ul>
+	                </li>
+	                <!-- 其他工具 -->
+	                <li class="nav-group" data-group="tools-other">
+	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
+	                        <span class="nav-icon">🧰</span>
+	                        <span class="nav-text">其他工具</span>
+	                        <span class="nav-arrow">▾</span>
+	                    </div>
+	                    <ul class="nav-sublist">
+	                        <li class="nav-item" data-page="tool-git">
+	                            <span class="nav-icon">📦</span>
+	                            <span class="nav-text">Git 命令生成器</span>
+	                        </li>
+	                        <li class="nav-item" data-page="tool-docker">
+	                            <span class="nav-icon">🐳</span>
+	                            <span class="nav-text">Docker 命令生成器</span>
 	                        </li>
 	                    </ul>
 	                </li>
@@ -1071,6 +1136,73 @@
 		                </div>
 		            </section>
 
+		            <!-- 工具箱：Unicode 编解码 (M19) -->
+		            <section id="page-tool-unicode" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>Unicode 编解码</h1>
+		                        <p class="subtitle">支持 \uXXXX、\xXX、&#xXXXX;、&#NNNN; 多种格式</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearUnicodeTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="tool-single unicode-tool">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输入</h3>
+		                            <div class="panel-actions">
+		                                <div class="btn-group">
+		                                    <button class="btn btn-sm active" id="unicode-encode-btn" onclick="setUnicodeMode('encode')">编码</button>
+		                                    <button class="btn btn-sm" id="unicode-decode-btn" onclick="setUnicodeMode('decode')">解码</button>
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="unicode-input" placeholder="输入要转换的文本..." oninput="updateUnicodeTool()"></textarea>
+		                            <div class="unicode-format-row" id="unicode-format-row" style="display:none;">
+		                                <label>解码格式：</label>
+		                                <select id="unicode-decode-format" onchange="updateUnicodeTool()">
+		                                    <option value="auto">自动检测</option>
+		                                    <option value="unicode">\uXXXX</option>
+		                                    <option value="hex">\xXX</option>
+		                                    <option value="html">HTML 实体</option>
+		                                </select>
+		                                <span class="unicode-detect" id="unicode-detect"></span>
+		                            </div>
+		                            <div class="unicode-encode-format" id="unicode-encode-format">
+		                                <label>编码格式：</label>
+		                                <select id="unicode-format" onchange="updateUnicodeTool()">
+		                                    <option value="unicode">\uXXXX (Unicode)</option>
+		                                    <option value="hex">\xXX (Hex UTF-8)</option>
+		                                    <option value="html_hex">&#xXXXX; (HTML Hex)</option>
+		                                    <option value="html_dec">&#NNNN; (HTML Dec)</option>
+		                                </select>
+		                            </div>
+		                            <div class="tool-options">
+		                                <label class="checkbox-label">
+		                                    <input type="checkbox" id="unicode-batch" onchange="updateUnicodeTool()">
+		                                    <span>逐行处理</span>
+		                                </label>
+		                            </div>
+		                            <div id="unicode-errors" class="error-list"></div>
+		                        </div>
+		                    </div>
+
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输出</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="copyUnicodeOutput(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="unicode-output" readonly placeholder="转换结果..."></textarea>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>
+
 		            <!-- 工具箱：字符统计 -->
 		            <section id="page-tool-charcount" class="page">
 		                <div class="page-header">
@@ -1206,6 +1338,155 @@
 		                </div>
 		            </section>
 
+		            <!-- 工具箱：HMAC 计算 -->
+		            <section id="page-tool-hmac" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>HMAC 计算</h1>
+		                        <p class="subtitle">支持 MD5/SHA1/SHA256/SHA512，多种密钥格式</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <label class="tool-check">
+		                            <input type="checkbox" id="hmac-batch">
+		                            批量模式（按行）
+		                        </label>
+		                        <button class="btn btn-ghost" onclick="clearHmacTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="tool-single hmac-tool">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>配置</h3>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="hmac-config-grid">
+		                                <div class="form-group">
+		                                    <label>算法</label>
+		                                    <select id="hmac-algo" onchange="updateHmacTool()">
+		                                        <option value="md5">HMAC-MD5</option>
+		                                        <option value="sha1">HMAC-SHA1</option>
+		                                        <option value="sha256" selected>HMAC-SHA256</option>
+		                                        <option value="sha512">HMAC-SHA512</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>密钥格式</label>
+		                                    <select id="hmac-key-format" onchange="updateHmacTool()">
+		                                        <option value="text" selected>文本 (UTF-8)</option>
+		                                        <option value="hex">十六进制 (Hex)</option>
+		                                        <option value="base64">Base64</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>输出格式</label>
+		                                    <select id="hmac-output-format" onchange="updateHmacTool()">
+		                                        <option value="hex" selected>十六进制 (Hex)</option>
+		                                        <option value="base64">Base64</option>
+		                                    </select>
+		                                </div>
+		                            </div>
+		                            <div class="form-group" style="margin-top: 12px;">
+		                                <label>密钥 (Secret Key)</label>
+		                                <input type="text" id="hmac-key" placeholder="输入密钥..." oninput="updateHmacTool()">
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输入</h3>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="hmac-input" placeholder="输入待计算的消息..." oninput="updateHmacTool()"></textarea>
+		                        </div>
+		                    </div>
+
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输出</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="copyHmacOutput(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="hmac-output" readonly placeholder="HMAC 结果..."></textarea>
+		                            <div id="hmac-errors" class="error-list"></div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>
+
+		            <!-- 工具箱：RSA 非对称加密 -->
+		            <section id="page-tool-rsa" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>RSA 加解密</h1>
+		                        <p class="subtitle">RSA-OAEP 非对称加密，支持密钥生成</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <div class="btn-group">
+		                            <button class="btn format-btn active" id="rsa-encrypt-btn" onclick="setRsaMode('encrypt')">加密</button>
+		                            <button class="btn format-btn" id="rsa-decrypt-btn" onclick="setRsaMode('decrypt')">解密</button>
+		                        </div>
+		                        <button class="btn btn-ghost" onclick="clearRsaTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="tool-single rsa-tool">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>密钥</h3>
+		                            <div class="panel-actions">
+		                                <select id="rsa-keysize" onchange="updateRsaKeyHint()">
+		                                    <option value="2048" selected>2048 位</option>
+		                                    <option value="4096">4096 位</option>
+		                                </select>
+		                                <button class="btn btn-sm btn-primary" onclick="generateRsaKeyPair()">生成密钥对</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="rsa-key-row">
+		                                <div class="form-group rsa-key-group" id="rsa-pubkey-group">
+		                                    <label>公钥 (PEM)</label>
+		                                    <textarea id="rsa-pubkey" placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----" oninput="validateRsaKeys()"></textarea>
+		                                </div>
+		                                <div class="form-group rsa-key-group" id="rsa-privkey-group">
+		                                    <label>私钥 (PEM)</label>
+		                                    <textarea id="rsa-privkey" placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----" oninput="validateRsaKeys()"></textarea>
+		                                </div>
+		                            </div>
+		                            <div id="rsa-key-hint" class="rsa-key-hint"></div>
+		                        </div>
+		                    </div>
+
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3 id="rsa-input-header">输入（明文）</h3>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="rsa-input" placeholder="输入明文..."></textarea>
+		                        </div>
+		                    </div>
+
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3 id="rsa-output-header">输出（密文）</h3>
+		                            <div class="panel-actions">
+		                                <select id="rsa-output-format">
+		                                    <option value="base64" selected>Base64</option>
+		                                    <option value="hex">Hex</option>
+		                                </select>
+		                                <button class="btn btn-sm btn-primary" onclick="runRsaTool()">执行</button>
+		                                <button class="btn btn-sm btn-ghost" onclick="copyRsaOutput(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="rsa-output" readonly placeholder="输出结果..."></textarea>
+		                            <div id="rsa-errors" class="error-list"></div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>
+
 		            <!-- 工具箱：JSON 格式化 -->
 		            <section id="page-tool-json" class="page">
 		                <div class="page-header">
@@ -1323,6 +1604,75 @@
 		                    <div class="option-group">
 		                        <label>JSON 缩进：</label>
 		                        <select id="data-json-indent" onchange="updateDataConvertTool()">
+		                            <option value="2">2 空格</option>
+		                            <option value="4">4 空格</option>
+		                        </select>
+		                    </div>
+		                </div>
+		            </section>
+
+		            <!-- 工具箱：Excel/CSV 转 JSON -->
+		            <section id="page-tool-table-json" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>Excel/CSV 转 JSON</h1>
+		                        <p class="subtitle">表格数据与 JSON 互转工具</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearTableJsonTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="converter-layout">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输入</h3>
+		                            <div class="panel-actions">
+		                                <div class="format-toggle" title="输入格式">
+		                                    <button class="btn btn-sm btn-ghost format-btn active" id="table-in-csv" onclick="setTableInputFormat('csv')">CSV</button>
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="table-in-tsv" onclick="setTableInputFormat('tsv')">TSV</button>
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="table-in-json" onclick="setTableInputFormat('json')">JSON</button>
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="table-input" placeholder="粘贴 CSV / TSV / JSON 数据..." spellcheck="false" oninput="updateTableJsonTool()"></textarea>
+		                            <div id="table-errors" class="error-list"></div>
+		                        </div>
+		                    </div>
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输出</h3>
+		                            <div class="panel-actions">
+		                                <div class="format-toggle" title="输出格式">
+		                                    <button class="btn btn-sm btn-ghost format-btn active" id="table-out-json" onclick="setTableOutputFormat('json')">JSON</button>
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="table-out-csv" onclick="setTableOutputFormat('csv')">CSV</button>
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="table-out-tsv" onclick="setTableOutputFormat('tsv')">TSV</button>
+		                                </div>
+		                                <button class="btn btn-sm btn-ghost" onclick="copyTableOutput(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="table-output" readonly placeholder="转换结果..." spellcheck="false"></textarea>
+		                        </div>
+		                    </div>
+		                </div>
+		                <div class="data-convert-options">
+		                    <div class="option-group">
+		                        <label class="tool-check">
+		                            <input type="checkbox" id="table-has-header" checked onchange="updateTableJsonTool()">
+		                            首行为表头
+		                        </label>
+		                    </div>
+		                    <div class="option-group">
+		                        <label>JSON 格式：</label>
+		                        <select id="table-json-format" onchange="updateTableJsonTool()">
+		                            <option value="object">对象数组</option>
+		                            <option value="array">数组</option>
+		                        </select>
+		                    </div>
+		                    <div class="option-group">
+		                        <label>JSON 缩进：</label>
+		                        <select id="table-json-indent" onchange="updateTableJsonTool()">
 		                            <option value="2">2 空格</option>
 		                            <option value="4">4 空格</option>
 		                        </select>
@@ -1876,6 +2226,986 @@
 		                </div>
 		            </section>
 
+		            <!-- CSV 处理页面 -->
+		            <section id="page-tool-csv" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>CSV 文本格式化</h1>
+		                        <p class="subtitle">CSV 文本转换、分隔符调整与 JSON 互转</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearCsvTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="csv-tool">
+		                    <div class="converter-layout csv-layout">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>输入</h3>
+		                                <div class="panel-actions">
+		                                    <div class="format-toggle" title="输入格式">
+		                                        <button class="btn btn-sm btn-ghost format-btn active" id="csv-in-csv" onclick="setCsvInputFormat('csv')">CSV</button>
+		                                        <button class="btn btn-sm btn-ghost format-btn" id="csv-in-json" onclick="setCsvInputFormat('json')">JSON</button>
+		                                    </div>
+		                                </div>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="csv-input" placeholder="name,age,city&#10;Alice,30,New York&#10;Bob,25,London" spellcheck="false" oninput="updateCsvTool()"></textarea>
+		                                <div id="csv-errors" class="error-list"></div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>输出</h3>
+		                                <div class="panel-actions">
+		                                    <div class="format-toggle" title="输出格式">
+		                                        <button class="btn btn-sm btn-ghost format-btn" id="csv-out-csv" onclick="setCsvOutputFormat('csv')">CSV</button>
+		                                        <button class="btn btn-sm btn-ghost format-btn active" id="csv-out-json" onclick="setCsvOutputFormat('json')">JSON</button>
+		                                    </div>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyCsvOutput(this)">复制</button>
+		                                </div>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="csv-output" readonly placeholder="转换结果..." spellcheck="false"></textarea>
+		                            </div>
+		                        </div>
+		                    </div>
+		                    <div class="csv-options">
+		                        <div class="option-group">
+		                            <label class="tool-check">
+		                                <input type="checkbox" id="csv-has-header" checked onchange="updateCsvTool()">
+		                                <span>首行为表头</span>
+		                            </label>
+		                        </div>
+		                        <div class="option-group">
+		                            <label>分隔符：</label>
+		                            <select id="csv-delimiter" onchange="updateCsvTool()">
+		                                <option value="," selected>逗号 (,)</option>
+		                                <option value="\t">制表符 (Tab)</option>
+		                                <option value=";">分号 (;)</option>
+		                                <option value="|">竖线 (|)</option>
+		                            </select>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>
+
+		            <!-- Markdown 预览页面 -->
+		            <section id="page-tool-markdown" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>Markdown 预览</h1>
+		                        <p class="subtitle">实时预览 Markdown 渲染效果</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearMarkdownTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="markdown-tool">
+		                    <div class="converter-layout">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>Markdown 输入</h3>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="markdown-input" placeholder="# 标题&#10;&#10;输入 **Markdown** 文本..." spellcheck="false" oninput="updateMarkdownTool()"></textarea>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>预览</h3>
+		                                <div class="panel-actions">
+                                    <button class="btn btn-sm btn-primary" onclick="exportMarkdownAsHtml()">导出 HTML</button>
+                                    <button class="btn btn-sm btn-ghost" onclick="copyMarkdownHtml(this)">复制 HTML</button>
+		                                </div>
+		                            </div>
+		                            <div class="panel-body">
+		                                <div id="markdown-preview" class="markdown-preview"></div>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>
+
+		            <!-- 日期计算器页面 -->
+		            <section id="page-tool-datecalc" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>日期计算器</h1>
+		                        <p class="subtitle">日期差值、加减、星期、周数、年龄等计算</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearDateCalcTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="datecalc-tool">
+		                    <!-- 日期差值计算 -->
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>📊 日期差值计算</h3>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="form-group">
+		                                <label>起始日期</label>
+		                                <input type="date" id="datecalc-diff-start">
+		                            </div>
+		                            <div class="form-group">
+		                                <label>结束日期</label>
+		                                <input type="date" id="datecalc-diff-end">
+		                            </div>
+		                            <div class="datecalc-result" id="datecalc-diff-result"></div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 日期加减 -->
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>➕ 日期加减</h3>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="form-group">
+		                                <label>基准日期</label>
+		                                <input type="date" id="datecalc-add-base">
+		                            </div>
+		                            <div class="datecalc-add-row">
+		                                <div class="form-group">
+		                                    <label>数值</label>
+		                                    <input type="number" id="datecalc-add-value" value="1">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>单位</label>
+		                                    <select id="datecalc-add-unit">
+		                                        <option value="days">天</option>
+		                                        <option value="weeks">周</option>
+		                                        <option value="months">月</option>
+		                                        <option value="years">年</option>
+		                                    </select>
+		                                </div>
+		                            </div>
+		                            <div class="datecalc-result" id="datecalc-add-result"></div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 星期和周数 -->
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>📅 星期与周数</h3>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="form-group">
+		                                <label>日期</label>
+		                                <input type="date" id="datecalc-weekday-date">
+		                            </div>
+		                            <div class="datecalc-result" id="datecalc-weekday-result"></div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 年龄计算 -->
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>🎂 年龄计算</h3>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="form-group">
+		                                <label>出生日期</label>
+		                                <input type="date" id="datecalc-age-birth">
+		                            </div>
+		                            <div class="form-group">
+		                                <label>参考日期（可选，默认今天）</label>
+		                                <input type="date" id="datecalc-age-ref">
+		                            </div>
+		                            <div class="datecalc-result" id="datecalc-age-result"></div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 月年信息 -->
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>📆 月/年信息</h3>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="form-group">
+		                                <label>日期</label>
+		                                <input type="date" id="datecalc-info-date">
+		                            </div>
+		                            <div class="datecalc-result" id="datecalc-info-result"></div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>
+
+		            <!-- Git 命令生成器页面 -->
+		            <section id="page-tool-git" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>Git 命令生成器</h1>
+		                        <p class="subtitle">可视化生成常用 Git 命令</p>
+		                    </div>
+		                </div>
+		                <div class="git-tool">
+		                    <!-- 场景选择器 -->
+		                    <div class="tool-tabs">
+		                        <button class="tool-tab active" onclick="switchGitScene('commit', event)">提交</button>
+		                        <button class="tool-tab" onclick="switchGitScene('branch', event)">分支</button>
+		                        <button class="tool-tab" onclick="switchGitScene('log', event)">日志</button>
+		                        <button class="tool-tab" onclick="switchGitScene('reset', event)">重置</button>
+		                        <button class="tool-tab" onclick="switchGitScene('clone', event)">克隆</button>
+		                        <button class="tool-tab" onclick="switchGitScene('merge', event)">合并</button>
+		                        <button class="tool-tab" onclick="switchGitScene('stash', event)">暂存</button>
+		                        <button class="tool-tab" onclick="switchGitScene('templates', event)">常用命令</button>
+		                    </div>
+
+		                    <!-- Commit 场景 -->
+		                    <div id="git-scene-commit" class="git-scene active">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>提交设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>提交消息 *</label>
+		                                    <input type="text" id="git-commit-message" placeholder="feat: 添加新功能" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-commit-all" onchange="updateGitCommand()">
+		                                        自动暂存已跟踪文件 (-a)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-commit-amend" onchange="updateGitCommand()">
+		                                        修改上次提交 (--amend)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-commit-noverify" onchange="updateGitCommand()">
+		                                        跳过钩子 (--no-verify)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Branch 场景 -->
+		                    <div id="git-scene-branch" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>分支操作</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>操作类型</label>
+		                                    <select id="git-branch-action" onchange="updateGitBranchForm();updateGitCommand()">
+		                                        <option value="create">创建分支</option>
+		                                        <option value="switch">切换分支</option>
+		                                        <option value="delete">删除分支</option>
+		                                        <option value="rename">重命名分支</option>
+		                                        <option value="list">列出分支</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group" id="git-branch-name-group">
+		                                    <label>分支名称 *</label>
+		                                    <input type="text" id="git-branch-name" placeholder="feature/new-feature" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group" id="git-branch-newname-group" style="display:none">
+		                                    <label>新分支名称 *</label>
+		                                    <input type="text" id="git-branch-newname" placeholder="feature/updated-feature" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group" id="git-branch-force-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-branch-force" onchange="updateGitCommand()">
+		                                        强制操作 (-D)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group" id="git-branch-remote-group" style="display:none">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-branch-remote" onchange="updateGitCommand()">
+		                                        列出远程分支 (-r)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Log 场景 -->
+		                    <div id="git-scene-log" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>日志选项</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-log-oneline" onchange="updateGitCommand()">
+		                                        单行显示 (--oneline)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-log-graph" onchange="updateGitCommand()">
+		                                        显示分支图 (--graph)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>显示数量</label>
+		                                    <input type="number" id="git-log-count" min="1" placeholder="10" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>按作者过滤</label>
+		                                    <input type="text" id="git-log-author" placeholder="username" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>按消息过滤</label>
+		                                    <input type="text" id="git-log-grep" placeholder="关键词" oninput="updateGitCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Reset 场景 -->
+		                    <div id="git-scene-reset" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>重置设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>重置模式</label>
+		                                    <select id="git-reset-mode" onchange="updateGitCommand()">
+		                                        <option value="soft">软重置 (--soft) - 保留工作目录和暂存区</option>
+		                                        <option value="mixed">混合重置 (--mixed) - 保留工作目录</option>
+		                                        <option value="hard">硬重置 (--hard) - 丢弃所有修改</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>目标引用</label>
+		                                    <input type="text" id="git-reset-ref" placeholder="HEAD~1 或 commit hash" oninput="updateGitCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Clone 场景 -->
+		                    <div id="git-scene-clone" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>克隆设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>仓库 URL *</label>
+		                                    <input type="text" id="git-clone-url" placeholder="https://github.com/user/repo.git" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>指定分支</label>
+		                                    <input type="text" id="git-clone-branch" placeholder="main" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>目标目录</label>
+		                                    <input type="text" id="git-clone-dir" placeholder="项目名称" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>浅克隆深度</label>
+		                                    <input type="number" id="git-clone-depth" min="1" placeholder="不限制" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-clone-recursive" onchange="updateGitCommand()">
+		                                        递归克隆子模块 (--recursive)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Merge 场景 -->
+		                    <div id="git-scene-merge" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>合并设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>要合并的分支 *</label>
+		                                    <input type="text" id="git-merge-branch" placeholder="feature/branch" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-merge-noff" onchange="updateGitCommand()">
+		                                        禁用快进合并 (--no-ff)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-merge-squash" onchange="updateGitCommand()">
+		                                        压缩合并 (--squash)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>合并消息</label>
+		                                    <input type="text" id="git-merge-message" placeholder="可选" oninput="updateGitCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Stash 场景 -->
+		                    <div id="git-scene-stash" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>暂存操作</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>操作类型</label>
+		                                    <select id="git-stash-action" onchange="updateGitStashForm();updateGitCommand()">
+		                                        <option value="save">保存暂存</option>
+		                                        <option value="list">查看列表</option>
+		                                        <option value="pop">弹出暂存</option>
+		                                        <option value="apply">应用暂存</option>
+		                                        <option value="drop">删除暂存</option>
+		                                        <option value="clear">清空所有</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group" id="git-stash-message-group">
+		                                    <label>暂存消息</label>
+		                                    <input type="text" id="git-stash-message" placeholder="工作进度" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group" id="git-stash-index-group" style="display:none">
+		                                    <label>暂存索引</label>
+		                                    <input type="number" id="git-stash-index" min="0" placeholder="0" oninput="updateGitCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 常用命令模板 -->
+		                    <div id="git-scene-templates" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>常用命令模板</h3></div>
+		                            <div class="panel-body">
+		                                <div class="git-templates" id="git-templates-list"></div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 命令预览区 -->
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>生成的命令</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="copyGitCommand(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="git-command-preview">
+		                                <div class="git-command-desc" id="git-command-desc">选择操作类型并填写参数</div>
+		                                <textarea id="git-command-output" readonly placeholder="生成的 Git 命令将显示在这里..." spellcheck="false"></textarea>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>
+
+		            <!-- Docker 命令生成器页面 -->
+		            <section id="page-tool-docker" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>Docker 命令生成器</h1>
+		                        <p class="subtitle">可视化生成 Docker 命令</p>
+		                    </div>
+		                </div>
+		                <div class="docker-tool">
+		                    <!-- 场景选择器 -->
+		                    <div class="tool-tabs">
+		                        <button class="tool-tab active" onclick="switchDockerScene('run', event)">运行容器</button>
+		                        <button class="tool-tab" onclick="switchDockerScene('build', event)">构建镜像</button>
+		                        <button class="tool-tab" onclick="switchDockerScene('compose', event)">Compose</button>
+		                        <button class="tool-tab" onclick="switchDockerScene('exec', event)">执行命令</button>
+		                        <button class="tool-tab" onclick="switchDockerScene('logs', event)">查看日志</button>
+		                        <button class="tool-tab" onclick="switchDockerScene('ps', event)">容器列表</button>
+		                        <button class="tool-tab" onclick="switchDockerScene('images', event)">镜像列表</button>
+		                        <button class="tool-tab" onclick="switchDockerScene('container', event)">容器管理</button>
+		                    </div>
+
+		                    <!-- Run 场景 -->
+		                    <div id="docker-scene-run" class="docker-scene active">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>基本设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>镜像名称 *</label>
+		                                    <input type="text" id="docker-run-image" placeholder="nginx:latest" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>容器名称</label>
+		                                    <input type="text" id="docker-run-name" placeholder="my-container" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-run-detach" onchange="updateDockerCommand()">
+		                                        后台运行 (-d)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-run-interactive" onchange="updateDockerCommand()">
+		                                        交互模式 (-it)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-run-rm" onchange="updateDockerCommand()">
+		                                        退出时自动删除 (--rm)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>端口映射</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>端口映射 (格式: 8080:80 或 80，多个用逗号分隔)</label>
+		                                    <input type="text" id="docker-run-ports" placeholder="8080:80, 443:443" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>卷挂载</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>卷挂载 (格式: /host/path:/container/path，多个用逗号分隔)</label>
+		                                    <input type="text" id="docker-run-volumes" placeholder="/data:/var/data, /logs:/var/logs" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>环境变量</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>环境变量 (格式: KEY=value，多个用逗号分隔)</label>
+		                                    <input type="text" id="docker-run-env" placeholder="NODE_ENV=production, PORT=3000" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>网络和资源</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>网络模式</label>
+		                                    <select id="docker-run-network" onchange="updateDockerCommand()">
+		                                        <option value="">默认</option>
+		                                        <option value="bridge">bridge</option>
+		                                        <option value="host">host</option>
+		                                        <option value="none">none</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>重启策略</label>
+		                                    <select id="docker-run-restart" onchange="updateDockerCommand()">
+		                                        <option value="">不自动重启</option>
+		                                        <option value="no">no</option>
+		                                        <option value="always">always</option>
+		                                        <option value="unless-stopped">unless-stopped</option>
+		                                        <option value="on-failure">on-failure</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>内存限制 (如: 512m, 2g)</label>
+		                                    <input type="text" id="docker-run-memory" placeholder="512m" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>CPU 限制 (如: 0.5, 2)</label>
+		                                    <input type="text" id="docker-run-cpus" placeholder="1.0" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>启动命令 (覆盖默认命令)</label>
+		                                    <input type="text" id="docker-run-command" placeholder="/bin/bash" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Build 场景 -->
+		                    <div id="docker-scene-build" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>构建设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>构建路径 *</label>
+		                                    <input type="text" id="docker-build-path" placeholder="." oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>镜像标签 *</label>
+		                                    <input type="text" id="docker-build-tag" placeholder="myapp:latest" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>Dockerfile 路径</label>
+		                                    <input type="text" id="docker-build-file" placeholder="Dockerfile" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>构建参数 (格式: KEY=value，多个用逗号分隔)</label>
+		                                    <input type="text" id="docker-build-arg" placeholder="NODE_VERSION=16, ENV=prod" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>目标阶段 (多阶段构建)</label>
+		                                    <input type="text" id="docker-build-target" placeholder="production" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-build-nocache" onchange="updateDockerCommand()">
+		                                        不使用缓存 (--no-cache)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-build-pull" onchange="updateDockerCommand()">
+		                                        总是拉取最新基础镜像 (--pull)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Compose 场景 -->
+		                    <div id="docker-scene-compose" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>Compose 设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>操作类型 *</label>
+		                                    <select id="docker-compose-action" onchange="updateDockerComposeForm(); updateDockerCommand()">
+		                                        <option value="up">up - 启动服务</option>
+		                                        <option value="down">down - 停止并删除</option>
+		                                        <option value="start">start - 启动已存在的容器</option>
+		                                        <option value="stop">stop - 停止容器</option>
+		                                        <option value="restart">restart - 重启服务</option>
+		                                        <option value="ps">ps - 列出容器</option>
+		                                        <option value="logs">logs - 查看日志</option>
+		                                        <option value="build">build - 构建服务</option>
+		                                        <option value="pull">pull - 拉取镜像</option>
+		                                        <option value="exec">exec - 执行命令</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>Compose 文件路径</label>
+		                                    <input type="text" id="docker-compose-file" placeholder="docker-compose.yml" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>项目名称</label>
+		                                    <input type="text" id="docker-compose-project" placeholder="myproject" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group" id="docker-compose-service-group">
+		                                    <label>服务名称</label>
+		                                    <input type="text" id="docker-compose-service" placeholder="web" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group" id="docker-compose-detach-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-compose-detach" onchange="updateDockerCommand()">
+		                                        后台运行 (-d)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group" id="docker-compose-volumes-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-compose-volumes" onchange="updateDockerCommand()">
+		                                        删除卷 (--volumes)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Exec 场景 -->
+		                    <div id="docker-scene-exec" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>执行命令</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>容器名称 *</label>
+		                                    <input type="text" id="docker-exec-container" placeholder="my-container" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>命令 *</label>
+		                                    <input type="text" id="docker-exec-command" placeholder="/bin/bash" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-exec-interactive" checked onchange="updateDockerCommand()">
+		                                        交互模式 (-it)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>工作目录</label>
+		                                    <input type="text" id="docker-exec-workdir" placeholder="/app" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>用户</label>
+		                                    <input type="text" id="docker-exec-user" placeholder="root" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Logs 场景 -->
+		                    <div id="docker-scene-logs" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>日志查看</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>容器名称 *</label>
+		                                    <input type="text" id="docker-logs-container" placeholder="my-container" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-logs-follow" onchange="updateDockerCommand()">
+		                                        持续跟踪 (-f)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-logs-timestamps" onchange="updateDockerCommand()">
+		                                        显示时间戳 (-t)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>显示行数 (如: 100)</label>
+		                                    <input type="text" id="docker-logs-tail" placeholder="100" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>开始时间 (如: 2023-01-01T00:00:00)</label>
+		                                    <input type="text" id="docker-logs-since" placeholder="2023-01-01T00:00:00" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- PS 场景 -->
+		                    <div id="docker-scene-ps" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>容器列表</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-ps-all" onchange="updateDockerCommand()">
+		                                        显示所有容器 (-a)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-ps-quiet" onchange="updateDockerCommand()">
+		                                        仅显示ID (-q)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>过滤条件 (如: status=running)</label>
+		                                    <input type="text" id="docker-ps-filter" placeholder="status=running" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Images 场景 -->
+		                    <div id="docker-scene-images" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>镜像列表</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-images-all" onchange="updateDockerCommand()">
+		                                        显示所有镜像 (-a)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-images-quiet" onchange="updateDockerCommand()">
+		                                        仅显示ID (-q)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>过滤条件 (如: dangling=true)</label>
+		                                    <input type="text" id="docker-images-filter" placeholder="dangling=true" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Container 场景 -->
+		                    <div id="docker-scene-container" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>容器管理</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>操作类型 *</label>
+		                                    <select id="docker-container-action" onchange="updateDockerCommand()">
+		                                        <option value="start">start - 启动</option>
+		                                        <option value="stop">stop - 停止</option>
+		                                        <option value="restart">restart - 重启</option>
+		                                        <option value="pause">pause - 暂停</option>
+		                                        <option value="unpause">unpause - 恢复</option>
+		                                        <option value="rm">rm - 删除</option>
+		                                        <option value="kill">kill - 强制停止</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>容器名称 * (多个用空格分隔)</label>
+		                                    <input type="text" id="docker-container-names" placeholder="container1 container2" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group" id="docker-container-force-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-container-force" onchange="updateDockerCommand()">
+		                                        强制操作 (-f)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 命令预览 -->
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>生成的命令</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="copyDockerCommand(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="docker-command-preview">
+		                                <div class="docker-command-desc" id="docker-command-desc">选择操作类型并填写参数</div>
+		                                <textarea id="docker-command-output" readonly placeholder="生成的 Docker 命令将显示在这里..." spellcheck="false"></textarea>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>
+
+		            <!-- JSON Schema 生成页面 -->
+		            <section id="page-tool-json-schema" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>JSON Schema 生成</h1>
+		                        <p class="subtitle">从 JSON 数据自动生成 JSON Schema</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearJsonSchemaTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="jsonschema-tool">
+		                    <div class="converter-layout">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>JSON 输入</h3>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="jsonschema-input" placeholder='{"name": "Alice", "age": 30}' spellcheck="false" oninput="updateJsonSchemaTool()"></textarea>
+		                                <div id="jsonschema-errors" class="error-list"></div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>生成的 Schema</h3>
+		                                <div class="panel-actions">
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyJsonSchemaOutput(this)">复制</button>
+		                                </div>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="jsonschema-output" readonly placeholder="JSON Schema 将显示在这里..." spellcheck="false"></textarea>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>
+
+		            <!-- Mock 数据生成页面 -->
+		            <section id="page-tool-mock" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>Mock 数据生成</h1>
+		                        <p class="subtitle">生成测试用的假数据</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearMockTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="mock-tool">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>生成的数据</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="generateMockData()">生成</button>
+		                                <button class="btn btn-sm btn-ghost" onclick="copyMockOutput(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="mock-output" readonly placeholder="生成的 Mock 数据将显示在这里..." spellcheck="false"></textarea>
+		                        </div>
+		                    </div>
+		                    <div class="mock-options">
+		                        <div class="form-group">
+		                            <label>数据类型：</label>
+		                            <select id="mock-type">
+		                                <option value="name">中文姓名</option>
+		                                <option value="email">邮箱</option>
+		                                <option value="phone">手机号</option>
+		                                <option value="idcard">身份证号</option>
+		                                <option value="address">地址</option>
+		                                <option value="uuid">UUID</option>
+		                                <option value="date">日期</option>
+		                            </select>
+		                        </div>
+		                        <div class="form-group">
+		                            <label>生成数量：</label>
+		                            <input type="number" id="mock-count" value="10" min="1" max="1000">
+		                        </div>
+		                        <div class="form-group">
+		                            <label>输出格式：</label>
+		                            <select id="mock-output-format">
+		                                <option value="lines">纯文本（每行一个）</option>
+		                                <option value="json">JSON 数组</option>
+		                                <option value="csv">CSV 格式</option>
+		                                <option value="jsonlines">JSON Lines</option>
+		                            </select>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>
+
+		            <!-- 数据脱敏页面 -->
+		            <section id="page-tool-mask" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>数据脱敏</h1>
+		                        <p class="subtitle">手机号、身份证、邮箱等敏感信息脱敏</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearMaskTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="mask-tool">
+		                    <div class="converter-layout">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>原始数据</h3>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="mask-input" placeholder="输入需要脱敏的数据..." spellcheck="false" oninput="updateMaskTool()"></textarea>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>脱敏结果</h3>
+		                                <div class="panel-actions">
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyMaskOutput(this)">复制</button>
+		                                </div>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="mask-output" readonly placeholder="脱敏后的数据将显示在这里..." spellcheck="false"></textarea>
+		                            </div>
+		                        </div>
+		                    </div>
+		                    <div class="mask-options">
+		                        <div class="form-group">
+		                            <label>脱敏类型：</label>
+		                            <select id="mask-type" onchange="updateMaskTool()">
+		                                <option value="auto">自动检测</option>
+		                                <option value="phone">手机号</option>
+		                                <option value="idcard">身份证</option>
+		                                <option value="email">邮箱</option>
+		                                <option value="bankcard">银行卡</option>
+		                                <option value="name">姓名</option>
+		                            </select>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>
+
 		            <!-- 数据备份页面 -->
 		            <section id="page-backup" class="page">
 		                <div class="page-header">
@@ -2098,6 +3428,18 @@
 	    <script src="tools_m14_utils.js"></script>
 	    <script src="tools_m15_utils.js"></script>
 	    <script src="tools_m18_utils.js"></script>
+	    <script src="tools_m19_utils.js"></script>
+	    <script src="tools_m20_utils.js"></script>
+	    <script src="tools_m21_utils.js"></script>
+	    <script src="tools_m22_utils.js"></script>
+	    <script src="tools_m23_utils.js"></script>
+	    <script src="tools_m26_utils.js"></script>
+	    <script src="tools_m27_utils.js"></script>
+	    <script src="tools_m28_utils.js"></script>
+	    <script src="tools_m29_utils.js"></script>
+	    <script src="tools_m30_utils.js"></script>
+	    <script src="tools_m31_utils.js"></script>
+	    <script src="tools_m32_utils.js"></script>
 	    <script src="tools_m16_utils.js"></script>
 	    <script src="app.js"></script>
 	</body>

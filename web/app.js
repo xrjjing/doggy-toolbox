@@ -1,3 +1,112 @@
+// ==================== 模块加载错误边界 ====================
+
+// 页面到模块的映射表
+const PAGE_MODULE_MAP = {
+    'tool-base64': 'DogToolboxM2Utils',
+    'tool-jwt': 'DogToolboxM3Utils',
+    'tool-time': 'DogToolboxM4Utils',
+    'tool-hash': 'DogToolboxM5Utils',
+    'tool-crypto': 'DogToolboxM6Utils',
+    'tool-diff': 'DogToolboxM7Utils',
+    'tool-b64hex': 'DogToolboxM8Utils',
+    'tool-url': 'DogToolboxM9Utils',
+    'tool-radix': 'DogToolboxM10Utils',
+    'tool-charcount': 'DogToolboxM11Utils',
+    'tool-password': 'DogToolboxM12Utils',
+    'tool-json': 'DogToolboxM13Utils',
+    'tool-dataconvert': 'DogToolboxM14Utils',
+    'tool-text': 'DogToolboxM15Utils',
+    'tool-regex': 'DogToolboxM16Utils',
+    'tool-curl': 'DogToolboxM18Utils',
+    'tool-color': 'DogToolboxM18Utils',
+    'tool-ip': 'DogToolboxM18Utils',
+    'tool-cron': 'DogToolboxM18Utils',
+    'tool-sql': 'DogToolboxM18Utils',
+    'tool-unicode': 'DogToolboxM19Utils',
+    'tool-rsa': 'DogToolboxM20Utils',
+    'tool-hmac': 'DogToolboxM21Utils',
+    'tool-markdown': 'DogToolboxM22Utils',
+    'tool-csv': 'DogToolboxM23Utils',
+    'tool-git': 'DogToolboxM26Utils',
+    'tool-docker': 'DogToolboxM27Utils',
+    'tool-json-schema': 'DogToolboxM28Utils',
+    'tool-mock': 'DogToolboxM29Utils',
+    'tool-desensitize': 'DogToolboxM30Utils',
+    'tool-table-json': 'DogToolboxM31Utils',
+    'tool-datecalc': 'DogToolboxM32Utils'
+};
+
+// 检测模块加载情况
+function checkModuleLoading() {
+    const failedModules = new Set();
+    const failedPages = [];
+
+    // 检查所有模块
+    for (const [page, moduleName] of Object.entries(PAGE_MODULE_MAP)) {
+        if (!window[moduleName]) {
+            failedModules.add(moduleName);
+            failedPages.push(page);
+        }
+    }
+
+    // 如果有模块加载失败，显示错误横幅并禁用工具
+    if (failedModules.size > 0) {
+        showErrorBanner(failedModules, failedPages);
+        disableFailedTools(failedPages);
+    }
+}
+
+// 显示错误横幅
+function showErrorBanner(failedModules, failedPages) {
+    const banner = document.getElementById('global-error-banner');
+    const textEl = document.getElementById('error-banner-text');
+
+    if (!banner || !textEl) return;
+
+    // 安全转义模块名（虽然是代码常量，但保持防御性编程）
+    const moduleList = Array.from(failedModules)
+        .map(m => escapeHtml(m))
+        .join(', ');
+    const pageCount = failedPages.length;
+
+    textEl.innerHTML = `
+        <strong>${failedModules.size} 个工具模块</strong>加载失败，
+        <strong>${pageCount} 个工具</strong>无法使用。
+        受影响模块：${moduleList}。
+        <br>请刷新页面重试，或检查网络连接。
+    `;
+
+    banner.style.display = 'block';
+}
+
+// 禁用加载失败的工具页面
+function disableFailedTools(failedPages) {
+    failedPages.forEach(page => {
+        const pageEl = document.getElementById(`page-${page}`);
+        if (pageEl) {
+            pageEl.classList.add('tool-disabled');
+        }
+
+        // 同时禁用导航项的点击
+        const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
+        if (navItem) {
+            navItem.style.opacity = '0.5';
+            navItem.style.cursor = 'not-allowed';
+            navItem.title = '此工具的核心模块加载失败';
+        }
+    });
+}
+
+// 关闭错误横幅
+function closeErrorBanner() {
+    const banner = document.getElementById('global-error-banner');
+    if (banner) {
+        banner.style.display = 'none';
+    }
+}
+
+// ==================== 原有全局状态 ====================
+
 // 全局状态
 let allCredentials = [];
 let allCommands = [];
@@ -20,6 +129,9 @@ let urlMode = 'encode'; // URL 编解码模式：encode/decode
 
 // 初始化
 document.addEventListener('DOMContentLoaded', async () => {
+    // 🔴 首先检测模块加载情况（错误边界）
+    checkModuleLoading();
+
     await waitForPywebview();
     initNavigation();
     initTheme();
@@ -35,10 +147,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     initB64HexTool();
     initUrlTool();
     initRadixTool();
+    initUnicodeTool();
     initCharCountTool();
     initPasswordTool();
+    initHmacTool();
+    initRsaTool();
     initJsonTool();
     initDataConvertTool();
+    initTableJsonTool();
     initTextTool();
     initRegexTool();
     initCurlTool();
@@ -46,6 +162,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     initIpTool();
     initCronTool();
     initSqlTool();
+    initDateCalcTool();
+    initCsvTool();
+    initMarkdownTool();
+    initGitTool();
+    initDockerTool();
+    initJsonSchemaTool();
+    initMockTool();
+    initMaskTool();
     loadCredentials();
     await loadTabs();
     loadCommands();
@@ -150,6 +274,9 @@ function handlePageEnter(page) {
     }
     if (page === 'tool-charcount') {
         updateCharCountTool();
+    }
+    if (page === 'tool-csv') {
+        updateCsvTool();
     }
     if (page === 'backup') {
         initBackupPage();
@@ -1448,6 +1575,280 @@ function stopTimeNowTicker() {
     }
 }
 
+// ==================== M32 日期计算器 ====================
+function initDateCalcTool() {
+    // 设置默认值为今天
+    const today = new Date().toISOString().split('T')[0];
+
+    const diffStartEl = document.getElementById('datecalc-diff-start');
+    const diffEndEl = document.getElementById('datecalc-diff-end');
+    const addBaseEl = document.getElementById('datecalc-add-base');
+    const weekdayDateEl = document.getElementById('datecalc-weekday-date');
+    const ageBirthEl = document.getElementById('datecalc-age-birth');
+    const ageRefEl = document.getElementById('datecalc-age-ref');
+    const infoDateEl = document.getElementById('datecalc-info-date');
+
+    // 设置默认日期
+    if (diffStartEl) diffStartEl.value = today;
+    if (diffEndEl) diffEndEl.value = today;
+    if (addBaseEl) addBaseEl.value = today;
+    if (weekdayDateEl) weekdayDateEl.value = today;
+    if (infoDateEl) infoDateEl.value = today;
+
+    // 绑定事件监听器
+    if (diffStartEl) diffStartEl.addEventListener('change', calculateDateDiff);
+    if (diffEndEl) diffEndEl.addEventListener('change', calculateDateDiff);
+
+    if (addBaseEl) addBaseEl.addEventListener('change', calculateDateAdd);
+    const addValueEl = document.getElementById('datecalc-add-value');
+    const addUnitEl = document.getElementById('datecalc-add-unit');
+    if (addValueEl) addValueEl.addEventListener('input', calculateDateAdd);
+    if (addUnitEl) addUnitEl.addEventListener('change', calculateDateAdd);
+
+    if (weekdayDateEl) weekdayDateEl.addEventListener('change', calculateWeekday);
+
+    if (ageBirthEl) ageBirthEl.addEventListener('change', calculateAge);
+    if (ageRefEl) ageRefEl.addEventListener('change', calculateAge);
+
+    if (infoDateEl) infoDateEl.addEventListener('change', calculateDateInfo);
+
+    // 初始计算
+    calculateDateDiff();
+    calculateDateAdd();
+    calculateWeekday();
+    calculateDateInfo();
+}
+
+function clearDateCalcTool() {
+    const today = new Date().toISOString().split('T')[0];
+
+    const elements = [
+        'datecalc-diff-start', 'datecalc-diff-end',
+        'datecalc-add-base', 'datecalc-weekday-date',
+        'datecalc-age-birth', 'datecalc-age-ref',
+        'datecalc-info-date'
+    ];
+
+    elements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = id.includes('age-ref') ? '' : today;
+    });
+
+    const addValueEl = document.getElementById('datecalc-add-value');
+    const addUnitEl = document.getElementById('datecalc-add-unit');
+    if (addValueEl) addValueEl.value = '1';
+    if (addUnitEl) addUnitEl.value = 'days';
+
+    const resultElements = [
+        'datecalc-diff-result', 'datecalc-add-result',
+        'datecalc-weekday-result', 'datecalc-age-result',
+        'datecalc-info-result'
+    ];
+
+    resultElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '';
+    });
+
+    initDateCalcTool();
+}
+
+function calculateDateDiff() {
+    const startEl = document.getElementById('datecalc-diff-start');
+    const endEl = document.getElementById('datecalc-diff-end');
+    const resultEl = document.getElementById('datecalc-diff-result');
+
+    if (!startEl || !endEl || !resultEl) return;
+    if (!window.DogToolboxM32Utils) {
+        resultEl.innerHTML = '<div class="error-message">工具模块未加载</div>';
+        return;
+    }
+
+    const start = startEl.value;
+    const end = endEl.value;
+
+    if (!start || !end) {
+        resultEl.innerHTML = '';
+        return;
+    }
+
+    try {
+        const diff = DogToolboxM32Utils.dateDifference(start, end);
+
+        resultEl.innerHTML = `
+            <div class="datecalc-result-item">
+                <strong>相差天数：</strong>${diff.totalDays} 天
+            </div>
+            <div class="datecalc-result-item">
+                <strong>详细差值：</strong>${diff.years} 年 ${diff.months} 个月 ${diff.days} 天
+            </div>
+            <div class="datecalc-result-item">
+                <strong>约：</strong>${Math.floor(diff.totalDays / 365)} 年 / ${Math.floor(diff.totalDays / 30)} 个月 / ${Math.floor(diff.totalDays / 7)} 周
+            </div>
+        `;
+    } catch (e) {
+        resultEl.innerHTML = `<div class="error-message">错误：${escapeHtml(e.message || String(e))}</div>`;
+    }
+}
+
+function calculateDateAdd() {
+    const baseEl = document.getElementById('datecalc-add-base');
+    const valueEl = document.getElementById('datecalc-add-value');
+    const unitEl = document.getElementById('datecalc-add-unit');
+    const resultEl = document.getElementById('datecalc-add-result');
+
+    if (!baseEl || !valueEl || !unitEl || !resultEl) return;
+    if (!window.DogToolboxM32Utils) {
+        resultEl.innerHTML = '<div class="error-message">工具模块未加载</div>';
+        return;
+    }
+
+    const base = baseEl.value;
+    const value = parseInt(valueEl.value || '0', 10);
+    const unit = unitEl.value;
+
+    if (!base) {
+        resultEl.innerHTML = '';
+        return;
+    }
+
+    try {
+        const result = DogToolboxM32Utils.dateAdd(base, value, unit);
+        const formatted = DogToolboxM32Utils.formatDate(result, 'YYYY-MM-DD');
+        const weekday = DogToolboxM32Utils.getWeekday(result);
+
+        resultEl.innerHTML = `
+            <div class="datecalc-result-item">
+                <strong>结果日期：</strong>${formatted}
+            </div>
+            <div class="datecalc-result-item">
+                <strong>星期：</strong>${weekday.nameCn}
+            </div>
+        `;
+    } catch (e) {
+        resultEl.innerHTML = `<div class="error-message">错误：${escapeHtml(e.message || String(e))}</div>`;
+    }
+}
+
+function calculateWeekday() {
+    const dateEl = document.getElementById('datecalc-weekday-date');
+    const resultEl = document.getElementById('datecalc-weekday-result');
+
+    if (!dateEl || !resultEl) return;
+    if (!window.DogToolboxM32Utils) {
+        resultEl.innerHTML = '<div class="error-message">工具模块未加载</div>';
+        return;
+    }
+
+    const date = dateEl.value;
+    if (!date) {
+        resultEl.innerHTML = '';
+        return;
+    }
+
+    try {
+        const weekday = DogToolboxM32Utils.getWeekday(date);
+        const weekNum = DogToolboxM32Utils.getWeekNumber(date);
+
+        resultEl.innerHTML = `
+            <div class="datecalc-result-item">
+                <strong>星期：</strong>${weekday.nameCn}（${weekday.nameEn}）
+            </div>
+            <div class="datecalc-result-item">
+                <strong>ISO 周数：</strong>${weekNum.year} 年第 ${weekNum.isoWeek} 周
+            </div>
+            <div class="datecalc-result-item">
+                <strong>月内周数：</strong>第 ${weekNum.weekOfMonth} 周
+            </div>
+        `;
+    } catch (e) {
+        resultEl.innerHTML = `<div class="error-message">错误：${escapeHtml(e.message || String(e))}</div>`;
+    }
+}
+
+function calculateAge() {
+    const birthEl = document.getElementById('datecalc-age-birth');
+    const refEl = document.getElementById('datecalc-age-ref');
+    const resultEl = document.getElementById('datecalc-age-result');
+
+    if (!birthEl || !resultEl) return;
+    if (!window.DogToolboxM32Utils) {
+        resultEl.innerHTML = '<div class="error-message">工具模块未加载</div>';
+        return;
+    }
+
+    const birth = birthEl.value;
+    if (!birth) {
+        resultEl.innerHTML = '';
+        return;
+    }
+
+    try {
+        const ref = refEl?.value || new Date().toISOString().split('T')[0];
+        const age = DogToolboxM32Utils.calculateAge(birth, ref);
+
+        resultEl.innerHTML = `
+            <div class="datecalc-result-item">
+                <strong>年龄：</strong>${age.description}
+            </div>
+            <div class="datecalc-result-item">
+                <strong>总天数：</strong>${age.totalDays} 天
+            </div>
+            <div class="datecalc-result-item">
+                <strong>约：</strong>${Math.floor(age.totalDays / 365)} 岁
+            </div>
+        `;
+    } catch (e) {
+        resultEl.innerHTML = `<div class="error-message">错误：${escapeHtml(e.message || String(e))}</div>`;
+    }
+}
+
+function calculateDateInfo() {
+    const dateEl = document.getElementById('datecalc-info-date');
+    const resultEl = document.getElementById('datecalc-info-result');
+
+    if (!dateEl || !resultEl) return;
+    if (!window.DogToolboxM32Utils) {
+        resultEl.innerHTML = '<div class="error-message">工具模块未加载</div>';
+        return;
+    }
+
+    const date = dateEl.value;
+    if (!date) {
+        resultEl.innerHTML = '';
+        return;
+    }
+
+    try {
+        const d = DogToolboxM32Utils.parseDate(date);
+        const year = d.getFullYear();
+        const month = d.getMonth() + 1;
+        const isLeap = DogToolboxM32Utils.isLeapYear(year);
+        const daysInMonth = DogToolboxM32Utils.getDaysInMonth(year, month);
+        const remaining = DogToolboxM32Utils.getRemainingDays(date);
+
+        resultEl.innerHTML = `
+            <div class="datecalc-result-item">
+                <strong>年份：</strong>${year} 年${isLeap ? ' （闰年）' : ''}
+            </div>
+            <div class="datecalc-result-item">
+                <strong>本月天数：</strong>${daysInMonth} 天
+            </div>
+            <div class="datecalc-result-item">
+                <strong>本年天数：</strong>${remaining.daysInYear} 天
+            </div>
+            <div class="datecalc-result-item">
+                <strong>距离月末：</strong>${remaining.daysRemainingInMonth} 天
+            </div>
+            <div class="datecalc-result-item">
+                <strong>距离年末：</strong>${remaining.daysRemainingInYear} 天
+            </div>
+        `;
+    } catch (e) {
+        resultEl.innerHTML = `<div class="error-message">错误：${escapeHtml(e.message || String(e))}</div>`;
+    }
+}
+
 // ==================== 工具箱：哈希（M4） ====================
 function initHashTool() {
     const inputEl = document.getElementById('hash-input');
@@ -2104,12 +2505,31 @@ function copyB64HexOutput(btn) {
     copyToolText(btn, text);
 }
 
-function copyToolText(btn, text) {
+function copyToolText(btn, text, options = {}) {
     if (!text) return;
+
+    const {
+        showTextFeedback = false,  // 是否显示文字反馈
+        successText = '✓ 已复制',   // 成功时的文字
+        duration = 2000             // 反馈持续时间
+    } = options;
+
     copyToClipboard(text).then(() => {
         if (btn) {
-            btn.classList.add('copied');
-            setTimeout(() => btn.classList.remove('copied'), 1000);
+            if (showTextFeedback) {
+                // 新模式：修改按钮文字
+                const originalText = btn.textContent;
+                btn.textContent = successText;
+                btn.classList.add('btn-success');
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('btn-success');
+                }, duration);
+            } else {
+                // 旧模式：添加 CSS 类
+                btn.classList.add('copied');
+                setTimeout(() => btn.classList.remove('copied'), 1000);
+            }
         }
     });
 }
@@ -2325,6 +2745,381 @@ function copyRadixOutput(btn, type) {
     const idMap = { bin: 'radix-out-bin', oct: 'radix-out-oct', dec: 'radix-out-dec', hex: 'radix-out-hex' };
     const el = document.getElementById(idMap[type]);
     const text = el?.value || '';
+    copyToolText(btn, text);
+}
+
+// ==================== 工具箱：Unicode 编解码（M19） ====================
+let unicodeMode = 'encode';
+
+function initUnicodeTool() {
+    const inputEl = document.getElementById('unicode-input');
+    if (!inputEl) return;
+    inputEl.addEventListener('input', updateUnicodeTool);
+    setUnicodeMode('encode');
+}
+
+function setUnicodeMode(mode) {
+    if (mode !== 'encode' && mode !== 'decode') return;
+    unicodeMode = mode;
+    document.getElementById('unicode-encode-btn')?.classList.toggle('active', mode === 'encode');
+    document.getElementById('unicode-decode-btn')?.classList.toggle('active', mode === 'decode');
+
+    const encodeFormat = document.getElementById('unicode-encode-format');
+    const decodeFormat = document.getElementById('unicode-format-row');
+    if (encodeFormat) encodeFormat.style.display = mode === 'encode' ? '' : 'none';
+    if (decodeFormat) decodeFormat.style.display = mode === 'decode' ? '' : 'none';
+
+    updateUnicodeTool();
+}
+
+function updateUnicodeTool() {
+    const inputEl = document.getElementById('unicode-input');
+    const outputEl = document.getElementById('unicode-output');
+    const errorsEl = document.getElementById('unicode-errors');
+    const detectEl = document.getElementById('unicode-detect');
+    const batchEl = document.getElementById('unicode-batch');
+    if (!inputEl || !outputEl || !errorsEl) return;
+
+    errorsEl.innerHTML = '';
+    if (detectEl) detectEl.textContent = '';
+
+    const inputText = inputEl.value ?? '';
+    if (inputText.length === 0) {
+        outputEl.value = '';
+        return;
+    }
+
+    if (!window.DogToolboxM19Utils) {
+        errorsEl.innerHTML = '<div>工具模块未加载：tools_m19_utils.js</div>';
+        return;
+    }
+
+    const batch = !!batchEl?.checked;
+
+    try {
+        if (unicodeMode === 'encode') {
+            const format = document.getElementById('unicode-format')?.value || 'unicode';
+            outputEl.value = batch
+                ? window.DogToolboxM19Utils.batchEncode(inputText, format)
+                : encodeByFormat(inputText, format);
+        } else {
+            const format = document.getElementById('unicode-decode-format')?.value || 'auto';
+            if (format === 'auto' && detectEl) {
+                const detected = window.DogToolboxM19Utils.detectFormat(inputText.split(/\r?\n/)[0] || '');
+                const formatNames = {
+                    unicode: '\\uXXXX',
+                    hex: '\\xXX',
+                    html_hex: 'HTML Hex',
+                    html_dec: 'HTML Dec',
+                    plain: '纯文本',
+                    unknown: '未知'
+                };
+                detectEl.textContent = `检测：${formatNames[detected] || detected}`;
+            }
+            outputEl.value = batch
+                ? window.DogToolboxM19Utils.batchDecode(inputText, format)
+                : decodeByFormat(inputText, format);
+        }
+    } catch (e) {
+        outputEl.value = '';
+        errorsEl.innerHTML = `<div>${escapeHtml(e?.message || String(e))}</div>`;
+    }
+}
+
+function encodeByFormat(text, format) {
+    const M19 = window.DogToolboxM19Utils;
+    switch (format) {
+        case 'unicode':
+            return M19.unicodeEscape(text);
+        case 'hex':
+            return M19.hexEscape(text);
+        case 'html_hex':
+            return M19.htmlEntityEncode(text, true);
+        case 'html_dec':
+            return M19.htmlEntityEncode(text, false);
+        default:
+            return text;
+    }
+}
+
+function decodeByFormat(text, format) {
+    const M19 = window.DogToolboxM19Utils;
+    switch (format) {
+        case 'unicode':
+            return M19.unicodeUnescape(text);
+        case 'hex':
+            return M19.hexUnescape(text);
+        case 'html':
+            return M19.htmlEntityDecode(text);
+        case 'auto':
+            return M19.smartDecode(text).result;
+        default:
+            return text;
+    }
+}
+
+function clearUnicodeTool() {
+    const inputEl = document.getElementById('unicode-input');
+    const outputEl = document.getElementById('unicode-output');
+    const errorsEl = document.getElementById('unicode-errors');
+    const detectEl = document.getElementById('unicode-detect');
+    if (inputEl) inputEl.value = '';
+    if (outputEl) outputEl.value = '';
+    if (errorsEl) errorsEl.innerHTML = '';
+    if (detectEl) detectEl.textContent = '';
+}
+
+function copyUnicodeOutput(btn) {
+    const outputEl = document.getElementById('unicode-output');
+    const text = outputEl?.value || '';
+    copyToolText(btn, text);
+}
+
+// ==================== 工具箱：HMAC 计算（M21） ====================
+function initHmacTool() {
+    const inputEl = document.getElementById('hmac-input');
+    if (!inputEl) return;
+    inputEl.addEventListener('input', updateHmacTool);
+    document.getElementById('hmac-key')?.addEventListener('input', updateHmacTool);
+    document.getElementById('hmac-algo')?.addEventListener('change', updateHmacTool);
+    document.getElementById('hmac-key-format')?.addEventListener('change', updateHmacTool);
+    document.getElementById('hmac-output-format')?.addEventListener('change', updateHmacTool);
+    document.getElementById('hmac-batch')?.addEventListener('change', updateHmacTool);
+    updateHmacTool();
+}
+
+async function updateHmacTool() {
+    const inputEl = document.getElementById('hmac-input');
+    const outputEl = document.getElementById('hmac-output');
+    const errorsEl = document.getElementById('hmac-errors');
+    const keyEl = document.getElementById('hmac-key');
+    const algoEl = document.getElementById('hmac-algo');
+    const keyFormatEl = document.getElementById('hmac-key-format');
+    const outputFormatEl = document.getElementById('hmac-output-format');
+    const batchEl = document.getElementById('hmac-batch');
+
+    if (!inputEl || !outputEl || !errorsEl) return;
+    errorsEl.innerHTML = '';
+    outputEl.value = '';
+
+    if (!window.DogToolboxM21Utils) {
+        errorsEl.innerHTML = '<div>⚠ 工具模块未加载：tools_m21_utils.js</div>';
+        return;
+    }
+
+    const message = inputEl.value ?? '';
+    const key = keyEl?.value ?? '';
+    if (!message.trim() || !key.trim()) return;
+
+    const algorithm = algoEl?.value || 'sha256';
+    const keyFormat = keyFormatEl?.value || 'text';
+    const outputFormat = outputFormatEl?.value || 'hex';
+    const batch = !!batchEl?.checked;
+
+    try {
+        if (batch) {
+            const result = await window.DogToolboxM21Utils.hmacBatch(message, key, {
+                algorithm, keyFormat, outputFormat
+            });
+            outputEl.value = result;
+        } else {
+            const result = await window.DogToolboxM21Utils.hmac(message, key, {
+                algorithm, keyFormat, outputFormat
+            });
+            outputEl.value = result;
+        }
+    } catch (e) {
+        errorsEl.innerHTML = `<div>⚠ ${escapeHtml(e?.message || String(e))}</div>`;
+    }
+}
+
+function clearHmacTool() {
+    const inputEl = document.getElementById('hmac-input');
+    const outputEl = document.getElementById('hmac-output');
+    const errorsEl = document.getElementById('hmac-errors');
+    const keyEl = document.getElementById('hmac-key');
+    if (inputEl) inputEl.value = '';
+    if (outputEl) outputEl.value = '';
+    if (errorsEl) errorsEl.innerHTML = '';
+    if (keyEl) keyEl.value = '';
+}
+
+function copyHmacOutput(btn) {
+    const outputEl = document.getElementById('hmac-output');
+    const text = outputEl?.value || '';
+    copyToolText(btn, text);
+}
+
+// ==================== 工具箱：RSA 加解密（M20） ====================
+let rsaMode = 'encrypt';
+
+function initRsaTool() {
+    setRsaMode('encrypt');
+    updateRsaKeyHint();
+}
+
+function setRsaMode(mode) {
+    if (mode !== 'encrypt' && mode !== 'decrypt') return;
+    rsaMode = mode;
+    document.getElementById('rsa-encrypt-btn')?.classList.toggle('active', rsaMode === 'encrypt');
+    document.getElementById('rsa-decrypt-btn')?.classList.toggle('active', rsaMode === 'decrypt');
+
+    const inputHeader = document.getElementById('rsa-input-header');
+    const outputHeader = document.getElementById('rsa-output-header');
+    const inputEl = document.getElementById('rsa-input');
+    const outputEl = document.getElementById('rsa-output');
+
+    if (rsaMode === 'encrypt') {
+        if (inputHeader) inputHeader.textContent = '输入（明文）';
+        if (outputHeader) outputHeader.textContent = '输出（密文）';
+        if (inputEl) inputEl.placeholder = '输入明文...';
+        if (outputEl) outputEl.placeholder = '加密结果...';
+    } else {
+        if (inputHeader) inputHeader.textContent = '输入（密文）';
+        if (outputHeader) outputHeader.textContent = '输出（明文）';
+        if (inputEl) inputEl.placeholder = '输入密文（Base64/Hex）...';
+        if (outputEl) outputEl.placeholder = '解密结果...';
+    }
+
+    const errorsEl = document.getElementById('rsa-errors');
+    if (errorsEl) errorsEl.innerHTML = '';
+    if (outputEl) outputEl.value = '';
+}
+
+function updateRsaKeyHint() {
+    const hintEl = document.getElementById('rsa-key-hint');
+    const keysizeEl = document.getElementById('rsa-keysize');
+    if (!hintEl) return;
+    const keysize = keysizeEl?.value || '2048';
+    hintEl.textContent = `当前配置：${keysize} 位 RSA-OAEP (SHA-256)`;
+}
+
+async function generateRsaKeyPair() {
+    const errorsEl = document.getElementById('rsa-errors');
+    const pubkeyEl = document.getElementById('rsa-pubkey');
+    const privkeyEl = document.getElementById('rsa-privkey');
+    const keysizeEl = document.getElementById('rsa-keysize');
+
+    if (!pubkeyEl || !privkeyEl) return;
+    if (errorsEl) errorsEl.innerHTML = '';
+
+    if (!window.DogToolboxM20Utils) {
+        if (errorsEl) errorsEl.innerHTML = '<div>⚠ 工具模块未加载：tools_m20_utils.js</div>';
+        return;
+    }
+
+    const keysize = parseInt(keysizeEl?.value || '2048', 10);
+
+    try {
+        const keyPair = await window.DogToolboxM20Utils.generateKeyPair(keysize);
+        pubkeyEl.value = keyPair.publicKey;
+        privkeyEl.value = keyPair.privateKey;
+        validateRsaKeys();
+    } catch (e) {
+        if (errorsEl) errorsEl.innerHTML = `<div>⚠ ${escapeHtml(e?.message || String(e))}</div>`;
+    }
+}
+
+function validateRsaKeys() {
+    if (!window.DogToolboxM20Utils) return;
+
+    const pubkeyEl = document.getElementById('rsa-pubkey');
+    const privkeyEl = document.getElementById('rsa-privkey');
+    const pubGroup = document.getElementById('rsa-pubkey-group');
+    const privGroup = document.getElementById('rsa-privkey-group');
+
+    if (pubkeyEl && pubGroup) {
+        const pubText = pubkeyEl.value.trim();
+        if (pubText) {
+            const result = window.DogToolboxM20Utils.validatePublicKey(pubText);
+            pubGroup.classList.toggle('key-valid', result.valid);
+            pubGroup.classList.toggle('key-invalid', !result.valid);
+        } else {
+            pubGroup.classList.remove('key-valid', 'key-invalid');
+        }
+    }
+
+    if (privkeyEl && privGroup) {
+        const privText = privkeyEl.value.trim();
+        if (privText) {
+            const result = window.DogToolboxM20Utils.validatePrivateKey(privText);
+            privGroup.classList.toggle('key-valid', result.valid);
+            privGroup.classList.toggle('key-invalid', !result.valid);
+        } else {
+            privGroup.classList.remove('key-valid', 'key-invalid');
+        }
+    }
+}
+
+async function runRsaTool() {
+    const inputEl = document.getElementById('rsa-input');
+    const outputEl = document.getElementById('rsa-output');
+    const errorsEl = document.getElementById('rsa-errors');
+    const pubkeyEl = document.getElementById('rsa-pubkey');
+    const privkeyEl = document.getElementById('rsa-privkey');
+    const formatEl = document.getElementById('rsa-output-format');
+
+    if (!inputEl || !outputEl || !errorsEl) return;
+    errorsEl.innerHTML = '';
+    outputEl.value = '';
+
+    if (!window.DogToolboxM20Utils) {
+        errorsEl.innerHTML = '<div>⚠ 工具模块未加载：tools_m20_utils.js</div>';
+        return;
+    }
+
+    const inputText = inputEl.value.trim();
+    if (!inputText) {
+        errorsEl.innerHTML = '<div>⚠ 请输入内容</div>';
+        return;
+    }
+
+    const format = formatEl?.value || 'base64';
+
+    try {
+        if (rsaMode === 'encrypt') {
+            const pubkey = pubkeyEl?.value?.trim();
+            if (!pubkey) {
+                errorsEl.innerHTML = '<div>⚠ 请输入公钥</div>';
+                return;
+            }
+            const encrypted = await window.DogToolboxM20Utils.encrypt(inputText, pubkey, format);
+            outputEl.value = encrypted;
+        } else {
+            const privkey = privkeyEl?.value?.trim();
+            if (!privkey) {
+                errorsEl.innerHTML = '<div>⚠ 请输入私钥</div>';
+                return;
+            }
+            const decrypted = await window.DogToolboxM20Utils.decrypt(inputText, privkey, format);
+            outputEl.value = decrypted;
+        }
+    } catch (e) {
+        errorsEl.innerHTML = `<div>⚠ ${escapeHtml(e?.message || String(e))}</div>`;
+    }
+}
+
+function clearRsaTool() {
+    const inputEl = document.getElementById('rsa-input');
+    const outputEl = document.getElementById('rsa-output');
+    const errorsEl = document.getElementById('rsa-errors');
+    const pubkeyEl = document.getElementById('rsa-pubkey');
+    const privkeyEl = document.getElementById('rsa-privkey');
+    const pubGroup = document.getElementById('rsa-pubkey-group');
+    const privGroup = document.getElementById('rsa-privkey-group');
+
+    if (inputEl) inputEl.value = '';
+    if (outputEl) outputEl.value = '';
+    if (errorsEl) errorsEl.innerHTML = '';
+    if (pubkeyEl) pubkeyEl.value = '';
+    if (privkeyEl) privkeyEl.value = '';
+    if (pubGroup) pubGroup.classList.remove('key-valid', 'key-invalid');
+    if (privGroup) privGroup.classList.remove('key-valid', 'key-invalid');
+}
+
+function copyRsaOutput(btn) {
+    const outputEl = document.getElementById('rsa-output');
+    const text = outputEl?.value || '';
     copyToolText(btn, text);
 }
 
@@ -2862,6 +3657,150 @@ function copyDataConvertOutput(btn) {
     const outputEl = document.getElementById('data-convert-output');
     if (!outputEl || !outputEl.value) return;
     copyToolText(btn, outputEl.value);
+}
+
+// ==================== M31 Excel/CSV 转 JSON ====================
+let tableInputFormat = 'csv';
+let tableOutputFormat = 'json';
+
+function initTableJsonTool() {
+    updateTableFormatButtons();
+}
+
+function updateTableFormatButtons() {
+    // 更新输入格式按钮状态
+    const inputBtns = {
+        csv: document.getElementById('table-in-csv'),
+        tsv: document.getElementById('table-in-tsv'),
+        json: document.getElementById('table-in-json')
+    };
+
+    Object.keys(inputBtns).forEach(key => {
+        const btn = inputBtns[key];
+        if (btn) {
+            if (key === tableInputFormat) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+    });
+
+    // 更新输出格式按钮状态
+    const outputBtns = {
+        json: document.getElementById('table-out-json'),
+        csv: document.getElementById('table-out-csv'),
+        tsv: document.getElementById('table-out-tsv')
+    };
+
+    Object.keys(outputBtns).forEach(key => {
+        const btn = outputBtns[key];
+        if (btn) {
+            if (key === tableOutputFormat) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+    });
+}
+
+function setTableInputFormat(format) {
+    tableInputFormat = format;
+    updateTableFormatButtons();
+    updateTableJsonTool();
+}
+
+function setTableOutputFormat(format) {
+    tableOutputFormat = format;
+    updateTableFormatButtons();
+    updateTableJsonTool();
+}
+
+function clearTableJsonTool() {
+    const inputEl = document.getElementById('table-input');
+    const outputEl = document.getElementById('table-output');
+    const errorsEl = document.getElementById('table-errors');
+
+    if (inputEl) inputEl.value = '';
+    if (outputEl) outputEl.value = '';
+    if (errorsEl) errorsEl.innerHTML = '';
+}
+
+function updateTableJsonTool() {
+    const inputEl = document.getElementById('table-input');
+    const outputEl = document.getElementById('table-output');
+    const errorsEl = document.getElementById('table-errors');
+    const hasHeaderEl = document.getElementById('table-has-header');
+    const jsonFormatEl = document.getElementById('table-json-format');
+    const jsonIndentEl = document.getElementById('table-json-indent');
+
+    if (!inputEl || !outputEl) return;
+
+    const input = inputEl.value.trim();
+    if (errorsEl) errorsEl.innerHTML = '';
+
+    if (!input) {
+        outputEl.value = '';
+        return;
+    }
+
+    if (!window.DogToolboxM31Utils) {
+        if (errorsEl) errorsEl.innerHTML = '<div class="error-message">工具模块未加载：tools_m31_utils.js</div>';
+        outputEl.value = '';
+        return;
+    }
+
+    try {
+        const hasHeader = hasHeaderEl?.checked !== false;
+        const jsonFormat = jsonFormatEl?.value || 'object';
+        const jsonIndent = parseInt(jsonIndentEl?.value || '2', 10);
+
+        let result = '';
+
+        if (tableInputFormat === 'json' && tableOutputFormat !== 'json') {
+            // JSON → CSV/TSV
+            const json = JSON.parse(input);
+            const tableData = DogToolboxM31Utils.jsonToTable(json);
+            const delimiter = tableOutputFormat === 'tsv' ? '\t' : ',';
+            result = DogToolboxM31Utils.tableToCsv(tableData, delimiter);
+        } else if (tableInputFormat !== 'json' && tableOutputFormat === 'json') {
+            // CSV/TSV → JSON
+            const format = tableInputFormat === 'tsv' ? 'tsv' : 'csv';
+            const tableData = DogToolboxM31Utils.parseTableData(input, format);
+
+            if (tableData.length === 0) {
+                throw new Error('未能解析出有效数据');
+            }
+
+            const jsonData = DogToolboxM31Utils.tableToJson(tableData, {
+                hasHeader: hasHeader,
+                outputFormat: jsonFormat
+            });
+            result = JSON.stringify(jsonData, null, jsonIndent);
+        } else if (tableInputFormat === tableOutputFormat) {
+            // 相同格式，直接输出
+            result = input;
+        } else {
+            // CSV ↔ TSV 转换
+            const tableData = DogToolboxM31Utils.parseTableData(input, tableInputFormat);
+            const delimiter = tableOutputFormat === 'tsv' ? '\t' : ',';
+            result = DogToolboxM31Utils.tableToCsv(tableData, delimiter);
+        }
+
+        outputEl.value = result;
+    } catch (e) {
+        if (errorsEl) {
+            errorsEl.innerHTML = `<div class="error-message">错误：${escapeHtml(e.message || String(e))}</div>`;
+        }
+        outputEl.value = '';
+    }
+}
+
+function copyTableOutput(btn) {
+    const outputEl = document.getElementById('table-output');
+    if (!outputEl || !outputEl.value) return;
+    copyToolText(btn, outputEl.value, { showTextFeedback: true });
 }
 
 /* ========== M11: 文本去重/排序 ========== */
@@ -3798,4 +4737,968 @@ async function importBackup(event) {
     }
 
     event.target.value = '';
+}
+
+// ==================== M22 Markdown 预览工具 ====================
+function clearMarkdownTool() {
+    document.getElementById('markdown-input').value = '';
+    document.getElementById('markdown-preview').innerHTML = '';
+}
+
+function updateMarkdownTool() {
+    const input = document.getElementById('markdown-input').value;
+    const previewEl = document.getElementById('markdown-preview');
+
+    if (!input.trim()) {
+        previewEl.innerHTML = '<p class="placeholder-text">预览将在此处显示...</p>';
+        return;
+    }
+
+    try {
+        const html = DogToolboxM22Utils.parseMarkdown(input);
+        previewEl.innerHTML = html;
+    } catch (e) {
+        previewEl.innerHTML = `<div class="error-message">解析错误：${escapeHtml(e.message || String(e))}</div>`;
+    }
+}
+
+function copyMarkdownHtml(btn) {
+    const previewEl = document.getElementById('markdown-preview');
+    const html = previewEl.innerHTML;
+
+    if (!html || html.includes('placeholder-text')) {
+        return;
+    }
+
+    copyToolText(btn, html, { showTextFeedback: true });
+}
+
+function exportMarkdownAsHtml() {
+    const inputEl = document.getElementById('markdown-input');
+    const input = inputEl?.value;
+
+    if (!input || !input.trim()) {
+        return;
+    }
+
+    if (!window.DogToolboxM22Utils) {
+        alert('工具模块未加载');
+        return;
+    }
+
+    try {
+        // 生成完整 HTML
+        const htmlContent = window.DogToolboxM22Utils.exportAsHtml(input, {
+            title: 'Markdown 文档'
+        });
+
+        // 创建 Blob 并触发下载
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+
+        // 生成文件名（带时间戳）
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-');
+        link.download = `markdown-export-${timestamp}.html`;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        alert('导出失败：' + (e.message || String(e)));
+    }
+}
+
+// ==================== 输入验证辅助函数 ====================
+
+/**
+ * 验证输入字段，为空则添加错误样式
+ * @param {string} elementId - 元素ID
+ * @param {string} value - 字段值
+ * @returns {boolean} 是否通过验证
+ */
+function validateInput(elementId, value) {
+    const el = document.getElementById(elementId);
+    if (!el) return true; // 元素不存在，跳过验证
+
+    const isValid = value && value.trim() !== '';
+
+    if (isValid) {
+        el.classList.remove('input-error');
+    } else {
+        el.classList.add('input-error');
+    }
+
+    return isValid;
+}
+
+/**
+ * 清除所有验证错误样式
+ * @param {string[]} elementIds - 元素ID数组
+ */
+function clearValidationErrors(elementIds) {
+    elementIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('input-error');
+    });
+}
+
+// ==================== 原有 M26 Git 命令生成器 ====================
+
+// ==================== M26 Git 命令生成器 ====================
+let currentGitScene = 'commit';
+
+// 场景切换
+function switchGitScene(scene, evt) {
+    currentGitScene = scene;
+
+    // 更新 tab 激活状态
+    document.querySelectorAll('.tool-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    if (evt?.target) {
+        evt.target.classList.add('active');
+    }
+
+    // 更新场景显示
+    document.querySelectorAll('.git-scene').forEach(s => {
+        s.classList.remove('active');
+    });
+    document.getElementById(`git-scene-${scene}`)?.classList.add('active');
+
+    // 如果是模板场景，加载模板
+    if (scene === 'templates') {
+        loadGitTemplates();
+    } else {
+        updateGitCommand();
+    }
+}
+
+// 加载常用命令模板
+function loadGitTemplates() {
+    if (!window.DogToolboxM26Utils) return;
+
+    const templates = DogToolboxM26Utils.getCommonTemplates();
+    const container = document.getElementById('git-templates-list');
+
+    container.innerHTML = templates.map(t => `
+        <div class="git-template-item" onclick="applyGitTemplate('${escapeAttr(t.command)}')">
+            <div class="git-template-name">${escapeHtml(t.name)}</div>
+            <div class="git-template-desc">${escapeHtml(t.description)}</div>
+            <div class="git-template-command">${escapeHtml(t.command)}</div>
+        </div>
+    `).join('');
+}
+
+// 应用模板到输出区
+function applyGitTemplate(command) {
+    document.getElementById('git-command-output').value = command;
+    document.getElementById('git-command-desc').textContent = '已选择模板命令';
+}
+
+// 更新分支表单显示
+function updateGitBranchForm() {
+    const action = document.getElementById('git-branch-action')?.value;
+    const nameGroup = document.getElementById('git-branch-name-group');
+    const newnameGroup = document.getElementById('git-branch-newname-group');
+    const forceGroup = document.getElementById('git-branch-force-group');
+    const remoteGroup = document.getElementById('git-branch-remote-group');
+
+    if (!action) return;
+
+    // 隐藏所有可选字段
+    if (nameGroup) nameGroup.style.display = 'none';
+    if (newnameGroup) newnameGroup.style.display = 'none';
+    if (forceGroup) forceGroup.style.display = 'none';
+    if (remoteGroup) remoteGroup.style.display = 'none';
+
+    // 根据操作类型显示相应字段
+    switch (action) {
+        case 'create':
+        case 'switch':
+            if (nameGroup) nameGroup.style.display = '';
+            break;
+        case 'delete':
+            if (nameGroup) nameGroup.style.display = '';
+            if (forceGroup) forceGroup.style.display = '';
+            break;
+        case 'rename':
+            if (nameGroup) nameGroup.style.display = '';
+            if (newnameGroup) newnameGroup.style.display = '';
+            break;
+        case 'list':
+            if (remoteGroup) remoteGroup.style.display = '';
+            break;
+    }
+}
+
+// 更新暂存表单显示
+function updateGitStashForm() {
+    const action = document.getElementById('git-stash-action')?.value;
+    const messageGroup = document.getElementById('git-stash-message-group');
+    const indexGroup = document.getElementById('git-stash-index-group');
+
+    if (!action) return;
+
+    // 隐藏所有字段
+    if (messageGroup) messageGroup.style.display = 'none';
+    if (indexGroup) indexGroup.style.display = 'none';
+
+    // 根据操作类型显示相应字段
+    switch (action) {
+        case 'save':
+            if (messageGroup) messageGroup.style.display = '';
+            break;
+        case 'pop':
+        case 'apply':
+        case 'drop':
+            if (indexGroup) indexGroup.style.display = '';
+            break;
+        // list 和 clear 不需要额外字段
+    }
+}
+
+// 更新命令预览
+function updateGitCommand() {
+    const outputEl = document.getElementById('git-command-output');
+    const descEl = document.getElementById('git-command-desc');
+
+    if (!window.DogToolboxM26Utils) {
+        if (outputEl) outputEl.value = '';
+        if (descEl) descEl.textContent = '工具模块未加载';
+        return;
+    }
+
+    try {
+        let result = null;
+
+        switch (currentGitScene) {
+            case 'commit':
+                result = generateCommitCmd();
+                break;
+            case 'branch':
+                result = generateBranchCmd();
+                break;
+            case 'log':
+                result = generateLogCmd();
+                break;
+            case 'reset':
+                result = generateResetCmd();
+                break;
+            case 'clone':
+                result = generateCloneCmd();
+                break;
+            case 'merge':
+                result = generateMergeCmd();
+                break;
+            case 'stash':
+                result = generateStashCmd();
+                break;
+        }
+
+        if (result) {
+            if (outputEl) outputEl.value = result.command || '';
+            if (descEl) descEl.textContent = result.description || '';
+        } else {
+            if (outputEl) outputEl.value = '';
+            if (descEl) descEl.textContent = '请填写必要参数';
+        }
+    } catch (e) {
+        if (outputEl) outputEl.value = '';
+        if (descEl) descEl.textContent = `错误：${e.message || String(e)}`;
+    }
+}
+
+// 生成 Commit 命令
+function generateCommitCmd() {
+    const message = document.getElementById('git-commit-message')?.value.trim();
+
+    // 验证必填字段
+    if (!validateInput('git-commit-message', message)) {
+        return null;
+    }
+
+    const options = {
+        all: document.getElementById('git-commit-all')?.checked || false,
+        amend: document.getElementById('git-commit-amend')?.checked || false,
+        noVerify: document.getElementById('git-commit-noverify')?.checked || false
+    };
+
+    return DogToolboxM26Utils.generateCommitCommand(message, options);
+}
+
+// 生成 Branch 命令
+function generateBranchCmd() {
+    const action = document.getElementById('git-branch-action')?.value;
+    const name = document.getElementById('git-branch-name')?.value.trim();
+
+    if (action === 'list') {
+        // list 操作不需要 name，清除错误样式
+        clearValidationErrors(['git-branch-name']);
+        const options = {
+            remote: document.getElementById('git-branch-remote')?.checked || false
+        };
+        return DogToolboxM26Utils.generateBranchCommand(action, '', options);
+    }
+
+    // 其他操作需要验证 name
+    if (!validateInput('git-branch-name', name)) {
+        return null;
+    }
+
+    const options = {
+        newName: document.getElementById('git-branch-newname')?.value.trim(),
+        force: document.getElementById('git-branch-force')?.checked || false
+    };
+
+    return DogToolboxM26Utils.generateBranchCommand(action, name, options);
+}
+
+// 生成 Log 命令
+function generateLogCmd() {
+    const options = {
+        oneline: document.getElementById('git-log-oneline')?.checked || false,
+        graph: document.getElementById('git-log-graph')?.checked || false,
+        maxCount: parseInt(document.getElementById('git-log-count')?.value) || null,
+        author: document.getElementById('git-log-author')?.value.trim(),
+        grep: document.getElementById('git-log-grep')?.value.trim()
+    };
+
+    return DogToolboxM26Utils.generateLogCommand(options);
+}
+
+// 生成 Reset 命令
+function generateResetCmd() {
+    const mode = document.getElementById('git-reset-mode')?.value || 'mixed';
+    const ref = document.getElementById('git-reset-ref')?.value.trim();
+
+    return DogToolboxM26Utils.generateResetCommand(mode, ref);
+}
+
+// 生成 Clone 命令
+function generateCloneCmd() {
+    const url = document.getElementById('git-clone-url')?.value.trim();
+
+    // 验证必填字段
+    if (!validateInput('git-clone-url', url)) {
+        return null;
+    }
+
+    const options = {
+        branch: document.getElementById('git-clone-branch')?.value.trim(),
+        targetDir: document.getElementById('git-clone-dir')?.value.trim(),
+        depth: parseInt(document.getElementById('git-clone-depth')?.value) || null,
+        recursive: document.getElementById('git-clone-recursive')?.checked || false
+    };
+
+    return DogToolboxM26Utils.generateCloneCommand(url, options);
+}
+
+// 生成 Merge 命令
+function generateMergeCmd() {
+    const branch = document.getElementById('git-merge-branch')?.value.trim();
+
+    // 验证必填字段
+    if (!validateInput('git-merge-branch', branch)) {
+        return null;
+    }
+
+    const options = {
+        noFf: document.getElementById('git-merge-noff')?.checked || false,
+        squash: document.getElementById('git-merge-squash')?.checked || false,
+        message: document.getElementById('git-merge-message')?.value.trim()
+    };
+
+    return DogToolboxM26Utils.generateMergeCommand(branch, options);
+}
+
+// 生成 Stash 命令
+function generateStashCmd() {
+    const action = document.getElementById('git-stash-action')?.value;
+
+    const options = {
+        message: document.getElementById('git-stash-message')?.value.trim(),
+        index: parseInt(document.getElementById('git-stash-index')?.value)
+    };
+
+    if (isNaN(options.index)) {
+        options.index = undefined;
+    }
+
+    return DogToolboxM26Utils.generateStashCommand(action, options);
+}
+
+function copyGitCommand(btn) {
+    const output = document.getElementById('git-command-output').value;
+    if (!output) return;
+    copyToolText(btn, output, { showTextFeedback: true });
+}
+
+// ==================== M27 Docker 命令生成器 ====================
+let currentDockerScene = 'run';
+
+function switchDockerScene(scene, evt) {
+    currentDockerScene = scene;
+
+    // 更新标签激活状态
+    document.querySelectorAll('.tool-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    if (evt?.target) {
+        evt.target.classList.add('active');
+    }
+
+    // 更新场景显示
+    document.querySelectorAll('.docker-scene').forEach(s => {
+        s.classList.remove('active');
+    });
+    document.getElementById(`docker-scene-${scene}`)?.classList.add('active');
+
+    // 更新命令
+    updateDockerCommand();
+}
+
+function updateDockerComposeForm() {
+    const action = document.getElementById('docker-compose-action')?.value;
+    const serviceGroup = document.getElementById('docker-compose-service-group');
+    const detachGroup = document.getElementById('docker-compose-detach-group');
+    const volumesGroup = document.getElementById('docker-compose-volumes-group');
+
+    if (!action) return;
+
+    // 默认全部隐藏
+    if (serviceGroup) serviceGroup.style.display = 'none';
+    if (detachGroup) detachGroup.style.display = 'none';
+    if (volumesGroup) volumesGroup.style.display = 'none';
+
+    // 根据操作类型显示相应字段
+    switch (action) {
+        case 'up':
+            if (detachGroup) detachGroup.style.display = '';
+            if (serviceGroup) serviceGroup.style.display = '';
+            break;
+        case 'down':
+            if (volumesGroup) volumesGroup.style.display = '';
+            break;
+        case 'start':
+        case 'stop':
+        case 'restart':
+        case 'build':
+        case 'pull':
+            if (serviceGroup) serviceGroup.style.display = '';
+            break;
+        case 'logs':
+        case 'exec':
+            if (serviceGroup) serviceGroup.style.display = '';
+            break;
+    }
+}
+
+function updateDockerCommand() {
+    const outputEl = document.getElementById('docker-command-output');
+    const descEl = document.getElementById('docker-command-desc');
+
+    if (!window.DogToolboxM27Utils) {
+        if (outputEl) outputEl.value = '';
+        if (descEl) descEl.textContent = '工具模块未加载';
+        return;
+    }
+
+    try {
+        let result = null;
+
+        switch (currentDockerScene) {
+            case 'run': result = generateRunCmd(); break;
+            case 'build': result = generateBuildCmd(); break;
+            case 'compose': result = generateComposeCmd(); break;
+            case 'exec': result = generateExecCmd(); break;
+            case 'logs': result = generateLogsCmd(); break;
+            case 'ps': result = generatePsCmd(); break;
+            case 'images': result = generateImagesCmd(); break;
+            case 'container': result = generateContainerCmd(); break;
+        }
+
+        if (result) {
+            if (outputEl) outputEl.value = result.command || '';
+            if (descEl) descEl.textContent = result.description || '';
+        } else {
+            if (outputEl) outputEl.value = '';
+            if (descEl) descEl.textContent = '请填写必要参数';
+        }
+    } catch (e) {
+        if (outputEl) outputEl.value = '';
+        if (descEl) descEl.textContent = `错误：${e.message || String(e)}`;
+    }
+}
+
+function generateRunCmd() {
+    const image = document.getElementById('docker-run-image')?.value.trim();
+
+    // 验证必填字段
+    if (!validateInput('docker-run-image', image)) {
+        return null;
+    }
+
+    const options = {
+        name: document.getElementById('docker-run-name')?.value.trim(),
+        detach: document.getElementById('docker-run-detach')?.checked || false,
+        interactive: document.getElementById('docker-run-interactive')?.checked || false,
+        rm: document.getElementById('docker-run-rm')?.checked || false,
+        network: document.getElementById('docker-run-network')?.value.trim(),
+        restart: document.getElementById('docker-run-restart')?.value.trim(),
+        memory: document.getElementById('docker-run-memory')?.value.trim(),
+        cpus: document.getElementById('docker-run-cpus')?.value.trim(),
+        command: document.getElementById('docker-run-command')?.value.trim()
+    };
+
+    // 解析端口映射
+    const portsStr = document.getElementById('docker-run-ports')?.value.trim();
+    if (portsStr) {
+        options.ports = portsStr.split(',').map(p => p.trim()).filter(p => p);
+    }
+
+    // 解析卷挂载
+    const volumesStr = document.getElementById('docker-run-volumes')?.value.trim();
+    if (volumesStr) {
+        options.volumes = volumesStr.split(',').map(v => v.trim()).filter(v => v);
+    }
+
+    // 解析环境变量
+    const envStr = document.getElementById('docker-run-env')?.value.trim();
+    if (envStr) {
+        options.env = envStr.split(',').map(e => e.trim()).filter(e => e);
+    }
+
+    return DogToolboxM27Utils.generateRunCommand(image, options);
+}
+
+function generateBuildCmd() {
+    const path = document.getElementById('docker-build-path')?.value.trim();
+    const tag = document.getElementById('docker-build-tag')?.value.trim();
+
+    // 验证必填字段
+    const pathValid = validateInput('docker-build-path', path);
+    const tagValid = validateInput('docker-build-tag', tag);
+
+    if (!pathValid || !tagValid) {
+        return null;
+    }
+
+    const options = {
+        tag: tag,
+        file: document.getElementById('docker-build-file')?.value.trim(),
+        target: document.getElementById('docker-build-target')?.value.trim(),
+        noCache: document.getElementById('docker-build-nocache')?.checked || false,
+        pull: document.getElementById('docker-build-pull')?.checked || false
+    };
+
+    // 解析构建参数
+    const argStr = document.getElementById('docker-build-arg')?.value.trim();
+    if (argStr) {
+        options.buildArg = argStr.split(',').map(a => a.trim()).filter(a => a);
+    }
+
+    return DogToolboxM27Utils.generateBuildCommand(path, options);
+}
+
+function generateComposeCmd() {
+    const action = document.getElementById('docker-compose-action')?.value;
+    if (!action) return null;
+
+    const options = {
+        file: document.getElementById('docker-compose-file')?.value.trim(),
+        projectName: document.getElementById('docker-compose-project')?.value.trim(),
+        service: document.getElementById('docker-compose-service')?.value.trim(),
+        detach: document.getElementById('docker-compose-detach')?.checked || false,
+        volumes: document.getElementById('docker-compose-volumes')?.checked || false
+    };
+
+    return DogToolboxM27Utils.generateComposeCommand(action, options);
+}
+
+function generateExecCmd() {
+    const container = document.getElementById('docker-exec-container')?.value.trim();
+    const command = document.getElementById('docker-exec-command')?.value.trim();
+
+    // 验证必填字段
+    const containerValid = validateInput('docker-exec-container', container);
+    const commandValid = validateInput('docker-exec-command', command);
+
+    if (!containerValid || !commandValid) {
+        return null;
+    }
+
+    const options = {
+        interactive: document.getElementById('docker-exec-interactive')?.checked || false,
+        workdir: document.getElementById('docker-exec-workdir')?.value.trim(),
+        user: document.getElementById('docker-exec-user')?.value.trim()
+    };
+
+    return DogToolboxM27Utils.generateExecCommand(container, command, options);
+}
+
+function generateLogsCmd() {
+    const container = document.getElementById('docker-logs-container')?.value.trim();
+
+    // 验证必填字段
+    if (!validateInput('docker-logs-container', container)) {
+        return null;
+    }
+
+    const options = {
+        follow: document.getElementById('docker-logs-follow')?.checked || false,
+        timestamps: document.getElementById('docker-logs-timestamps')?.checked || false,
+        tail: document.getElementById('docker-logs-tail')?.value.trim(),
+        since: document.getElementById('docker-logs-since')?.value.trim()
+    };
+
+    return DogToolboxM27Utils.generateLogsCommand(container, options);
+}
+
+function generatePsCmd() {
+    const options = {
+        all: document.getElementById('docker-ps-all')?.checked || false,
+        quiet: document.getElementById('docker-ps-quiet')?.checked || false,
+        filter: document.getElementById('docker-ps-filter')?.value.trim()
+    };
+
+    return DogToolboxM27Utils.generatePsCommand(options);
+}
+
+function generateImagesCmd() {
+    const options = {
+        all: document.getElementById('docker-images-all')?.checked || false,
+        quiet: document.getElementById('docker-images-quiet')?.checked || false,
+        filter: document.getElementById('docker-images-filter')?.value.trim()
+    };
+
+    return DogToolboxM27Utils.generateImagesCommand(options);
+}
+
+function generateContainerCmd() {
+    const action = document.getElementById('docker-container-action')?.value;
+    const namesStr = document.getElementById('docker-container-names')?.value.trim();
+
+    if (!action || !namesStr) return null;
+
+    const containers = namesStr.split(/\s+/).filter(n => n);
+    if (containers.length === 0) return null;
+
+    const options = {
+        force: document.getElementById('docker-container-force')?.checked || false
+    };
+
+    return DogToolboxM27Utils.generateContainerCommand(action, containers, options);
+}
+
+function copyDockerCommand(btn) {
+    const output = document.getElementById('docker-command-output').value;
+    if (!output) return;
+    copyToolText(btn, output, { showTextFeedback: true });
+}
+
+
+// ==================== M28 JSON Schema 生成 ====================
+function clearJsonSchemaTool() {
+    document.getElementById('jsonschema-input').value = '';
+    document.getElementById('jsonschema-output').value = '';
+    document.getElementById('jsonschema-errors').innerHTML = '';
+}
+
+function updateJsonSchemaTool() {
+    const input = document.getElementById('jsonschema-input').value;
+    const outputEl = document.getElementById('jsonschema-output');
+    const errorsEl = document.getElementById('jsonschema-errors');
+
+    errorsEl.innerHTML = '';
+
+    if (!input.trim()) {
+        outputEl.value = '';
+        return;
+    }
+
+    try {
+        const data = JSON.parse(input);
+        const schema = DogToolboxM28Utils.generateSchema(data);
+        outputEl.value = JSON.stringify(schema, null, 2);
+    } catch (e) {
+        errorsEl.innerHTML = `<div class="error-message">错误：${escapeHtml(e.message || String(e))}</div>`;
+        outputEl.value = '';
+    }
+}
+
+function copyJsonSchemaOutput(btn) {
+    const output = document.getElementById('jsonschema-output').value;
+    if (!output) return;
+    copyToolText(btn, output, { showTextFeedback: true });
+}
+
+// ==================== M29 Mock 数据生成 ====================
+function clearMockTool() {
+    document.getElementById('mock-output').value = '';
+}
+
+function generateMockData() {
+    const type = document.getElementById('mock-type').value;
+    const count = parseInt(document.getElementById('mock-count').value) || 10;
+    const format = document.getElementById('mock-output-format')?.value || 'lines';
+    const outputEl = document.getElementById('mock-output');
+
+    const results = [];
+
+    try {
+        for (let i = 0; i < count; i++) {
+            let value;
+            switch (type) {
+                case 'name':
+                    value = DogToolboxM29Utils.randomName();
+                    break;
+                case 'email':
+                    value = DogToolboxM29Utils.randomEmail();
+                    break;
+                case 'phone':
+                    value = DogToolboxM29Utils.randomPhone();
+                    break;
+                case 'idcard':
+                    value = DogToolboxM29Utils.randomIdCard();
+                    break;
+                case 'address':
+                    value = DogToolboxM29Utils.randomAddress();
+                    break;
+                case 'uuid':
+                    value = DogToolboxM29Utils.randomUuid();
+                    break;
+                case 'date':
+                    value = DogToolboxM29Utils.randomDate();
+                    break;
+                default:
+                    value = DogToolboxM29Utils.randomName();
+            }
+            results.push(value);
+        }
+
+        // 根据输出格式生成结果
+        let output;
+        switch (format) {
+            case 'json':
+                output = JSON.stringify(results, null, 2);
+                break;
+            case 'csv':
+                output = results.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',\n');
+                break;
+            case 'jsonlines':
+                output = results.map(v => JSON.stringify(v)).join('\n');
+                break;
+            case 'lines':
+            default:
+                output = results.join('\n');
+        }
+
+        outputEl.value = output;
+    } catch (e) {
+        outputEl.value = `错误：${e.message || String(e)}`;
+    }
+}
+
+function copyMockOutput(btn) {
+    const output = document.getElementById('mock-output').value;
+    if (!output) return;
+    copyToolText(btn, output, { showTextFeedback: true });
+}
+
+// ==================== M30 数据脱敏 ====================
+function clearMaskTool() {
+    document.getElementById('mask-input').value = '';
+    document.getElementById('mask-output').value = '';
+}
+
+function updateMaskTool() {
+    const input = document.getElementById('mask-input').value;
+    const type = document.getElementById('mask-type').value;
+    const outputEl = document.getElementById('mask-output');
+
+    if (!input.trim()) {
+        outputEl.value = '';
+        return;
+    }
+
+    try {
+        let result;
+        if (type === 'auto') {
+            result = DogToolboxM30Utils.smartMask(input);
+        } else {
+            const lines = input.split('\n');
+            const masked = lines.map(line => {
+                if (!line.trim()) return line;
+                switch (type) {
+                    case 'phone':
+                        return DogToolboxM30Utils.maskPhone(line.trim());
+                    case 'idcard':
+                        return DogToolboxM30Utils.maskIdCard(line.trim());
+                    case 'email':
+                        return DogToolboxM30Utils.maskEmail(line.trim());
+                    case 'bankcard':
+                        return DogToolboxM30Utils.maskBankCard(line.trim());
+                    case 'name':
+                        return DogToolboxM30Utils.maskName(line.trim());
+                    default:
+                        return line;
+                }
+            });
+            result = masked.join('\n');
+        }
+        outputEl.value = result;
+    } catch (e) {
+        outputEl.value = `错误：${e.message || String(e)}`;
+    }
+}
+
+function copyMaskOutput(btn) {
+    const output = document.getElementById('mask-output').value;
+    if (!output) return;
+    copyToolText(btn, output, { showTextFeedback: true });
+}
+
+// ==================== 工具箱：CSV 处理 (M23) ====================
+let csvInputFormat = 'csv';
+let csvOutputFormat = 'json';
+
+function initCsvTool() {
+    const inputEl = document.getElementById('csv-input');
+    if (!inputEl) return;
+
+    // Initialize state
+    csvInputFormat = 'csv';
+    csvOutputFormat = 'json';
+    updateCsvToolUi();
+}
+
+function setCsvInputFormat(fmt) {
+    if (fmt !== 'csv' && fmt !== 'json') return;
+    csvInputFormat = fmt;
+    updateCsvToolUi();
+    updateCsvTool();
+}
+
+function setCsvOutputFormat(fmt) {
+    if (fmt !== 'csv' && fmt !== 'json') return;
+    csvOutputFormat = fmt;
+    updateCsvToolUi();
+    updateCsvTool();
+}
+
+function updateCsvToolUi() {
+    document.getElementById('csv-in-csv')?.classList.toggle('active', csvInputFormat === 'csv');
+    document.getElementById('csv-in-json')?.classList.toggle('active', csvInputFormat === 'json');
+    document.getElementById('csv-out-csv')?.classList.toggle('active', csvOutputFormat === 'csv');
+    document.getElementById('csv-out-json')?.classList.toggle('active', csvOutputFormat === 'json');
+}
+
+function updateCsvTool() {
+    const inputEl = document.getElementById('csv-input');
+    const outputEl = document.getElementById('csv-output');
+    const errorsEl = document.getElementById('csv-errors');
+    const delimiterEl = document.getElementById('csv-delimiter');
+    const hasHeaderEl = document.getElementById('csv-has-header');
+
+    if (!inputEl || !outputEl || !errorsEl) return;
+
+    errorsEl.innerHTML = '';
+    const input = inputEl.value;
+    if (!input.trim()) {
+        outputEl.value = '';
+        return;
+    }
+
+    if (!window.DogToolboxM23Utils) {
+        errorsEl.innerHTML = '<div>⚠ 工具模块未加载</div>';
+        return;
+    }
+
+    try {
+        const options = {
+            delimiter: delimiterEl?.value || ',',
+            hasHeader: hasHeaderEl?.checked ?? true
+        };
+
+        let data;
+        // Parse input
+        if (csvInputFormat === 'csv') {
+            data = window.DogToolboxM23Utils.parseCSV(input, options);
+        } else {
+            data = JSON.parse(input);
+        }
+
+        // Generate output
+        let output;
+        if (csvOutputFormat === 'csv') {
+            output = window.DogToolboxM23Utils.stringifyCSV(data, options);
+        } else {
+            output = JSON.stringify(data, null, 2);
+        }
+
+        outputEl.value = output;
+    } catch (e) {
+        const errorMsg = escapeHtml(e.message || String(e));
+        errorsEl.innerHTML = `<div>⚠ ${errorMsg}</div>`;
+    }
+}
+
+function clearCsvTool() {
+    const inputEl = document.getElementById('csv-input');
+    const outputEl = document.getElementById('csv-output');
+    const errorsEl = document.getElementById('csv-errors');
+    if (inputEl) inputEl.value = '';
+    if (outputEl) outputEl.value = '';
+    if (errorsEl) errorsEl.innerHTML = '';
+}
+
+function copyCsvOutput(btn) {
+    const outputEl = document.getElementById('csv-output');
+    copyToolText(btn, outputEl?.value || '', { showTextFeedback: true });
+}
+
+// ==================== M22 Markdown 工具初始化 ====================
+function initMarkdownTool() {
+    const inputEl = document.getElementById('markdown-input');
+    if (!inputEl) return;
+    inputEl.addEventListener('input', updateMarkdownTool);
+    updateMarkdownTool();
+}
+
+// ==================== M26 Git 命令生成器初始化 ====================
+function initGitTool() {
+    // Git 工具使用场景切换和模板加载，无需额外初始化
+    // 所有事件处理器已通过 onclick 绑定
+    loadGitTemplates();
+}
+
+// ==================== M27 Docker 命令生成器初始化 ====================
+function initDockerTool() {
+    // Docker 工具使用场景切换，无需额外初始化
+    // 所有事件处理器已通过 onclick 绑定
+}
+
+// ==================== M28 JSON Schema 生成器初始化 ====================
+function initJsonSchemaTool() {
+    const inputEl = document.getElementById('json-schema-input');
+    if (!inputEl) return;
+    inputEl.addEventListener('input', updateJsonSchemaTool);
+    updateJsonSchemaTool();
+}
+
+// ==================== M29 Mock 数据生成器初始化 ====================
+function initMockTool() {
+    // Mock 工具使用按钮触发，无需额外初始化
+    // 所有事件处理器已通过 onclick 绑定
+}
+
+// ==================== M30 数据脱敏工具初始化 ====================
+function initMaskTool() {
+    const inputEl = document.getElementById('mask-input');
+    if (!inputEl) return;
+    inputEl.addEventListener('input', updateMaskTool);
+    updateMaskTool();
 }

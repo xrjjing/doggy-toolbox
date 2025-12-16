@@ -48,6 +48,7 @@ def main():
         min_size=(800, 600),
     )
     webview.start(debug=False)
+    sys.exit()
 
 
 if __name__ == "__main__":
