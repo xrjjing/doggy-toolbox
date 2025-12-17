@@ -4990,6 +4990,9 @@ function switchGitScene(scene, evt) {
     });
     document.getElementById(`git-scene-${scene}`)?.classList.add('active');
 
+    // 重置面板过滤状态
+    resetPanelFiltering('.git-tool');
+
     // 如果是模板场景，加载模板
     if (scene === 'templates') {
         loadGitTemplates();
@@ -5004,13 +5007,40 @@ function loadGitTemplates() {
 
     const templates = DogToolboxM26Utils.getCommonTemplates();
     const container = document.getElementById('git-templates-list');
+    
+    // Add grid class if not present
+    container.className = 'git-templates-grid';
+
+    // Helper to pick icon
+    const getIcon = (name) => {
+        if (name.includes('初始化')) return '🏁';
+        if (name.includes('状态')) return '🔍';
+        if (name.includes('添加')) return '➕';
+        if (name.includes('差异')) return '⚖️';
+        if (name.includes('推送')) return '⬆️';
+        if (name.includes('拉取')) return '⬇️';
+        if (name.includes('远程')) return '🔗';
+        if (name.includes('标签')) return '🏷️';
+        if (name.includes('检出')) return '↩️';
+        if (name.includes('日志') || name.includes('详情')) return '📜';
+        if (name.includes('清理')) return '🧹';
+        return '🔹';
+    };
 
     container.innerHTML = templates.map(t => `
-        <div class="git-template-item" onclick="applyGitTemplate('${escapeAttr(t.command)}')">
-            <div class="git-template-name">${escapeHtml(t.name)}</div>
-            <div class="git-template-desc">${escapeHtml(t.description)}</div>
-            <div class="git-template-command">${escapeHtml(t.command)}</div>
-        </div>
+        <button type="button" class="git-template-card" onclick="applyGitTemplate('${escapeAttr(t.command)}')">
+            <div class="git-template-header">
+                <div class="git-template-icon" aria-hidden="true">${getIcon(t.name)}</div>
+                <div class="git-template-info">
+                    <div class="git-template-name">${escapeHtml(t.name)}</div>
+                    <div class="git-template-desc">${escapeHtml(t.description)}</div>
+                </div>
+            </div>
+            <div class="git-template-footer">
+                <code class="git-template-code">${escapeHtml(t.command)}</code>
+                <span class="git-template-hint">点击应用</span>
+            </div>
+        </button>
     `).join('');
 }
 
@@ -5277,6 +5307,9 @@ function switchDockerScene(scene, evt) {
         s.classList.remove('active');
     });
     document.getElementById(`docker-scene-${scene}`)?.classList.add('active');
+
+    // 重置面板过滤状态
+    resetPanelFiltering('.docker-tool');
 
     // 更新命令
     updateDockerCommand();
@@ -6132,7 +6165,15 @@ function generateMockData() {
 
 function copyMockOutput(btn) {
     const output = document.getElementById('mock-output').value;
-    if (!output) return;
+    if (!output) {
+        if (btn) {
+            const orig = btn.textContent;
+            btn.textContent = '无内容';
+            btn.classList.add('btn-danger');
+            setTimeout(() => { btn.textContent = orig; btn.classList.remove('btn-danger'); }, 1200);
+        }
+        return;
+    }
     copyToolText(btn, output, { showTextFeedback: true });
 }
 
@@ -6324,17 +6365,74 @@ function initMarkdownTool() {
     updateMarkdownTool();
 }
 
+// ==================== 面板过滤功能 ====================
+function initPanelFiltering(containerSelector) {
+    const container = document.querySelector(containerSelector);
+    if (!container) return;
+
+    const panels = container.querySelectorAll('.converter-panel');
+    let activePanel = null;
+
+    panels.forEach(panel => {
+        const header = panel.querySelector('.panel-header');
+        if (!header) return;
+
+        header.addEventListener('click', (e) => {
+            // 如果点击的是按钮，不触发过滤
+            if (e.target.closest('button')) return;
+
+            // 如果点击的是当前激活的面板，显示所有面板
+            if (activePanel === panel) {
+                panels.forEach(p => {
+                    p.classList.remove('panel-filtered');
+                    const h = p.querySelector('.panel-header');
+                    if (h) h.classList.remove('active-filter');
+                });
+                activePanel = null;
+            } else {
+                // 否则，只显示点击的面板
+                panels.forEach(p => {
+                    if (p === panel) {
+                        p.classList.remove('panel-filtered');
+                        const h = p.querySelector('.panel-header');
+                        if (h) h.classList.add('active-filter');
+                    } else {
+                        p.classList.add('panel-filtered');
+                        const h = p.querySelector('.panel-header');
+                        if (h) h.classList.remove('active-filter');
+                    }
+                });
+                activePanel = panel;
+            }
+        });
+    });
+}
+
+function resetPanelFiltering(containerSelector) {
+    const container = document.querySelector(containerSelector);
+    if (!container) return;
+
+    const panels = container.querySelectorAll('.converter-panel');
+    panels.forEach(p => {
+        p.classList.remove('panel-filtered');
+        const h = p.querySelector('.panel-header');
+        if (h) h.classList.remove('active-filter');
+    });
+}
+
 // ==================== M26 Git 命令生成器初始化 ====================
 function initGitTool() {
     // Git 工具使用场景切换和模板加载，无需额外初始化
     // 所有事件处理器已通过 onclick 绑定
     loadGitTemplates();
+    initPanelFiltering('.git-tool');
 }
 
 // ==================== M27 Docker 命令生成器初始化 ====================
 function initDockerTool() {
     // Docker 工具使用场景切换，无需额外初始化
     // 所有事件处理器已通过 onclick 绑定
+    initPanelFiltering('.docker-tool');
 }
 
 // ==================== M28 JSON Schema 生成器初始化 ====================

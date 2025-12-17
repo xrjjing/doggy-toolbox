@@ -2551,17 +2551,40 @@
 		                </div>
 		                <div class="git-tool">
 		                    <!-- 场景选择器 -->
-		                    <div class="tool-tabs">
-		                        <button class="tool-tab active" onclick="switchGitScene('commit', event)">提交</button>
-		                        <button class="tool-tab" onclick="switchGitScene('branch', event)">分支</button>
-		                        <button class="tool-tab" onclick="switchGitScene('log', event)">日志</button>
-		                        <button class="tool-tab" onclick="switchGitScene('reset', event)">重置</button>
-		                        <button class="tool-tab" onclick="switchGitScene('clone', event)">克隆</button>
-		                        <button class="tool-tab" onclick="switchGitScene('merge', event)">合并</button>
-		                        <button class="tool-tab" onclick="switchGitScene('stash', event)">暂存</button>
-		                        <button class="tool-tab" onclick="switchGitScene('templates', event)">常用命令</button>
-		                    </div>
-
+		                    <div class="tool-tabs-modern" role="tablist" aria-label="Git 场景">
+		                                            <button type="button" class="tool-tab tool-tab-modern active" onclick="switchGitScene('commit', event)" role="tab" aria-selected="true">
+		                                                <span class="tab-icon" aria-hidden="true">📋</span>
+		                                                <span class="tab-label">提交</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('branch', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">🌿</span>
+		                                                <span class="tab-label">分支</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('log', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">📜</span>
+		                                                <span class="tab-label">日志</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('reset', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">⏮</span>
+		                                                <span class="tab-label">重置</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('clone', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">📥</span>
+		                                                <span class="tab-label">克隆</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('merge', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">🔀</span>
+		                                                <span class="tab-label">合并</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('stash', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">💾</span>
+		                                                <span class="tab-label">暂存</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('templates', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">📋</span>
+		                                                <span class="tab-label">模板</span>
+		                                            </button>
+		                                        </div>
 		                    <!-- Commit 场景 -->
 		                    <div id="git-scene-commit" class="git-scene active">
 		                        <div class="converter-panel">
@@ -2812,17 +2835,40 @@
 		                </div>
 		                <div class="docker-tool">
 		                    <!-- 场景选择器 -->
-		                    <div class="tool-tabs">
-		                        <button class="tool-tab active" onclick="switchDockerScene('run', event)">运行容器</button>
-		                        <button class="tool-tab" onclick="switchDockerScene('build', event)">构建镜像</button>
-		                        <button class="tool-tab" onclick="switchDockerScene('compose', event)">Compose</button>
-		                        <button class="tool-tab" onclick="switchDockerScene('exec', event)">执行命令</button>
-		                        <button class="tool-tab" onclick="switchDockerScene('logs', event)">查看日志</button>
-		                        <button class="tool-tab" onclick="switchDockerScene('ps', event)">容器列表</button>
-		                        <button class="tool-tab" onclick="switchDockerScene('images', event)">镜像列表</button>
-		                        <button class="tool-tab" onclick="switchDockerScene('container', event)">容器管理</button>
-		                    </div>
-
+		                    <div class="tool-tabs-modern" role="tablist" aria-label="Docker 场景">
+		                                                    <button type="button" class="tool-tab tool-tab-modern active" onclick="switchDockerScene('run', event)" role="tab" aria-selected="true">
+		                                                        <span class="tab-icon" aria-hidden="true">▶️</span>
+		                                                        <span class="tab-label">Run</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('build', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">🏗️</span>
+		                                                        <span class="tab-label">Build</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('compose', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">🐙</span>
+		                                                        <span class="tab-label">Compose</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('exec', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">💻</span>
+		                                                        <span class="tab-label">Exec</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('logs', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">📄</span>
+		                                                        <span class="tab-label">Logs</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('ps', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">📊</span>
+		                                                        <span class="tab-label">PS</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('images', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">🖼️</span>
+		                                                        <span class="tab-label">Images</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('container', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">📦</span>
+		                                                        <span class="tab-label">Container</span>
+		                                                    </button>
+		                                                </div>
 		                    <!-- Run 场景 -->
 		                    <div id="docker-scene-run" class="docker-scene active">
 		                        <div class="converter-panel">
