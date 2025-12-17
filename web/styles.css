@@ -318,6 +318,128 @@ body {
     pointer-events: none;
 }
 
+/* ========== 简约模式：浮动控制按钮 ========== */
+.floating-controls {
+    display: none; /* 默认隐藏 */
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 9999;
+    flex-direction: row;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(30, 41, 59, 0.7);
+    border-radius: 20px;
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.floating-controls:hover {
+    background: rgba(30, 41, 59, 0.85);
+}
+
+.floating-drag-region {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    -webkit-app-region: drag;
+    border-radius: 20px;
+}
+
+.floating-btn {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+    -webkit-app-region: no-drag;
+    position: relative;
+    z-index: 1;
+}
+
+.floating-btn.close { background: #ff5f57; }
+.floating-btn.minimize { background: #febc2e; }
+.floating-btn.maximize { background: #28c840; }
+
+.floating-btn:hover {
+    opacity: 0.8;
+    transform: scale(1.15);
+}
+
+/* 亮色主题的浮动控制 */
+[data-theme="light"] .floating-controls,
+[data-theme="cute"] .floating-controls,
+[data-theme="office"] .floating-controls,
+[data-theme="neon-light"] .floating-controls,
+[data-theme="cyberpunk-light"] .floating-controls {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="light"] .floating-controls:hover,
+[data-theme="cute"] .floating-controls:hover,
+[data-theme="office"] .floating-controls:hover,
+[data-theme="neon-light"] .floating-controls:hover,
+[data-theme="cyberpunk-light"] .floating-controls:hover {
+    background: rgba(255, 255, 255, 0.85);
+}
+
+/* 简约模式激活时 */
+[data-titlebar-mode="minimal"] .custom-titlebar {
+    display: none;
+}
+
+[data-titlebar-mode="minimal"] .floating-controls {
+    display: flex;
+}
+
+[data-titlebar-mode="minimal"] .app {
+    height: 100vh;
+}
+
+/* ========== 标题栏模式选择器样式 ========== */
+.titlebar-mode-wrapper {
+    padding: 8px 12px;
+}
+
+.titlebar-mode-label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.titlebar-mode-btns {
+    display: flex;
+    gap: 6px;
+}
+
+.titlebar-mode-btn {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.titlebar-mode-btn:hover {
+    border-color: var(--accent);
+}
+
+.titlebar-mode-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
 .app {
     display: flex;
     height: calc(100vh - 32px);
@@ -340,6 +462,12 @@ body {
     align-items: center;
     gap: 14px;
     border-bottom: 1px solid var(--border);
+    transition: padding-top 0.3s ease;
+}
+
+/* 简约模式下 logo 区域下移，给浮动按钮让位 */
+[data-titlebar-mode="minimal"] .logo {
+    padding-top: 48px;
 }
 
 /* ===== 狗狗吉祥物 ===== */

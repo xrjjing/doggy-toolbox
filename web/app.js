@@ -257,6 +257,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         initNavigation();
         initTheme();
         await initGlassMode();
+        await initTitlebarMode();
         initConverterOutput();
         // 工具页懒初始化：移除所有 initXxxTool() 调用，在 handlePageEnter 中按需初始化
         loadCredentials();
@@ -529,6 +530,29 @@ async function loadGlassOpacity() {
     const valueDisplay = document.getElementById('opacityValue');
     if (valueDisplay) valueDisplay.textContent = opacity + '%';
     document.documentElement.style.setProperty('--glass-opacity', opacity / 100);
+}
+
+// ==================== 标题栏模式 ====================
+async function initTitlebarMode() {
+    let mode = 'fixed';
+    try {
+        mode = await pywebview.api.get_titlebar_mode();
+    } catch {
+        mode = localStorage.getItem('titlebar_mode') || 'fixed';
+    }
+    setTitlebarMode(mode, false);
+}
+
+function setTitlebarMode(mode, save = true) {
+    document.documentElement.setAttribute('data-titlebar-mode', mode);
+    localStorage.setItem('titlebar_mode', mode);
+    // 更新按钮状态
+    document.querySelectorAll('.titlebar-mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+    if (save && _pywebviewReady) {
+        pywebview.api.save_titlebar_mode(mode).catch(() => {});
+    }
 }
 
 // ==================== 凭证管理 ====================

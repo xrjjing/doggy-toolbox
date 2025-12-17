@@ -25,6 +25,19 @@ class Api:
     # ========== 窗口控制 ==========
     def window_close(self):
         """关闭窗口"""
+        import threading
+        import os
+
+        def force_exit():
+            """延迟强制退出，给 destroy 一点时间清理"""
+            import time
+            time.sleep(0.5)
+            os._exit(0)
+
+        # 启动强制退出线程作为保底
+        threading.Thread(target=force_exit, daemon=True).start()
+
+        # 尝试正常关闭窗口
         if self._window:
             self._window.destroy()
 
@@ -199,6 +212,36 @@ class Api:
             except Exception:
                 pass
         config["glass_opacity"] = opacity
+        try:
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception:
+            return False
+
+    def get_titlebar_mode(self):
+        """获取标题栏模式设置"""
+        config_path = self.data_dir / "config.json"
+        if config_path.exists():
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                    return config.get("titlebar_mode", "fixed")
+            except Exception:
+                pass
+        return "fixed"
+
+    def save_titlebar_mode(self, mode: str):
+        """保存标题栏模式设置"""
+        config_path = self.data_dir / "config.json"
+        config = {}
+        if config_path.exists():
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+            except Exception:
+                pass
+        config["titlebar_mode"] = mode
         try:
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(config, f, ensure_ascii=False, indent=2)

@@ -49,6 +49,13 @@
         </div>
         <div class="titlebar-title">狗狗百宝箱</div>
     </div>
+    <!-- 简约模式：浮动控制按钮 -->
+    <div class="floating-controls" id="floatingControls">
+        <div class="floating-drag-region" data-pywebview-drag-region></div>
+        <button class="floating-btn close" onclick="windowClose()" title="关闭"></button>
+        <button class="floating-btn minimize" onclick="windowMinimize()" title="最小化"></button>
+        <button class="floating-btn maximize" onclick="windowMaximize()" title="最大化"></button>
+    </div>
     <div class="app">
         <nav class="sidebar">
             <div class="logo">
@@ -392,6 +399,16 @@
                             </label>
                             <input type="range" id="glassOpacitySlider" min="20" max="90" value="60"
                                    oninput="updateGlassOpacity(this.value)">
+                        </div>
+                        <div class="theme-divider"></div>
+                        <div class="titlebar-mode-wrapper">
+                            <label class="titlebar-mode-label">
+                                <span>标题栏模式</span>
+                            </label>
+                            <div class="titlebar-mode-btns">
+                                <button class="titlebar-mode-btn active" data-mode="fixed" onclick="setTitlebarMode('fixed')">固定</button>
+                                <button class="titlebar-mode-btn" data-mode="minimal" onclick="setTitlebarMode('minimal')">简约</button>
+                            </div>
                         </div>
                         <div class="menu-arrow"></div>
                     </div>

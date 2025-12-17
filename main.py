@@ -48,7 +48,7 @@ def main():
         min_size=(800, 600),
         background_color="#1f2937",
         frameless=True,  # 无边框窗口，自定义标题栏
-        easy_drag=False,  # 禁用自动拖拽，手动控制
+        easy_drag=True,  # 启用拖拽，配合 data-pywebview-drag-region
         transparent=True,
     )
     api.set_window(window)  # 传递窗口引用
