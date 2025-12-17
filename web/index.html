@@ -22,70 +22,6 @@
             padding: 0;
             background: var(--bg-primary);
         }
-
-        /* 启动阶段隐藏主应用，优先绘制加载动画 */
-        html.is-booting .app {
-            display: none;
-        }
-
-        /* 启动加载遮罩（首屏防误触 + 初始化可视化） */
-        .app-loading {
-            position: fixed;
-            inset: 0;
-            z-index: 9998; /* 低于全局错误横幅 (9999) */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0, 0, 0, 0.35);
-            background: color-mix(in srgb, var(--bg-primary) 92%, transparent);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            transition: opacity 180ms ease, visibility 180ms ease;
-        }
-
-        .app-loading.is-hidden {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
-
-        .app-loading-inner {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            padding: 18px 20px;
-            border-radius: 14px;
-            background: rgba(0, 0, 0, 0.25);
-            background: color-mix(in srgb, var(--bg-card) 88%, transparent);
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .app-loading-spinner {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border: 3px solid rgba(255, 255, 255, 0.18);
-            border: 3px solid color-mix(in srgb, var(--accent) 25%, var(--border));
-            border-top-color: var(--accent);
-            animation: appLoadingSpin 0.9s linear infinite;
-        }
-
-        .app-loading-text {
-            font-size: 13px;
-            color: var(--text-secondary);
-            letter-spacing: 0.2px;
-        }
-
-        @keyframes appLoadingSpin {
-            to { transform: rotate(360deg); }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            .app-loading { transition: none; }
-            .app-loading-spinner { animation-duration: 1.6s; }
-        }
     </style>
     <!-- 异步加载 styles.css，避免阻塞首次绘制 -->
     <link rel="preload" href="styles.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -103,12 +39,15 @@
             <button class="error-close" onclick="closeErrorBanner()">✕</button>
         </div>
     </div>
-    <!-- 启动加载遮罩：在 JS 完成关键初始化前阻止误操作 -->
-    <div id="app-loading" class="app-loading" aria-live="polite" aria-busy="true">
-        <div class="app-loading-inner">
-            <div class="app-loading-spinner" aria-hidden="true"></div>
-            <div class="app-loading-text">正在加载…</div>
+    <!-- 自定义标题栏 -->
+    <div class="custom-titlebar" id="customTitlebar">
+        <div class="titlebar-drag-region" data-pywebview-drag-region></div>
+        <div class="titlebar-controls">
+            <button class="titlebar-btn close" onclick="windowClose()" title="关闭"></button>
+            <button class="titlebar-btn minimize" onclick="windowMinimize()" title="最小化"></button>
+            <button class="titlebar-btn maximize" onclick="windowMaximize()" title="最大化"></button>
         </div>
+        <div class="titlebar-title">狗狗百宝箱</div>
     </div>
     <div class="app">
         <nav class="sidebar">
@@ -223,11 +162,30 @@
 	                    </ul>
 	                </li>
 
-	                <!-- 文本处理 -->
-	                <li class="nav-group" data-group="tools-text">
+	                <!-- 网络测试 -->
+	                <li class="nav-group" data-group="tools-network">
 	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
-	                        <span class="nav-icon">📝</span>
-	                        <span class="nav-text">文本处理</span>
+	                        <span class="nav-icon">🌐</span>
+	                        <span class="nav-text">网络测试</span>
+	                        <span class="nav-arrow">▾</span>
+	                    </div>
+	                    <ul class="nav-sublist">
+	                        <li class="nav-item" data-page="tool-http">
+	                            <span class="nav-icon">📡</span>
+	                            <span class="nav-text">HTTP 请求测试</span>
+	                        </li>
+	                        <li class="nav-item" data-page="tool-websocket">
+	                            <span class="nav-icon">🔌</span>
+	                            <span class="nav-text">WebSocket 测试</span>
+	                        </li>
+	                    </ul>
+	                </li>
+
+	                <!-- 数据格式 -->
+	                <li class="nav-group" data-group="tools-format">
+	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
+	                        <span class="nav-icon">📦</span>
+	                        <span class="nav-text">数据格式</span>
 	                        <span class="nav-arrow">▾</span>
 	                    </div>
 	                    <ul class="nav-sublist">
@@ -239,14 +197,6 @@
 	                            <span class="nav-icon">📐</span>
 	                            <span class="nav-text">JSON Schema</span>
 	                        </li>
-	                        <li class="nav-item" data-page="tool-http">
-	                            <span class="nav-icon">🌐</span>
-	                            <span class="nav-text">HTTP 请求测试</span>
-	                        </li>
-	                        <li class="nav-item" data-page="tool-websocket">
-	                            <span class="nav-icon">🔌</span>
-	                            <span class="nav-text">WebSocket 测试</span>
-	                        </li>
 	                        <li class="nav-item" data-page="tool-data-convert">
 	                            <span class="nav-icon">🔄</span>
 	                            <span class="nav-text">数据格式转换</span>
@@ -255,6 +205,21 @@
 	                            <span class="nav-icon">📊</span>
 	                            <span class="nav-text">Excel/CSV 转 JSON</span>
 	                        </li>
+	                        <li class="nav-item" data-page="tool-csv">
+	                            <span class="nav-icon">📊</span>
+	                            <span class="nav-text">CSV 处理</span>
+	                        </li>
+	                    </ul>
+	                </li>
+
+	                <!-- 文本处理 -->
+	                <li class="nav-group" data-group="tools-text">
+	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
+	                        <span class="nav-icon">📝</span>
+	                        <span class="nav-text">文本处理</span>
+	                        <span class="nav-arrow">▾</span>
+	                    </div>
+	                    <ul class="nav-sublist">
 	                        <li class="nav-item" data-page="tool-text">
 	                            <span class="nav-icon">📑</span>
 	                            <span class="nav-text">文本处理</span>
@@ -271,21 +236,28 @@
 	                            <span class="nav-icon">📊</span>
 	                            <span class="nav-text">字符统计</span>
 	                        </li>
+	                        <li class="nav-item" data-page="tool-markdown">
+	                            <span class="nav-icon">📝</span>
+	                            <span class="nav-text">Markdown 预览</span>
+	                        </li>
+	                    </ul>
+	                </li>
+
+	                <!-- 数据安全 -->
+	                <li class="nav-group" data-group="tools-security">
+	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
+	                        <span class="nav-icon">🔒</span>
+	                        <span class="nav-text">数据安全</span>
+	                        <span class="nav-arrow">▾</span>
+	                    </div>
+	                    <ul class="nav-sublist">
 	                        <li class="nav-item" data-page="tool-mask">
-	                            <span class="nav-icon">🔒</span>
+	                            <span class="nav-icon">🎭</span>
 	                            <span class="nav-text">数据脱敏</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-sql">
 	                            <span class="nav-icon">🗃️</span>
 	                            <span class="nav-text">SQL 格式化</span>
-	                        </li>
-	                        <li class="nav-item" data-page="tool-csv">
-	                            <span class="nav-icon">📊</span>
-	                            <span class="nav-text">CSV 处理</span>
-	                        </li>
-	                        <li class="nav-item" data-page="tool-markdown">
-	                            <span class="nav-icon">📝</span>
-	                            <span class="nav-text">Markdown 预览</span>
 	                        </li>
 	                    </ul>
 	                </li>
@@ -330,13 +302,17 @@
 	                            <span class="nav-icon">⏰</span>
 	                            <span class="nav-text">Cron 解析</span>
 	                        </li>
+	                        <li class="nav-item" data-page="tool-qrcode">
+	                            <span class="nav-icon">📱</span>
+	                            <span class="nav-text">二维码生成</span>
+	                        </li>
 	                    </ul>
 	                </li>
-	                <!-- 其他工具 -->
-	                <li class="nav-group" data-group="tools-other">
+	                <!-- 命令生成 -->
+	                <li class="nav-group" data-group="tools-command">
 	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
-	                        <span class="nav-icon">🧰</span>
-	                        <span class="nav-text">其他工具</span>
+	                        <span class="nav-icon">⌨️</span>
+	                        <span class="nav-text">命令生成</span>
 	                        <span class="nav-arrow">▾</span>
 	                    </div>
 	                    <ul class="nav-sublist">
@@ -400,6 +376,22 @@
                                     <span class="label">赛博</span>
                                 </button>
                             </div>
+                        </div>
+                        <div class="theme-divider"></div>
+                        <div class="glass-toggle-wrapper">
+                            <label class="glass-toggle-label">
+                                <span>毛玻璃效果</span>
+                                <input type="checkbox" id="glassToggle" onchange="toggleGlassMode()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="glass-opacity-wrapper" id="glassOpacityWrapper" style="display: none;">
+                            <label class="glass-opacity-label">
+                                <span>透明度</span>
+                                <span class="opacity-value" id="opacityValue">60%</span>
+                            </label>
+                            <input type="range" id="glassOpacitySlider" min="20" max="90" value="60"
+                                   oninput="updateGlassOpacity(this.value)">
                         </div>
                         <div class="menu-arrow"></div>
                     </div>
@@ -2278,6 +2270,87 @@
 		                </div>
 		            </section>
 
+		            <!-- 二维码生成页面 -->
+		            <section id="page-tool-qrcode" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>二维码生成</h1>
+		                        <p class="subtitle">生成和下载二维码图片</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearQrcodeTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="qrcode-tool">
+		                    <div class="tool-grid two-columns">
+		                        <!-- 左侧：输入区 -->
+		                        <div class="tool-card">
+		                            <div class="card-header">
+		                                <h3>输入内容</h3>
+		                                <span class="byte-counter" id="qrcode-byte-count">0 字节</span>
+		                            </div>
+		                            <div class="card-body">
+		                                <textarea id="qrcode-input" class="code-input" placeholder="输入文本、URL 或其他内容..." rows="6"></textarea>
+
+		                                <div class="qrcode-options">
+		                                    <div class="option-group">
+		                                        <label>尺寸</label>
+		                                        <select id="qrcode-size">
+		                                            <option value="128">128 × 128</option>
+		                                            <option value="256" selected>256 × 256</option>
+		                                            <option value="512">512 × 512</option>
+		                                            <option value="1024">1024 × 1024</option>
+		                                        </select>
+		                                    </div>
+		                                    <div class="option-group">
+		                                        <label>纠错级别</label>
+		                                        <select id="qrcode-error-level">
+		                                            <option value="L">低 (7%)</option>
+		                                            <option value="M" selected>中 (15%)</option>
+		                                            <option value="Q">较高 (25%)</option>
+		                                            <option value="H">高 (30%)</option>
+		                                        </select>
+		                                    </div>
+		                                    <div class="option-group">
+		                                        <label>前景色</label>
+		                                        <input type="color" id="qrcode-dark-color" value="#000000">
+		                                    </div>
+		                                    <div class="option-group">
+		                                        <label>背景色</label>
+		                                        <input type="color" id="qrcode-light-color" value="#ffffff">
+		                                    </div>
+		                                </div>
+
+		                                <button class="btn btn-primary btn-block" onclick="generateQrcode()">生成二维码</button>
+		                            </div>
+		                        </div>
+
+		                        <!-- 右侧：预览区 -->
+		                        <div class="tool-card">
+		                            <div class="card-header">
+		                                <h3>预览</h3>
+		                            </div>
+		                            <div class="card-body qrcode-preview-container">
+		                                <div id="qrcode-preview" class="qrcode-preview">
+		                                    <div class="qrcode-placeholder">
+		                                        <span class="placeholder-icon">📱</span>
+		                                        <span class="placeholder-text">二维码将显示在这里</span>
+		                                    </div>
+		                                </div>
+		                                <div class="qrcode-actions" id="qrcode-actions" style="display: none;">
+		                                    <button class="btn btn-secondary" onclick="downloadQrcode()">
+		                                        <span>💾</span> 下载 PNG
+		                                    </button>
+		                                    <button class="btn btn-secondary" onclick="copyQrcode()">
+		                                        <span>📋</span> 复制图片
+		                                    </button>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>
+
 		            <!-- SQL 格式化页面 -->
 		            <section id="page-tool-sql" class="page">
 		                <div class="page-header">
@@ -3762,10 +3835,10 @@
         </div>
     </div>
 
-	    <!-- CDN: js-yaml for YAML parsing -->
-	    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js" defer></script>
-	    <!-- CDN: fast-xml-parser for XML parsing -->
-	    <script src="https://cdn.jsdelivr.net/npm/fast-xml-parser@4/dist/fxparser.min.js" defer></script>
+	    <!-- Local: js-yaml for YAML parsing -->
+	    <script src="lib/js-yaml.min.js" defer></script>
+	    <!-- Local: fast-xml-parser for XML parsing -->
+	    <script src="lib/fxparser.min.js" defer></script>
 	    <script src="tools_m2_utils.js" defer></script>
 	    <script src="tools_m3_utils.js" defer></script>
 	    <script src="tools_m4_utils.js" defer></script>
@@ -3795,6 +3868,8 @@
 	    <script src="tools_m30_utils.js" defer></script>
 	    <script src="tools_m31_utils.js" defer></script>
 	    <script src="tools_m32_utils.js" defer></script>
+	    <script src="lib/qrcode.min.js" defer></script>
+	    <script src="tools_m35_utils.js" defer></script>
 	    <script src="tools_m16_utils.js" defer></script>
 	    <script src="app.js" defer></script>
 	</body>

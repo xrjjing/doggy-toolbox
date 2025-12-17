@@ -138,17 +138,23 @@ function closeErrorBanner() {
 
 // 启动加载遮罩：在关键初始化完成后关闭
 function hideAppLoading() {
-    // 先移除启动态，让主应用进入渲染树
+    // 加载动画已移除，保留函数以兼容调用
     document.documentElement.classList.remove('is-booting');
+}
 
-    const el = document.getElementById('app-loading');
-    if (!el) return;
+// ==================== 窗口控制 ====================
+let _pywebviewReady = false;
 
-    // 下一帧再隐藏遮罩，确保至少显示一帧加载动画
-    requestAnimationFrame(() => {
-        el.classList.add('is-hidden');
-        el.setAttribute('aria-busy', 'false');
-    });
+function windowClose() {
+    if (_pywebviewReady) pywebview.api.window_close();
+}
+
+function windowMinimize() {
+    if (_pywebviewReady) pywebview.api.window_minimize();
+}
+
+function windowMaximize() {
+    if (_pywebviewReady) pywebview.api.window_toggle_fullscreen();
 }
 
 // ==================== 原有全局状态 ====================
@@ -173,6 +179,71 @@ let diffDirection = 'ltr'; // 文本对比方向：ltr/rtl
 let diffUpdateTimerId = null; // 文本对比：防抖更新
 let urlMode = 'encode'; // URL 编解码模式：encode/decode
 
+// 页面懒初始化：按需初始化工具页，避免启动时初始化全部工具
+const PAGE_INIT_MAP = Object.freeze({
+    'tool-base64': initBase64Tool,
+    'tool-uuid': initUuidTool,
+    'tool-hash': initHashTool,
+    'tool-crypto': initCryptoTool,
+    'tool-b64hex': initB64HexTool,
+    'tool-diff': initDiffTool,
+    'tool-jwt': initJwtTool,
+    'tool-time': initTimeTool,
+    'tool-naming': initNamingTool,
+    'tool-url': initUrlTool,
+    'tool-radix': initRadixTool,
+    'tool-unicode': initUnicodeTool,
+    'tool-charcount': initCharCountTool,
+    'tool-password': initPasswordTool,
+    'tool-hmac': initHmacTool,
+    'tool-rsa': initRsaTool,
+    'tool-json': initJsonTool,
+    'tool-data-convert': initDataConvertTool,
+    'tool-table-json': initTableJsonTool,
+    'tool-text': initTextTool,
+    'tool-regex': initRegexTool,
+    'tool-curl': initCurlTool,
+    'tool-color': initColorTool,
+    'tool-ip': initIpTool,
+    'tool-cron': initCronTool,
+    'tool-sql': initSqlTool,
+    'tool-csv': initCsvTool,
+    'tool-markdown': initMarkdownTool,
+    'tool-datecalc': initDateCalcTool,
+    'tool-git': initGitTool,
+    'tool-docker': initDockerTool,
+    'tool-json-schema': initJsonSchemaTool,
+    'tool-http': initHttpTool,
+    'tool-websocket': initWebSocketTool,
+    'tool-mock': initMockTool,
+    'tool-mask': initMaskTool,
+    'tool-qrcode': initQrcodeTool,
+});
+
+const initializedPages = new Set();
+const initializingPages = new Map();
+
+async function ensurePageInitialized(page) {
+    const initFn = PAGE_INIT_MAP[page];
+    if (!initFn) return;
+    if (initializedPages.has(page)) return;
+
+    const pending = initializingPages.get(page);
+    if (pending) return pending;
+
+    const task = (async () => {
+        try {
+            await initFn();
+            initializedPages.add(page);
+        } finally {
+            initializingPages.delete(page);
+        }
+    })();
+
+    initializingPages.set(page, task);
+    return task;
+}
+
 // 初始化
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -185,43 +256,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         await waitForPywebview();
         initNavigation();
         initTheme();
+        await initGlassMode();
         initConverterOutput();
-        initBase64Tool();
-        initUuidTool();
-        initNamingTool();
-        initJwtTool();
-        initTimeTool();
-        initHashTool();
-        initCryptoTool();
-        initDiffTool();
-        initB64HexTool();
-        initUrlTool();
-        initRadixTool();
-        initUnicodeTool();
-        initCharCountTool();
-        initPasswordTool();
-        initHmacTool();
-        initRsaTool();
-        initJsonTool();
-        initDataConvertTool();
-        initTableJsonTool();
-        initTextTool();
-        initRegexTool();
-        initCurlTool();
-        initColorTool();
-        initIpTool();
-        initCronTool();
-        initSqlTool();
-        initDateCalcTool();
-        initCsvTool();
-        initMarkdownTool();
-        initGitTool();
-        initDockerTool();
-        initJsonSchemaTool();
-        initHttpTool();
-        initWebSocketTool();
-        initMockTool();
-        initMaskTool();
+        // 工具页懒初始化：移除所有 initXxxTool() 调用，在 handlePageEnter 中按需初始化
         loadCredentials();
         await loadTabs();
         loadCommands();
@@ -230,7 +267,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 记录初始激活页面，处理页面进入逻辑（避免仅依赖点击导航）
         const initial = document.querySelector('.page.active')?.id?.replace(/^page-/, '');
         activePage = initial || 'credentials';
-        handlePageEnter(activePage);
+        await handlePageEnter(activePage);
     } finally {
         hideAppLoading();
     }
@@ -239,6 +276,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 function waitForPywebview() {
     return new Promise(resolve => {
         if (window.pywebview && window.pywebview.api) {
+            _pywebviewReady = true;
             resolve();
         } else {
             // 添加超时机制，最多等待 5 秒
@@ -249,6 +287,7 @@ function waitForPywebview() {
 
             window.addEventListener('pywebviewready', () => {
                 clearTimeout(timeout);
+                _pywebviewReady = true;
                 resolve();
             });
         }
@@ -309,41 +348,46 @@ function switchPage(page) {
     handlePageEnter(page);
 }
 
-function handlePageEnter(page) {
-    if (page === 'tool-jwt') {
-        updateJwtTool();
-    }
-    if (page === 'tool-time') {
-        updateTimeTool(true);
-        startTimeNowTicker();
-    }
-    if (page === 'tool-hash') {
-        updateHashTool();
-    }
-    if (page === 'tool-crypto') {
-        updateCryptoToolUi();
-    }
-    if (page === 'tool-diff') {
-        updateDiffToolUi();
-        scheduleDiffUpdate();
-    }
-    if (page === 'tool-b64hex') {
-        updateB64HexTool();
-    }
-    if (page === 'tool-url') {
-        updateUrlTool();
-    }
-    if (page === 'tool-radix') {
-        updateRadixTool();
-    }
-    if (page === 'tool-charcount') {
-        updateCharCountTool();
-    }
-    if (page === 'tool-csv') {
-        updateCsvTool();
-    }
-    if (page === 'backup') {
-        initBackupPage();
+async function handlePageEnter(page) {
+    try {
+        await ensurePageInitialized(page);
+        if (page === 'tool-jwt') {
+            updateJwtTool();
+        }
+        if (page === 'tool-time') {
+            updateTimeTool(true);
+            startTimeNowTicker();
+        }
+        if (page === 'tool-hash') {
+            updateHashTool();
+        }
+        if (page === 'tool-crypto') {
+            updateCryptoToolUi();
+        }
+        if (page === 'tool-diff') {
+            updateDiffToolUi();
+            scheduleDiffUpdate();
+        }
+        if (page === 'tool-b64hex') {
+            updateB64HexTool();
+        }
+        if (page === 'tool-url') {
+            updateUrlTool();
+        }
+        if (page === 'tool-radix') {
+            updateRadixTool();
+        }
+        if (page === 'tool-charcount') {
+            updateCharCountTool();
+        }
+        if (page === 'tool-csv') {
+            updateCsvTool();
+        }
+        if (page === 'backup') {
+            initBackupPage();
+        }
+    } catch (e) {
+        console.error('页面进入处理失败:', page, e);
     }
 }
 
@@ -425,6 +469,66 @@ function updateThemeSelector(activeTheme) {
     document.querySelectorAll('.theme-item').forEach(opt => {
         opt.classList.toggle('active', opt.dataset.theme === activeTheme);
     });
+}
+
+// ==================== 毛玻璃模式 ====================
+async function initGlassMode() {
+    let enabled = false;
+    try {
+        enabled = await pywebview.api.get_glass_mode();
+    } catch (e) {
+        enabled = localStorage.getItem('glass_mode') === 'true';
+    }
+    setGlassMode(enabled, false);
+    // 加载透明度设置
+    await loadGlassOpacity();
+}
+
+function setGlassMode(enabled, save = true) {
+    document.documentElement.setAttribute('data-glass', enabled ? 'true' : 'false');
+    localStorage.setItem('glass_mode', enabled);
+    const toggle = document.getElementById('glassToggle');
+    if (toggle) toggle.checked = enabled;
+    // 显示/隐藏透明度调节器
+    const opacityWrapper = document.getElementById('glassOpacityWrapper');
+    if (opacityWrapper) {
+        opacityWrapper.style.display = enabled ? 'block' : 'none';
+    }
+    if (save) {
+        pywebview.api.save_glass_mode(enabled).catch(() => {});
+    }
+}
+
+function toggleGlassMode() {
+    const current = document.documentElement.getAttribute('data-glass') === 'true';
+    setGlassMode(!current);
+}
+
+// 更新毛玻璃透明度
+function updateGlassOpacity(value) {
+    const opacity = parseInt(value) / 100;
+    document.documentElement.style.setProperty('--glass-opacity', opacity);
+    // 更新显示的百分比
+    const valueDisplay = document.getElementById('opacityValue');
+    if (valueDisplay) valueDisplay.textContent = value + '%';
+    // 保存设置
+    localStorage.setItem('glass_opacity', value);
+    pywebview.api.save_glass_opacity(parseInt(value)).catch(() => {});
+}
+
+// 加载毛玻璃透明度
+async function loadGlassOpacity() {
+    let opacity = 60;
+    try {
+        opacity = await pywebview.api.get_glass_opacity();
+    } catch {
+        opacity = parseInt(localStorage.getItem('glass_opacity') || '60');
+    }
+    const slider = document.getElementById('glassOpacitySlider');
+    if (slider) slider.value = opacity;
+    const valueDisplay = document.getElementById('opacityValue');
+    if (valueDisplay) valueDisplay.textContent = opacity + '%';
+    document.documentElement.style.setProperty('--glass-opacity', opacity / 100);
 }
 
 // ==================== 凭证管理 ====================
@@ -6455,4 +6559,98 @@ function initMaskTool() {
     if (!inputEl) return;
     inputEl.addEventListener('input', updateMaskTool);
     updateMaskTool();
+}
+
+// ==================== M35 二维码生成器 ====================
+let qrcodeCanvas = null;
+let qrcodeDataUrl = null;
+
+function initQrcodeTool() {
+    const inputEl = document.getElementById('qrcode-input');
+    if (!inputEl) return;
+
+    // 监听输入更新字节计数
+    inputEl.addEventListener('input', () => {
+        const text = inputEl.value;
+        const bytes = new Blob([text]).size;
+        document.getElementById('qrcode-byte-count').textContent = `${bytes} 字节`;
+    });
+}
+
+function generateQrcode() {
+    const text = document.getElementById('qrcode-input').value;
+    if (!text) {
+        showToast('请输入内容', 'warning');
+        return;
+    }
+
+    const size = parseInt(document.getElementById('qrcode-size').value);
+    const errorLevel = document.getElementById('qrcode-error-level').value;
+    const darkColor = document.getElementById('qrcode-dark-color').value;
+    const lightColor = document.getElementById('qrcode-light-color').value;
+
+    const result = M35Utils.generate(text, {
+        size,
+        errorCorrectionLevel: errorLevel,
+        darkColor,
+        lightColor
+    });
+
+    if (result.error) {
+        showToast(result.error, 'error');
+        return;
+    }
+
+    qrcodeCanvas = result.canvas;
+    qrcodeDataUrl = result.dataUrl;
+
+    // 显示预览
+    const preview = document.getElementById('qrcode-preview');
+    preview.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = qrcodeDataUrl;
+    img.alt = '二维码';
+    img.style.maxWidth = '100%';
+    img.style.borderRadius = '8px';
+    preview.appendChild(img);
+
+    // 显示操作按钮
+    document.getElementById('qrcode-actions').style.display = 'flex';
+    showToast('二维码生成成功', 'success');
+}
+
+function downloadQrcode() {
+    if (!qrcodeDataUrl) {
+        showToast('请先生成二维码', 'warning');
+        return;
+    }
+    M35Utils.download(qrcodeDataUrl, 'qrcode.png');
+    showToast('下载成功', 'success');
+}
+
+async function copyQrcode() {
+    if (!qrcodeCanvas) {
+        showToast('请先生成二维码', 'warning');
+        return;
+    }
+    const result = await M35Utils.copyToClipboard(qrcodeCanvas);
+    if (result.error) {
+        showToast(result.error, 'error');
+    } else {
+        showToast('已复制到剪贴板', 'success');
+    }
+}
+
+function clearQrcodeTool() {
+    document.getElementById('qrcode-input').value = '';
+    document.getElementById('qrcode-byte-count').textContent = '0 字节';
+    document.getElementById('qrcode-preview').innerHTML = `
+        <div class="qrcode-placeholder">
+            <span class="placeholder-icon">📱</span>
+            <span class="placeholder-text">二维码将显示在这里</span>
+        </div>
+    `;
+    document.getElementById('qrcode-actions').style.display = 'none';
+    qrcodeCanvas = null;
+    qrcodeDataUrl = null;
 }

@@ -1,5 +1,6 @@
 """PyWebView API - 暴露给前端的接口"""
 import json
+import sys
 from pathlib import Path
 from typing import List
 
@@ -11,10 +12,31 @@ class Api:
         self.data_dir = data_dir
         self.computer_usage = ComputerUsageService(data_dir / "电脑使用")
         self.node_converter = NodeConverterService(data_dir / "转化节点")
+        self._window = None
+
+    def set_window(self, window):
+        """设置窗口引用"""
+        self._window = window
 
     def __dir__(self):
         """限制暴露成员，避免 pywebview 深度遍历内部 Path 导致噪声日志"""
         return [name for name, val in self.__class__.__dict__.items() if callable(val)]
+
+    # ========== 窗口控制 ==========
+    def window_close(self):
+        """关闭窗口"""
+        if self._window:
+            self._window.destroy()
+
+    def window_minimize(self):
+        """最小化窗口"""
+        if self._window:
+            self._window.minimize()
+
+    def window_toggle_fullscreen(self):
+        """切换全屏/最大化"""
+        if self._window:
+            self._window.toggle_fullscreen()
 
     # ========== 页签管理 ==========
     def get_tabs(self):
@@ -117,6 +139,96 @@ class Api:
             except Exception:
                 pass
         config["theme"] = theme
+        try:
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception:
+            return False
+
+    def get_glass_mode(self):
+        """获取毛玻璃模式设置"""
+        config_path = self.data_dir / "config.json"
+        if config_path.exists():
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                    return config.get("glass_mode", False)
+            except Exception:
+                pass
+        return False
+
+    def save_glass_mode(self, enabled: bool):
+        """保存毛玻璃模式设置"""
+        config_path = self.data_dir / "config.json"
+        config = {}
+        if config_path.exists():
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+            except Exception:
+                pass
+        config["glass_mode"] = enabled
+        try:
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception:
+            return False
+
+    def get_glass_opacity(self):
+        """获取毛玻璃透明度设置"""
+        config_path = self.data_dir / "config.json"
+        if config_path.exists():
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                    return config.get("glass_opacity", 60)
+            except Exception:
+                pass
+        return 60
+
+    def save_glass_opacity(self, opacity: int):
+        """保存毛玻璃透明度设置"""
+        config_path = self.data_dir / "config.json"
+        config = {}
+        if config_path.exists():
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+            except Exception:
+                pass
+        config["glass_opacity"] = opacity
+        try:
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception:
+            return False
+
+    def get_accent_color(self):
+        """获取标题栏颜色设置"""
+        config_path = self.data_dir / "config.json"
+        if config_path.exists():
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                    return config.get("accent_color", "")
+            except Exception:
+                pass
+        return ""
+
+    def save_accent_color(self, color: str):
+        """保存标题栏颜色设置"""
+        config_path = self.data_dir / "config.json"
+        config = {}
+        if config_path.exists():
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+            except Exception:
+                pass
+        config["accent_color"] = color
         try:
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(config, f, ensure_ascii=False, indent=2)

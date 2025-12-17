@@ -39,15 +39,19 @@ def main():
     api = Api(data_dir)
 
     web_dir = get_base_path() / "web"
-    webview.create_window(
+    window = webview.create_window(
         title="狗狗百宝箱",
         url=str(web_dir / "index.html"),
         js_api=api,
         width=1200,
         height=800,
         min_size=(800, 600),
-        background_color="#1f2937",  # 深色背景,避免白屏闪烁 (对应 hsl(220, 15%, 14%))
+        background_color="#1f2937",
+        frameless=True,  # 无边框窗口，自定义标题栏
+        easy_drag=False,  # 禁用自动拖拽，手动控制
+        transparent=True,
     )
+    api.set_window(window)  # 传递窗口引用
     webview.start(debug=False)
     sys.exit()
 
