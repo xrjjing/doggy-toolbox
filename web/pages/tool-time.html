@@ -1,0 +1,94 @@
+<!-- 自动拆分自 web/index.html：tool-time -->
+<section id="page-tool-time" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>时间戳转换</h1>
+		                        <p class="subtitle">仅支持 UTC / UTC+8（进入页面才实时刷新）</p>
+		                    </div>
+		                </div>
+		                <div class="tool-single time-tool">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输入</h3>
+		                            <div class="panel-actions">
+		                                <select id="time-zone" onchange="updateTimeTool(true)">
+		                                    <option value="utc">UTC</option>
+		                                    <option value="utc8">UTC+08:00 Asia/Shanghai - 上海</option>
+		                                </select>
+		                                <select id="time-input-type" onchange="updateTimeTool(true)">
+		                                    <option value="auto">自动识别</option>
+		                                    <option value="unix_s">Unix时间戳(秒)</option>
+		                                    <option value="unix_ms">Unix时间戳(毫秒)</option>
+		                                    <option value="unix_ns">Unix时间戳(纳秒)</option>
+		                                    <option value="datetime">标准时间</option>
+		                                </select>
+		                                <button class="btn btn-sm btn-ghost" onclick="clearTimeTool()">清空</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <input type="text" id="time-input" placeholder="输入 Unix 时间戳或标准时间（YYYY-MM-DD HH:mm:ss[.SSS]）">
+		                            <div class="time-detect" id="time-detect"></div>
+		                            <div id="time-errors" class="error-list"></div>
+		                        </div>
+		                    </div>
+
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输出（按输入换算）</h3>
+		                        </div>
+		                        <div class="panel-body time-output">
+		                            <div class="time-row">
+		                                <div class="time-row-label">秒</div>
+		                                <input type="text" id="time-out-sec" readonly placeholder="-" />
+		                                <button class="btn btn-sm btn-ghost" onclick="copyTimeOutput(this, 'sec')">复制</button>
+		                            </div>
+		                            <div class="time-row">
+		                                <div class="time-row-label">毫秒</div>
+		                                <input type="text" id="time-out-ms" readonly placeholder="-" />
+		                                <button class="btn btn-sm btn-ghost" onclick="copyTimeOutput(this, 'ms')">复制</button>
+		                            </div>
+		                            <div class="time-row">
+		                                <div class="time-row-label">纳秒</div>
+		                                <input type="text" id="time-out-ns" readonly placeholder="-" />
+		                                <button class="btn btn-sm btn-ghost" onclick="copyTimeOutput(this, 'ns')">复制</button>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>当前时间（实时）</h3>
+		                        </div>
+		                        <div class="panel-body time-now">
+		                            <div class="time-table">
+		                                <div class="time-table-head">
+		                                    <div>格式</div>
+		                                    <div>值</div>
+		                                    <div class="time-table-action">操作</div>
+		                                </div>
+		                                <div class="time-table-row">
+		                                    <div>标准时间(秒)</div>
+		                                    <div class="time-table-value" id="time-now-std-sec">-</div>
+		                                    <div class="time-table-action"><button class="btn btn-sm btn-ghost" onclick="loadTimeValue('datetime', 'time-now-std-sec')">加载</button></div>
+		                                </div>
+		                                <div class="time-table-row">
+		                                    <div>Unix时间戳(秒)</div>
+		                                    <div class="time-table-value" id="time-now-unix-sec">-</div>
+		                                    <div class="time-table-action"><button class="btn btn-sm btn-ghost" onclick="loadTimeValue('unix_s', 'time-now-unix-sec')">加载</button></div>
+		                                </div>
+		                                <div class="time-table-row">
+		                                    <div>标准时间(毫秒)</div>
+		                                    <div class="time-table-value" id="time-now-std-ms">-</div>
+		                                    <div class="time-table-action"><button class="btn btn-sm btn-ghost" onclick="loadTimeValue('datetime', 'time-now-std-ms')">加载</button></div>
+		                                </div>
+		                                <div class="time-table-row">
+		                                    <div>Unix时间戳(毫秒)</div>
+		                                    <div class="time-table-value" id="time-now-unix-ms">-</div>
+		                                    <div class="time-table-action"><button class="btn btn-sm btn-ghost" onclick="loadTimeValue('unix_ms', 'time-now-unix-ms')">加载</button></div>
+		                                </div>
+		                            </div>
+		                            <div class="time-now-note">提示：该区域仅在进入本页面后实时刷新</div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

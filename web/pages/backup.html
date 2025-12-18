@@ -1,0 +1,57 @@
+<!-- 自动拆分自 web/index.html：backup -->
+<section id="page-backup" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>数据备份</h1>
+		                        <p class="subtitle">导出或导入全量数据</p>
+		                    </div>
+		                </div>
+		                <div class="backup-tool">
+		                    <div class="backup-stats" id="backup-stats">
+		                        <div class="backup-stat-card">
+		                            <div class="backup-stat-icon">📑</div>
+		                            <div class="backup-stat-value" id="stat-tabs">-</div>
+		                            <div class="backup-stat-label">页签</div>
+		                        </div>
+		                        <div class="backup-stat-card">
+		                            <div class="backup-stat-icon">⌨️</div>
+		                            <div class="backup-stat-value" id="stat-commands">-</div>
+		                            <div class="backup-stat-label">命令</div>
+		                        </div>
+		                        <div class="backup-stat-card">
+		                            <div class="backup-stat-icon">🔑</div>
+		                            <div class="backup-stat-value" id="stat-credentials">-</div>
+		                            <div class="backup-stat-label">凭证</div>
+		                        </div>
+		                        <div class="backup-stat-card">
+		                            <div class="backup-stat-icon">🌐</div>
+		                            <div class="backup-stat-value" id="stat-nodes">-</div>
+		                            <div class="backup-stat-label">节点</div>
+		                        </div>
+		                    </div>
+		                    <div class="backup-actions">
+		                        <div class="backup-action-card">
+		                            <div class="backup-action-header">
+		                                <span class="backup-action-icon">📤</span>
+		                                <h3>导出数据</h3>
+		                            </div>
+		                            <p class="backup-action-desc">将所有数据导出为 JSON 文件，便于备份或迁移</p>
+		                            <button class="btn btn-primary" onclick="exportBackup()">
+		                                <span class="btn-icon">💾</span> 导出备份
+		                            </button>
+		                        </div>
+		                        <div class="backup-action-card">
+		                            <div class="backup-action-header">
+		                                <span class="backup-action-icon">📥</span>
+		                                <h3>导入数据</h3>
+		                            </div>
+		                            <p class="backup-action-desc">从 JSON 文件恢复数据（将覆盖现有数据）</p>
+		                            <input type="file" id="backup-file-input" accept=".json" style="display:none" onchange="importBackup(event)">
+		                            <button class="btn btn-secondary" onclick="document.getElementById('backup-file-input').click()">
+		                                <span class="btn-icon">📂</span> 选择文件
+		                            </button>
+		                        </div>
+		                    </div>
+		                    <div id="backup-result" class="backup-result" style="display:none"></div>
+		                </div>
+		            </section>

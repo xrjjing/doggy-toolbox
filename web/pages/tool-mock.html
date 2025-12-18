@@ -1,0 +1,53 @@
+<!-- 自动拆分自 web/index.html：tool-mock -->
+<section id="page-tool-mock" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>Mock 数据生成</h1>
+		                        <p class="subtitle">生成测试用的假数据</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearMockTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="mock-tool">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>生成的数据</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="generateMockData()">生成</button>
+		                                <button class="btn btn-sm btn-ghost" onclick="copyMockOutput(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="mock-output" readonly placeholder="生成的 Mock 数据将显示在这里..." spellcheck="false"></textarea>
+		                        </div>
+		                    </div>
+		                    <div class="mock-options">
+		                        <div class="form-group">
+		                            <label>数据类型：</label>
+		                            <select id="mock-type">
+		                                <option value="name">中文姓名</option>
+		                                <option value="email">邮箱</option>
+		                                <option value="phone">手机号</option>
+		                                <option value="idcard">身份证号</option>
+		                                <option value="address">地址</option>
+		                                <option value="uuid">UUID</option>
+		                                <option value="date">日期</option>
+		                            </select>
+		                        </div>
+		                        <div class="form-group">
+		                            <label>生成数量：</label>
+		                            <input type="number" id="mock-count" value="10" min="1" max="1000">
+		                        </div>
+		                        <div class="form-group">
+		                            <label>输出格式：</label>
+		                            <select id="mock-output-format">
+		                                <option value="lines">纯文本（每行一个）</option>
+		                                <option value="json">JSON 数组</option>
+		                                <option value="csv">CSV 格式</option>
+		                                <option value="jsonlines">JSON Lines</option>
+		                            </select>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

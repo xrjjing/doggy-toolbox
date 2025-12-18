@@ -1,0 +1,61 @@
+<!-- 自动拆分自 web/index.html：tool-json -->
+<section id="page-tool-json" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>JSON 格式化</h1>
+		                        <p class="subtitle">格式化、压缩、校验、排序、转义 JSON 数据</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearJsonTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="converter-layout">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输入</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="tryFixJsonTool()">修复</button>
+		                                <button class="btn btn-sm btn-ghost" onclick="sortJsonTool('asc')" title="按字段名升序排列">排序</button>
+		                                <button class="btn btn-sm btn-ghost" onclick="minifyJsonTool()">压缩</button>
+		                                <button class="btn btn-sm btn-ghost" onclick="escapeJsonTool()" title="转义 JSON">转义</button>
+		                                <button class="btn btn-sm btn-ghost" onclick="unescapeJsonTool()" title="反转义">反转义</button>
+		                            </div>
+		                        </div>
+		                        <div class="json-indent-bar">
+		                            <span>缩进：</span>
+		                            <button class="btn btn-xs btn-ghost format-btn" id="json-indent-2" onclick="setJsonIndent(2)">2</button>
+		                            <button class="btn btn-xs btn-ghost format-btn" id="json-indent-4" onclick="setJsonIndent(4)">4</button>
+		                            <button class="btn btn-xs btn-ghost format-btn" id="json-indent-tab" onclick="setJsonIndent('tab')">Tab</button>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="json-input" placeholder="粘贴 JSON 数据..." spellcheck="false"></textarea>
+		                            <div id="json-errors" class="error-list"></div>
+		                        </div>
+		                    </div>
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输出</h3>
+		                            <div class="panel-actions">
+		                                <div class="json-view-tabs">
+		                                    <button class="json-view-tab active" id="json-view-text" onclick="switchJsonView('text')">文本</button>
+		                                    <button class="json-view-tab" id="json-view-tree" onclick="switchJsonView('tree')">树形</button>
+		                                </div>
+		                                <span class="json-status" id="json-status"></span>
+		                                <button class="btn btn-sm btn-ghost" onclick="copyJsonOutput(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div id="json-output-text">
+		                                <textarea id="json-output" readonly placeholder="格式化结果..." spellcheck="false"></textarea>
+		                            </div>
+		                            <div id="json-output-tree" class="jtree-container" style="display: none;">
+		                                <div class="jtree-toolbar">
+		                                    <button class="btn btn-sm btn-ghost" onclick="expandAllJsonTree()">全部展开</button>
+		                                    <button class="btn btn-sm btn-ghost" onclick="collapseAllJsonTree()">全部折叠</button>
+		                                </div>
+		                                <div id="json-tree-content"></div>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

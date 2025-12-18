@@ -1,0 +1,44 @@
+<!-- 自动拆分自 web/index.html：tool-base64 -->
+<section id="page-tool-base64" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>Base64 编解码</h1>
+		                        <p class="subtitle">文本（UTF-8）与 Base64 互相转换</p>
+		                    </div>
+		                </div>
+		                <div class="converter-layout">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输入</h3>
+		                            <div class="panel-actions">
+		                                <div class="format-toggle" title="选择模式">
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="b64-encode-btn" onclick="setBase64Mode('encode')">编码</button>
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="b64-decode-btn" onclick="setBase64Mode('decode')">解码</button>
+		                                </div>
+		                                <button class="btn btn-sm btn-ghost" onclick="clearBase64Tool()">清空</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="b64-input" placeholder="输入内容..."></textarea>
+		                            <div class="tool-options-row">
+		                                <label class="tool-check" title="按行处理输入/输出">
+		                                    <input type="checkbox" id="b64-batch" onchange="updateBase64Tool()">
+		                                    批量（按行）
+		                                </label>
+		                            </div>
+		                            <div id="b64-errors" class="error-list"></div>
+		                        </div>
+		                    </div>
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输出</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="copyBase64Output(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="b64-output" readonly placeholder="输出结果..."></textarea>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

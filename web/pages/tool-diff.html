@@ -1,0 +1,57 @@
+<!-- 自动拆分自 web/index.html：tool-diff -->
+<section id="page-tool-diff" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>文本对比</h1>
+		                        <p class="subtitle">支持 Text / JSON、自动换行与方向切换</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <select id="diff-mode" onchange="updateDiffToolUi()">
+		                            <option value="text">Text</option>
+		                            <option value="json">JSON</option>
+		                        </select>
+		                        <label class="tool-check" title="开启后对比视图自动换行">
+		                            <input type="checkbox" id="diff-wrap" checked onchange="toggleDiffWrap()">
+		                            自动换行
+		                        </label>
+		                        <div class="format-toggle" title="对比方向（影响“应用到对侧”）">
+		                            <button class="btn btn-sm btn-ghost format-btn" id="diff-ltr-btn" onclick="setDiffDirection('ltr')">左→右</button>
+		                            <button class="btn btn-sm btn-ghost format-btn" id="diff-rtl-btn" onclick="setDiffDirection('rtl')">右→左</button>
+		                        </div>
+		                        <button class="btn btn-ghost" id="diff-format-btn" onclick="formatDiffJson()">JSON 格式化</button>
+		                        <button class="btn btn-ghost" id="diff-apply-btn" onclick="applyDiffDirection()">应用到对侧</button>
+		                        <button class="btn btn-ghost" onclick="clearDiffTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="diff-tool">
+		                    <div class="converter-layout diff-layout">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>左侧</h3>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="diff-left" placeholder="左侧输入..." spellcheck="false"></textarea>
+		                                <div id="diff-errors-left" class="error-list"></div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>右侧</h3>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="diff-right" placeholder="右侧输入..." spellcheck="false"></textarea>
+		                                <div id="diff-errors-right" class="error-list"></div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <div class="converter-panel diff-result">
+		                        <div class="panel-header">
+		                            <h3>差异（按行）</h3>
+		                        </div>
+		                        <div class="panel-body diff-view-body">
+		                            <div id="diff-view" class="diff-view diff-wrap"></div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

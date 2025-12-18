@@ -1,0 +1,99 @@
+<!-- 自动拆分自 web/index.html：tool-ip -->
+<section id="page-tool-ip" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>IP 工具</h1>
+		                        <p class="subtitle">IP 地址验证、转换与子网计算</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearIpTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="ip-tool">
+		                    <div class="converter-layout ip-layout">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>IP / CIDR 输入</h3>
+		                            </div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>IP 地址或 CIDR</label>
+		                                    <input type="text" id="ip-input" placeholder="192.168.1.1 或 192.168.1.0/24" oninput="updateIpTool()">
+		                                </div>
+		                                <div id="ip-errors" class="error-list"></div>
+		                                <div class="ip-info-card" id="ip-info-card" style="display:none">
+		                                    <div class="ip-info-row">
+		                                        <span class="ip-info-label">IP 类型</span>
+		                                        <span class="ip-info-value" id="ip-type"></span>
+		                                    </div>
+		                                    <div class="ip-info-row">
+		                                        <span class="ip-info-label">IP 类别</span>
+		                                        <span class="ip-info-value" id="ip-class"></span>
+		                                    </div>
+		                                    <div class="ip-info-row">
+		                                        <span class="ip-info-label">私有地址</span>
+		                                        <span class="ip-info-value" id="ip-private"></span>
+		                                    </div>
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>格式转换</h3>
+		                            </div>
+		                            <div class="panel-body ip-outputs">
+		                                <div class="ip-output-row">
+		                                    <label>十进制</label>
+		                                    <input type="text" id="ip-out-decimal" readonly>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyIpOutput(this, 'decimal')">复制</button>
+		                                </div>
+		                                <div class="ip-output-row">
+		                                    <label>十六进制</label>
+		                                    <input type="text" id="ip-out-hex" readonly>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyIpOutput(this, 'hex')">复制</button>
+		                                </div>
+		                                <div class="ip-output-row">
+		                                    <label>二进制</label>
+		                                    <input type="text" id="ip-out-binary" readonly>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyIpOutput(this, 'binary')">复制</button>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+		                    <div class="ip-cidr-panel" id="ip-cidr-panel" style="display:none">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>子网计算结果</h3>
+		                            </div>
+		                            <div class="panel-body">
+		                                <div class="ip-cidr-grid">
+		                                    <div class="ip-cidr-item">
+		                                        <span class="ip-cidr-label">网络地址</span>
+		                                        <span class="ip-cidr-value" id="cidr-network"></span>
+		                                    </div>
+		                                    <div class="ip-cidr-item">
+		                                        <span class="ip-cidr-label">广播地址</span>
+		                                        <span class="ip-cidr-value" id="cidr-broadcast"></span>
+		                                    </div>
+		                                    <div class="ip-cidr-item">
+		                                        <span class="ip-cidr-label">子网掩码</span>
+		                                        <span class="ip-cidr-value" id="cidr-netmask"></span>
+		                                    </div>
+		                                    <div class="ip-cidr-item">
+		                                        <span class="ip-cidr-label">可用主机数</span>
+		                                        <span class="ip-cidr-value" id="cidr-hosts"></span>
+		                                    </div>
+		                                    <div class="ip-cidr-item">
+		                                        <span class="ip-cidr-label">首个主机</span>
+		                                        <span class="ip-cidr-value" id="cidr-first"></span>
+		                                    </div>
+		                                    <div class="ip-cidr-item">
+		                                        <span class="ip-cidr-label">末尾主机</span>
+		                                        <span class="ip-cidr-value" id="cidr-last"></span>
+		                                    </div>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

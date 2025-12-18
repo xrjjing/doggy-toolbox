@@ -1,0 +1,56 @@
+<!-- 自动拆分自 web/index.html：tool-charcount -->
+<section id="page-tool-charcount" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>字符统计</h1>
+		                        <p class="subtitle">字数、字符数、字节数（UTF-8）、行数统计</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearCharCountTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="tool-single charcount-tool">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输入文本</h3>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="charcount-input" placeholder="输入要统计的文本..." oninput="updateCharCountTool()"></textarea>
+		                        </div>
+		                    </div>
+
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>统计结果</h3>
+		                        </div>
+		                        <div class="panel-body charcount-output">
+		                            <div class="charcount-grid">
+		                                <div class="charcount-item">
+		                                    <div class="charcount-label">字符数（含空格）</div>
+		                                    <div class="charcount-value" id="charcount-chars">0</div>
+		                                </div>
+		                                <div class="charcount-item">
+		                                    <div class="charcount-label">字符数（不含空格）</div>
+		                                    <div class="charcount-value" id="charcount-chars-nospace">0</div>
+		                                </div>
+		                                <div class="charcount-item">
+		                                    <div class="charcount-label">字节数（UTF-8）</div>
+		                                    <div class="charcount-value" id="charcount-bytes">0</div>
+		                                </div>
+		                                <div class="charcount-item">
+		                                    <div class="charcount-label">行数</div>
+		                                    <div class="charcount-value" id="charcount-lines">0</div>
+		                                </div>
+		                                <div class="charcount-item">
+		                                    <div class="charcount-label">中文字数</div>
+		                                    <div class="charcount-value" id="charcount-chinese">0</div>
+		                                </div>
+		                                <div class="charcount-item">
+		                                    <div class="charcount-label">英文单词数</div>
+		                                    <div class="charcount-value" id="charcount-words">0</div>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

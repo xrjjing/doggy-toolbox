@@ -1,0 +1,83 @@
+<!-- 自动拆分自 web/index.html：tool-regex -->
+<section id="page-tool-regex" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>正则表达式测试</h1>
+		                        <p class="subtitle">测试、匹配、替换、提取，内置常用预设</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearRegexTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="regex-tool">
+		                    <div class="regex-pattern-panel">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>正则表达式</h3>
+		                                <div class="panel-actions">
+		                                    <select id="regex-preset" onchange="loadRegexPreset()">
+		                                        <option value="">常用预设...</option>
+		                                    </select>
+		                                </div>
+		                            </div>
+		                            <div class="panel-body regex-pattern-body">
+		                                <div class="regex-input-row">
+		                                    <span class="regex-delimiter">/</span>
+		                                    <input type="text" id="regex-pattern" placeholder="输入正则表达式..." oninput="updateRegexTool()">
+		                                    <span class="regex-delimiter">/</span>
+		                                    <input type="text" id="regex-flags" placeholder="gim" maxlength="6" value="g" oninput="updateRegexTool()">
+		                                </div>
+		                                <div class="regex-flags-row">
+		                                    <label class="tool-check"><input type="checkbox" id="regex-flag-g" checked onchange="syncRegexFlags()">g 全局</label>
+		                                    <label class="tool-check"><input type="checkbox" id="regex-flag-i" onchange="syncRegexFlags()">i 忽略大小写</label>
+		                                    <label class="tool-check"><input type="checkbox" id="regex-flag-m" onchange="syncRegexFlags()">m 多行</label>
+		                                    <label class="tool-check"><input type="checkbox" id="regex-flag-s" onchange="syncRegexFlags()">s 点匹配换行</label>
+		                                </div>
+		                                <div id="regex-errors" class="error-list"></div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <div class="converter-layout regex-layout">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>测试文本</h3>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="regex-input" placeholder="输入测试文本..." oninput="updateRegexTool()"></textarea>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>匹配结果</h3>
+		                                <div class="panel-actions">
+		                                    <span class="regex-match-count" id="regex-match-count"></span>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyRegexMatches(this)">复制</button>
+		                                </div>
+		                            </div>
+		                            <div class="panel-body">
+		                                <div id="regex-matches" class="regex-matches"></div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <div class="regex-replace-panel">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>替换</h3>
+		                                <div class="panel-actions">
+		                                    <button class="btn btn-sm btn-secondary" onclick="executeRegexReplace()">执行替换</button>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyRegexReplaced(this)">复制结果</button>
+		                                </div>
+		                            </div>
+		                            <div class="panel-body regex-replace-body">
+		                                <div class="form-group">
+		                                    <label>替换为（支持 $1, $2...）</label>
+		                                    <input type="text" id="regex-replacement" placeholder="替换文本...">
+		                                </div>
+		                                <textarea id="regex-replaced" readonly placeholder="替换结果..."></textarea>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

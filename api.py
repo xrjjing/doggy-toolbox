@@ -1,4 +1,6 @@
 """PyWebView API - 暴露给前端的接口"""
+import logging
+import os
 import json
 import sys
 from pathlib import Path
@@ -6,13 +8,95 @@ from typing import List
 
 from services import ComputerUsageService, NodeConverterService
 
+logger = logging.getLogger(__name__)
+
 
 class Api:
     def __init__(self, data_dir: Path):
         self.data_dir = data_dir
-        self.computer_usage = ComputerUsageService(data_dir / "电脑使用")
-        self.node_converter = NodeConverterService(data_dir / "转化节点")
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+
+        # 数据布局兼容策略（A 方案）：旧版与新版都能读
+        # - 旧版（legacy）：文件在 data_dir 根目录
+        # - 新版（structured）：文件在 data_dir/电脑使用 与 data_dir/转化节点
+        # - 混合（hybrid）：按“旧优先、存在优先”逐文件选择
+        paths = self._resolve_data_paths(self.data_dir)
+        self._data_paths = paths
+
+        # 注意：这里不强制迁移/复制用户文件，只做路径选择与兼容读取
+        self.computer_usage = ComputerUsageService(
+            data_dir=self.data_dir,
+            commands_file=paths["commands_file"],
+            credentials_file=paths["credentials_file"],
+            tabs_file=paths["tabs_file"],
+        )
+        self.node_converter = NodeConverterService(
+            data_dir=self.data_dir,
+            nodes_file=paths["nodes_file"],
+        )
         self._window = None
+
+    @staticmethod
+    def _resolve_data_paths(data_dir: Path) -> dict:
+        """解析数据文件真实路径（旧版/新版/混合兼容）。"""
+        legacy_root = data_dir
+        structured_computer = data_dir / "电脑使用"
+        structured_nodes = data_dir / "转化节点"
+
+        legacy_commands = legacy_root / "commands.json"
+        legacy_credentials = legacy_root / "credentials.json"
+        legacy_tabs = legacy_root / "command_tabs.json"
+        legacy_nodes = legacy_root / "nodes.md"
+
+        structured_commands = structured_computer / "commands.json"
+        structured_credentials = structured_computer / "credentials.json"
+        structured_tabs = structured_computer / "command_tabs.json"
+        structured_nodes_file = structured_nodes / "nodes.md"
+
+        legacy_any = any(p.exists() for p in (legacy_commands, legacy_credentials, legacy_tabs))
+        prefer_legacy_computer = legacy_any
+        prefer_legacy_nodes = legacy_nodes.exists()
+
+        def pick(primary: Path, secondary: Path, fallback: Path) -> Path:
+            # 存在优先：两者都存在时返回 primary（用于“旧优先”）
+            if primary.exists():
+                return primary
+            if secondary.exists():
+                return secondary
+            return fallback
+
+        # 电脑使用：如果检测到旧版任意文件存在，则整体偏向旧版根目录
+        computer_fallback_dir = legacy_root if prefer_legacy_computer else structured_computer
+        commands_file = pick(
+            legacy_commands,
+            structured_commands,
+            computer_fallback_dir / "commands.json",
+        )
+        credentials_file = pick(
+            legacy_credentials,
+            structured_credentials,
+            computer_fallback_dir / "credentials.json",
+        )
+        tabs_file = pick(
+            legacy_tabs,
+            structured_tabs,
+            computer_fallback_dir / "command_tabs.json",
+        )
+
+        # 转化节点：有旧 nodes.md 就用旧，否则用新版子目录
+        nodes_fallback_dir = legacy_root if prefer_legacy_nodes else structured_nodes
+        nodes_file = pick(
+            legacy_nodes,
+            structured_nodes_file,
+            nodes_fallback_dir / "nodes.md",
+        )
+
+        return {
+            "commands_file": commands_file,
+            "credentials_file": credentials_file,
+            "tabs_file": tabs_file,
+            "nodes_file": nodes_file,
+        }
 
     def set_window(self, window):
         """设置窗口引用"""
@@ -20,7 +104,32 @@ class Api:
 
     def __dir__(self):
         """限制暴露成员，避免 pywebview 深度遍历内部 Path 导致噪声日志"""
-        return [name for name, val in self.__class__.__dict__.items() if callable(val)]
+        # 仅暴露公开方法（避免把内部/迁移等“私有方法”暴露给前端）
+        return [
+            name
+            for name, val in self.__class__.__dict__.items()
+            if callable(val) and not name.startswith("_")
+        ]
+
+    def get_runtime_info(self):
+        """获取运行时信息（用于排查“按钮无效/数据未识别”等问题）。"""
+        def _p(path: Path) -> str:
+            try:
+                return str(path)
+            except Exception:
+                return ""
+
+        paths = getattr(self, "_data_paths", {}) or {}
+        info = {
+            "data_dir": _p(self.data_dir),
+            "paths": {k: _p(v) for k, v in paths.items()},
+            "exists": {k: bool(v.exists()) for k, v in paths.items() if isinstance(v, Path)},
+        }
+        try:
+            info["stats"] = self.get_data_stats()
+        except Exception as e:
+            info["stats_error"] = str(e)
+        return info
 
     # ========== 窗口控制 ==========
     def window_close(self):
@@ -325,22 +434,43 @@ class Api:
                 creds_file.write_text(json.dumps(data["credentials"], ensure_ascii=False, indent=2), encoding="utf-8")
                 imported["credentials"] = len(data["credentials"])
 
-            # 导入节点
+            # 导入节点（格式与 _save_nodes_md 保持一致）
             if "nodes" in data and isinstance(data["nodes"], list):
                 nodes = data["nodes"]
                 lines = ["# 代理节点", ""]
                 for node in nodes:
-                    lines.append(f"## {node.get('name', 'Unknown')}")
-                    lines.append(f"- **ID**: {node.get('id', '')}")
-                    lines.append(f"- **类型**: {node.get('type', '')}")
-                    lines.append(f"- **服务器**: {node.get('server', '')}:{node.get('port', '')}")
-                    lines.append(f"- **链接**: `{node.get('raw_link', '')}`")
-                    config = node.get("config", {})
-                    if config.get("yaml"):
-                        lines.append(f"```yaml\n{config['yaml']}\n```")
+                    # 类型校验：跳过非 dict 项
+                    if not isinstance(node, dict):
+                        continue
+                    # 安全处理：移除换行符防止 Markdown 注入
+                    name = str(node.get('name', 'Unknown')).replace('\n', ' ').replace('\r', '')
+                    node_type = str(node.get('type', '')).replace('\n', ' ')
+                    server = str(node.get('server', '')).replace('\n', ' ')
+                    port = str(node.get('port', '')).replace('\n', ' ')
+                    raw_link = str(node.get('raw_link', '')).replace('\n', ' ').replace('`', '')
+
+                    lines.append(f"## {name}")
+                    lines.append("")
+                    lines.append(f"- **类型**: {node_type}")
+                    lines.append(f"- **服务器**: {server}")
+                    lines.append(f"- **端口**: {port}")
+                    if raw_link:
+                        lines.append(f"- **链接**: `{raw_link}`")
+
+                    # 安全处理 config/yaml
+                    config = node.get("config")
+                    if isinstance(config, dict):
+                        yaml_content = config.get("yaml")
+                        if isinstance(yaml_content, str) and yaml_content.strip():
+                            # 移除可能破坏代码块的独立 ``` 行
+                            safe_yaml = yaml_content.replace('\n```', '\n` ` `')
+                            lines.append("")
+                            lines.append("```yaml")
+                            lines.append(safe_yaml)
+                            lines.append("```")
                     lines.append("")
                 self.node_converter.nodes_file.write_text("\n".join(lines), encoding="utf-8")
-                imported["nodes"] = len(nodes)
+                imported["nodes"] = len([n for n in nodes if isinstance(n, dict)])
 
             # 导入主题
             if "theme" in data:
@@ -358,3 +488,398 @@ class Api:
             "credentials": len(self.computer_usage.get_credentials()),
             "nodes": len(self.node_converter.get_nodes())
         }
+
+    # ========== HTTP 请求代理 ==========
+    def http_request(self, method: str, url: str, headers: dict = None, body: str = None, timeout: int = 30):
+        """
+        代理 HTTP 请求，解决前端 CORS 限制。
+
+        Args:
+            method: HTTP 方法 (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
+            url: 请求 URL
+            headers: 请求头字典
+            body: 请求体字符串
+            timeout: 超时时间（秒）
+
+        Returns:
+            dict: {success, status, statusText, headers, body, duration}
+        """
+        import urllib.request
+        import urllib.error
+        import time
+
+        try:
+            start_time = time.time()
+
+            # 构建请求
+            req = urllib.request.Request(url, method=method.upper())
+
+            # 添加请求头
+            if headers:
+                for key, value in headers.items():
+                    req.add_header(key, value)
+
+            # 添加请求体
+            data = None
+            if body and method.upper() in ('POST', 'PUT', 'PATCH'):
+                data = body.encode('utf-8')
+
+            # 发送请求
+            with urllib.request.urlopen(req, data=data, timeout=timeout) as response:
+                end_time = time.time()
+                duration = int((end_time - start_time) * 1000)
+
+                # 读取响应
+                response_body = response.read().decode('utf-8', errors='replace')
+                response_headers = dict(response.getheaders())
+
+                return {
+                    "success": True,
+                    "status": response.status,
+                    "statusText": response.reason,
+                    "headers": response_headers,
+                    "body": response_body,
+                    "duration": duration
+                }
+
+        except urllib.error.HTTPError as e:
+            end_time = time.time()
+            duration = int((end_time - start_time) * 1000)
+
+            # HTTP 错误也返回响应内容
+            try:
+                error_body = e.read().decode('utf-8', errors='replace')
+            except Exception:
+                error_body = ""
+
+            return {
+                "success": True,  # HTTP 错误也算请求成功
+                "status": e.code,
+                "statusText": e.reason,
+                "headers": dict(e.headers) if e.headers else {},
+                "body": error_body,
+                "duration": duration
+            }
+
+        except urllib.error.URLError as e:
+            return {
+                "success": False,
+                "error": f"连接失败: {str(e.reason)}"
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    # ========== 文件保存对话框 ==========
+    def save_file_dialog(self, *args, **kwargs):
+        """
+        打开保存文件对话框，让用户选择保存位置。
+        使用 *args 捕获所有参数以处理 pywebview 的各种参数传递方式。
+
+        Returns:
+            dict: {success: bool, path: str|None, error: str|None}
+        """
+        import webview
+
+        if not self._window:
+            return {"success": False, "error": "窗口未初始化"}
+
+        try:
+            # ========= 参数归一化（兼容不同 pywebview 版本/前端封装差异）=========
+            # pywebview 通常会把 JS 的入参序列化后按位置参数传入 Python：
+            # - JS: api.f(a, b)         -> Python: args=(a, b)
+            # 但在某些封装/版本中可能变成：
+            # - JS: api.f(a, b)         -> Python: args=((a, b),)   （参数被额外包了一层）
+            # - JS: api.f({content,...})-> Python: args=({'content':...},)
+            raw_args = args
+            raw_kwargs = kwargs
+
+            def _safe_preview(value, *, max_len: int = 160):
+                """
+                生成用于日志的“安全预览”，避免把 content 等大字段直接打印出来。
+                仅用于调试，不保证可逆。
+                """
+                try:
+                    if value is None:
+                        return None
+                    if isinstance(value, str):
+                        if len(value) <= max_len:
+                            return value
+                        return f"<str len={len(value)}>"
+                    if isinstance(value, bytes):
+                        return f"<bytes len={len(value)}>"
+                    if isinstance(value, dict):
+                        keys = sorted(str(k) for k in value.keys())
+                        return {"_type": "dict", "keys": keys[:50], "keys_len": len(keys)}
+                    if isinstance(value, (list, tuple)):
+                        elem_types = [type(v).__name__ for v in value[:10]]
+                        return {
+                            "_type": type(value).__name__,
+                            "len": len(value),
+                            "elem_types_preview": elem_types,
+                        }
+                    return f"<{type(value).__name__}>"
+                except Exception:
+                    return f"<{type(value).__name__} preview_failed>"
+
+            debug_enabled = os.environ.get("DOGGY_TOOLBOX_DEBUG_FILE_DIALOG") == "1"
+            if debug_enabled:
+                logger.setLevel(logging.DEBUG)
+                logger.debug(
+                    "save_file_dialog 收到 raw_args=%s raw_kwargs=%s",
+                    [_safe_preview(v) for v in raw_args],
+                    {k: _safe_preview(v) for k, v in raw_kwargs.items()},
+                )
+                # 兜底：如果日志未配置 handler，至少能在终端看到调试信息
+                if not logger.handlers and not logging.getLogger().handlers:
+                    print(
+                        "[DEBUG] save_file_dialog 收到参数:",
+                        {"raw_args": [_safe_preview(v) for v in raw_args], "raw_kwargs_keys": sorted(list(raw_kwargs.keys()))},
+                        file=sys.stderr,
+                    )
+
+            def _looks_like_param_container(value) -> bool:
+                """判断 value 是否像“装了参数的容器”（list/tuple 且长度合理）。"""
+                return isinstance(value, (list, tuple)) and 1 <= len(value) <= 3
+
+            # 处理“单个 dict 作为参数对象”的情况：save_file_dialog({content, default_filename, file_types})
+            if len(args) == 1 and not kwargs and isinstance(args[0], dict):
+                kwargs = args[0]
+                args = ()
+
+            # 处理“单个 list/tuple 装了多个位置参数”的情况：args=((content, filename),)
+            if len(args) == 1 and not kwargs and _looks_like_param_container(args[0]):
+                args = tuple(args[0])
+
+            def _to_text(value) -> str:
+                """把 JS 传入的各种类型安全转换为文本。"""
+                if value is None:
+                    return ""
+                if isinstance(value, bytes):
+                    try:
+                        return value.decode("utf-8")
+                    except Exception:
+                        return value.decode("utf-8", errors="replace")
+                if isinstance(value, str):
+                    return value
+                # 常见场景：前端可能传对象/数组，兜底转 JSON 文本
+                if isinstance(value, (dict, list, tuple)):
+                    try:
+                        return json.dumps(value, ensure_ascii=False)
+                    except Exception:
+                        return str(value)
+                return str(value)
+
+            def _to_filename(value) -> str:
+                """把文件名参数安全转换为字符串。"""
+                if value is None:
+                    return "file.txt"
+                # 防御：有些错误封装会传 ('name.txt',) 这种单元素容器
+                if isinstance(value, (list, tuple)) and len(value) == 1:
+                    value = value[0]
+                value = str(value).strip()
+                return value if value else "file.txt"
+
+            def _infer_file_types_from_filename(name: str):
+                """根据文件扩展名推断 file_types（pywebview 期望：('描述 (*.ext[;*.ext])', ...)）。"""
+                ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+                if ext == "json":
+                    return ("JSON 文件 (*.json)",)
+                if ext == "html":
+                    return ("HTML 文件 (*.html)",)
+                if ext == "csv":
+                    return ("CSV 文件 (*.csv)",)
+                if ext == "txt":
+                    return ("文本文件 (*.txt)",)
+                return ("所有文件 (*.*)",)
+
+            def _normalize_file_types(value, fallback_filename: str):
+                """
+                归一化 file_types：
+                - pywebview（当前版本）期望：('描述 (*.ext[;*.ext])', ...) —— 每项必须是字符串
+                - 兼容旧格式输入：
+                  - ('描述', '*.json')
+                  - [('描述', '*.json'), ('所有文件', '*.*')]
+                  - {'描述': '*.json'}  （会转为 ('描述 (*.json)',)）
+                  - 额外嵌套一层: ((('描述','*.json'),),) 等
+                """
+                if value is None:
+                    return _infer_file_types_from_filename(fallback_filename)
+
+                # 单元素嵌套：反复剥一层，直到不是“单元素容器”
+                while isinstance(value, (list, tuple)) and len(value) == 1:
+                    value = value[0]
+
+                def _as_filter_string(desc, pattern) -> str:
+                    desc = str(desc).strip()
+                    # 兼容旧写法：调用方可能把 desc 直接写成完整过滤器字符串，例如 "JSON 文件 (*.json)"
+                    # 此时忽略 pattern，直接返回 desc，避免生成 "JSON 文件 (*.json) (*.json)" 这种无效格式。
+                    if "(" in desc and ")" in desc and "*" in desc:
+                        return desc
+                    if isinstance(pattern, (list, tuple)):
+                        pattern = ";".join(str(p).strip() for p in pattern)
+                    pattern = str(pattern).strip()
+                    # 容错：有些调用方可能把 pattern 写成 "(*.json)" 或 "*.json; *.txt"
+                    pattern = pattern.strip("()").replace(" ", "")
+                    return f"{desc} ({pattern})" if desc else f"所有文件 ({pattern})"
+
+                if isinstance(value, dict):
+                    value = [(_as_filter_string(k, v)) for k, v in value.items()]
+
+                # 单个过滤器字符串
+                if isinstance(value, str):
+                    value = (value,)
+
+                # 单个 (desc, pattern) 对
+                if isinstance(value, (list, tuple)) and len(value) == 2 and isinstance(value[0], str):
+                    value = (_as_filter_string(value[0], value[1]),)
+
+                if not isinstance(value, (list, tuple)):
+                    # 兜底：当成一个 pattern
+                    return (f"所有文件 ({str(value).strip()})",)
+
+                candidates: list[str] = []
+                for item in value:
+                    if isinstance(item, (list, tuple)) and len(item) == 1:
+                        item = item[0]
+
+                    if isinstance(item, str):
+                        candidates.append(item)
+                        continue
+
+                    if isinstance(item, (list, tuple)) and len(item) == 2:
+                        candidates.append(_as_filter_string(item[0], item[1]))
+                        continue
+
+                    # 跳过不可识别项，避免传进 pywebview 后在内部正则处报 tuple/type 错
+                    continue
+
+                # 预校验：避免 pywebview 内部 parse_file_type 直接抛错
+                valid: list[str] = []
+                try:
+                    from webview.util import parse_file_type as _parse_file_type
+
+                    for f in candidates:
+                        try:
+                            _parse_file_type(str(f))
+                            valid.append(str(f))
+                        except Exception:
+                            continue
+                except Exception:
+                    # 极端情况（导入失败）则不做预校验，但仍保证元素为 str
+                    valid = [str(f) for f in candidates if isinstance(f, str)]
+
+                return tuple(valid) if valid else _infer_file_types_from_filename(fallback_filename)
+
+            # 解析参数（位置参数优先，但 kwargs 可覆盖）
+            content = args[0] if len(args) >= 1 else ""
+            default_filename = args[1] if len(args) >= 2 else "file.txt"
+            file_types = args[2] if len(args) >= 3 else None
+
+            # 支持多种命名：content / filename / default_filename / save_filename
+            content = kwargs.get("content", content)
+            default_filename = kwargs.get("default_filename", default_filename)
+            default_filename = kwargs.get("filename", default_filename)
+            default_filename = kwargs.get("save_filename", default_filename)
+            file_types = kwargs.get("file_types", file_types)
+
+            content_text = _to_text(content)
+            default_filename_text = _to_filename(default_filename)
+            file_types_norm = _normalize_file_types(file_types, default_filename_text)
+
+            if debug_enabled:
+                logger.debug(
+                    "save_file_dialog 归一化结果 default_filename=%r file_types=%s",
+                    default_filename_text,
+                    list(file_types_norm),
+                )
+
+            # 打开保存对话框
+            result = self._window.create_file_dialog(
+                webview.SAVE_DIALOG,
+                save_filename=default_filename_text,
+                file_types=file_types_norm,
+            )
+
+            if result:
+                # macOS 上 result 通常是元组，取第一个元素
+                file_path = result[0] if isinstance(result, (tuple, list)) else result
+                # 写入文件
+                file_path_str = str(file_path)
+                Path(file_path_str).write_text(content_text, encoding="utf-8")
+                return {"success": True, "path": file_path_str}
+            else:
+                return {"success": False, "error": "用户取消了保存"}
+
+        except Exception as e:
+            # 不回传具体内容，避免日志/前端提示包含大段文本；仅提供类型信息辅助排查
+            debug = {
+                "args_types": [type(v).__name__ for v in raw_args],
+                "kwargs_keys": sorted(list(raw_kwargs.keys())),
+            }
+            return {"success": False, "error": str(e), "debug": debug}
+
+    def save_binary_file_dialog(self, base64_data: str, default_filename: str = "file.bin", file_types: list = None):
+        """
+        保存二进制文件（如图片）到用户选择的位置。
+
+        Args:
+            base64_data: Base64 编码的二进制数据
+            default_filename: 默认文件名
+            file_types: 文件类型过滤器
+
+        Returns:
+            dict: {success: bool, path: str|None, error: str|None}
+        """
+        import webview
+        import base64
+
+        if not self._window:
+            return {"success": False, "error": "窗口未初始化"}
+
+        try:
+            # 解码 base64 数据
+            binary_data = base64.b64decode(base64_data)
+
+            # 推断文件类型
+            if file_types is None:
+                ext = default_filename.rsplit(".", 1)[-1].lower() if "." in default_filename else ""
+                if ext == "png":
+                    file_types = ("PNG 图片 (*.png)",)
+                elif ext in ("jpg", "jpeg"):
+                    file_types = ("JPEG 图片 (*.jpg;*.jpeg)",)
+                elif ext == "gif":
+                    file_types = ("GIF 图片 (*.gif)",)
+                else:
+                    file_types = ("所有文件 (*.*)",)
+            elif isinstance(file_types, list):
+                # 归一化 file_types
+                normalized = []
+                for ft in file_types:
+                    if isinstance(ft, (list, tuple)) and len(ft) == 2:
+                        normalized.append(f"{ft[0]} ({ft[1]})")
+                    elif isinstance(ft, str):
+                        normalized.append(ft)
+                file_types = tuple(normalized) if normalized else ("所有文件 (*.*)",)
+
+            # 打开保存对话框
+            result = self._window.create_file_dialog(
+                webview.SAVE_DIALOG,
+                save_filename=default_filename,
+                file_types=file_types,
+            )
+
+            if result:
+                file_path = result[0] if isinstance(result, (tuple, list)) else result
+                file_path_str = str(file_path)
+                # 写入二进制文件
+                Path(file_path_str).write_bytes(binary_data)
+                return {"success": True, "path": file_path_str}
+            else:
+                return {"success": False, "error": "用户取消了保存"}
+
+        except Exception as e:
+            return {"success": False, "error": str(e)}

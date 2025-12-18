@@ -1,0 +1,120 @@
+<!-- 自动拆分自 web/index.html：tool-color -->
+<section id="page-tool-color" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>颜色转换</h1>
+		                        <p class="subtitle">HEX / RGB / HSL / HSV / CMYK 格式互转</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearColorTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="color-tool">
+		                    <div class="converter-layout color-layout">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>输入</h3>
+		                            </div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>颜色值</label>
+		                                    <input type="text" id="color-input" placeholder="#FF5733 / rgb(255,87,51) / hsl(11,100%,60%)" oninput="updateColorTool()">
+		                                </div>
+		                                <div class="color-preview-row">
+		                                    <div class="color-preview-box" id="color-preview">
+		                                        <div class="color-preview-checker"></div>
+		                                        <div class="color-preview-color" id="color-preview-color"></div>
+		                                    </div>
+		                                    <div class="color-info">
+		                                        <div class="color-info-item" id="color-detect"></div>
+		                                    </div>
+		                                </div>
+		                                <div id="color-errors" class="error-list"></div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>输出格式</h3>
+		                            </div>
+		                            <div class="panel-body color-outputs">
+		                                <div class="color-output-row">
+		                                    <label>HEX</label>
+		                                    <input type="text" id="color-out-hex" readonly>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyColorOutput(this, 'hex')">复制</button>
+		                                </div>
+		                                <div class="color-output-row">
+		                                    <label>HEX (Alpha)</label>
+		                                    <input type="text" id="color-out-hexa" readonly>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyColorOutput(this, 'hexa')">复制</button>
+		                                </div>
+		                                <div class="color-output-row">
+		                                    <label>RGB</label>
+		                                    <input type="text" id="color-out-rgb" readonly>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyColorOutput(this, 'rgb')">复制</button>
+		                                </div>
+		                                <div class="color-output-row">
+		                                    <label>RGBA</label>
+		                                    <input type="text" id="color-out-rgba" readonly>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyColorOutput(this, 'rgba')">复制</button>
+		                                </div>
+		                                <div class="color-output-row">
+		                                    <label>HSL</label>
+		                                    <input type="text" id="color-out-hsl" readonly>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyColorOutput(this, 'hsl')">复制</button>
+		                                </div>
+		                                <div class="color-output-row">
+		                                    <label>HSLA</label>
+		                                    <input type="text" id="color-out-hsla" readonly>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyColorOutput(this, 'hsla')">复制</button>
+		                                </div>
+		                                <div class="color-output-row">
+		                                    <label>HSV</label>
+		                                    <input type="text" id="color-out-hsv" readonly>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyColorOutput(this, 'hsv')">复制</button>
+		                                </div>
+		                                <div class="color-output-row">
+		                                    <label>CMYK</label>
+		                                    <input type="text" id="color-out-cmyk" readonly>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyColorOutput(this, 'cmyk')">复制</button>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+		                    <div class="color-palette-panel">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>相关色</h3>
+		                            </div>
+		                            <div class="panel-body">
+		                                <div class="color-palette-grid">
+		                                    <div class="color-palette-item">
+		                                        <div class="color-palette-label">互补色</div>
+		                                        <div class="color-palette-swatch" id="color-complement"></div>
+		                                        <div class="color-palette-value" id="color-complement-value"></div>
+		                                    </div>
+		                                    <div class="color-palette-item">
+		                                        <div class="color-palette-label">三等分色 1</div>
+		                                        <div class="color-palette-swatch" id="color-triadic1"></div>
+		                                        <div class="color-palette-value" id="color-triadic1-value"></div>
+		                                    </div>
+		                                    <div class="color-palette-item">
+		                                        <div class="color-palette-label">三等分色 2</div>
+		                                        <div class="color-palette-swatch" id="color-triadic2"></div>
+		                                        <div class="color-palette-value" id="color-triadic2-value"></div>
+		                                    </div>
+		                                    <div class="color-palette-item">
+		                                        <div class="color-palette-label">类似色 1</div>
+		                                        <div class="color-palette-swatch" id="color-analog1"></div>
+		                                        <div class="color-palette-value" id="color-analog1-value"></div>
+		                                    </div>
+		                                    <div class="color-palette-item">
+		                                        <div class="color-palette-label">类似色 2</div>
+		                                        <div class="color-palette-swatch" id="color-analog2"></div>
+		                                        <div class="color-palette-value" id="color-analog2-value"></div>
+		                                    </div>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

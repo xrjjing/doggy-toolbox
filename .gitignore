@@ -50,6 +50,8 @@ CHANGELOG.md
 /.claude/
 /.snow/
 docs/
+电脑使用/
+转化节点/
 
 # 测试文件（仅开发时使用）
 tests/

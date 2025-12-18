@@ -14,7 +14,7 @@
     'use strict';
 
     /**
-     * 格式化 JSON
+     * 格式化 JSON（保持原始键顺序）
      * @param {string} text - JSON 字符串
      * @param {number|string} indent - 缩进（2/4/'\t'）
      * @returns {{result: string, error: string|null, line: number|null}}
@@ -24,13 +24,145 @@
         if (!s) return { result: '', error: null, line: null };
 
         try {
-            const obj = JSON.parse(s);
+            // 使用自定义序列化以保持原始键顺序
             const indentVal = indent === 'tab' ? '\t' : (parseInt(String(indent), 10) || 2);
-            return { result: JSON.stringify(obj, null, indentVal), error: null, line: null };
+            const result = formatJsonPreserveOrder(s, indentVal);
+            return { result: result, error: null, line: null };
         } catch (e) {
             const lineInfo = extractErrorLine(e.message, s);
             return { result: '', error: e.message, line: lineInfo };
         }
+    }
+
+    /**
+     * 保持原始键顺序的 JSON 格式化
+     * JavaScript 的 JSON.parse 对于数字键会自动排序，这里通过正则解析保持原始顺序
+     */
+    function formatJsonPreserveOrder(jsonStr, indent) {
+        // 先验证 JSON 有效性
+        JSON.parse(jsonStr);
+
+        // 使用字符级别的解析来保持原始顺序
+        let pos = 0;
+        const len = jsonStr.length;
+
+        function skipWhitespace() {
+            while (pos < len && /\s/.test(jsonStr[pos])) pos++;
+        }
+
+        function parseValue(depth) {
+            skipWhitespace();
+            if (pos >= len) throw new Error('Unexpected end of JSON');
+
+            const ch = jsonStr[pos];
+            if (ch === '{') return parseObject(depth);
+            if (ch === '[') return parseArray(depth);
+            if (ch === '"') return parseString();
+            if (ch === '-' || (ch >= '0' && ch <= '9')) return parseNumber();
+            if (jsonStr.slice(pos, pos + 4) === 'true') { pos += 4; return 'true'; }
+            if (jsonStr.slice(pos, pos + 5) === 'false') { pos += 5; return 'false'; }
+            if (jsonStr.slice(pos, pos + 4) === 'null') { pos += 4; return 'null'; }
+            throw new Error('Unexpected character: ' + ch);
+        }
+
+        function parseString() {
+            const start = pos;
+            pos++; // skip opening quote
+            while (pos < len) {
+                if (jsonStr[pos] === '\\') {
+                    pos += 2; // skip escape sequence
+                } else if (jsonStr[pos] === '"') {
+                    pos++;
+                    return jsonStr.slice(start, pos);
+                } else {
+                    pos++;
+                }
+            }
+            throw new Error('Unterminated string');
+        }
+
+        function parseNumber() {
+            const start = pos;
+            if (jsonStr[pos] === '-') pos++;
+            while (pos < len && jsonStr[pos] >= '0' && jsonStr[pos] <= '9') pos++;
+            if (pos < len && jsonStr[pos] === '.') {
+                pos++;
+                while (pos < len && jsonStr[pos] >= '0' && jsonStr[pos] <= '9') pos++;
+            }
+            if (pos < len && (jsonStr[pos] === 'e' || jsonStr[pos] === 'E')) {
+                pos++;
+                if (pos < len && (jsonStr[pos] === '+' || jsonStr[pos] === '-')) pos++;
+                while (pos < len && jsonStr[pos] >= '0' && jsonStr[pos] <= '9') pos++;
+            }
+            return jsonStr.slice(start, pos);
+        }
+
+        function parseObject(depth) {
+            const indentStr = typeof indent === 'string' ? indent : ' '.repeat(indent);
+            const currentIndent = indentStr.repeat(depth);
+            const nextIndent = indentStr.repeat(depth + 1);
+
+            pos++; // skip {
+            skipWhitespace();
+
+            if (jsonStr[pos] === '}') {
+                pos++;
+                return '{}';
+            }
+
+            const pairs = [];
+            while (true) {
+                skipWhitespace();
+                const key = parseString();
+                skipWhitespace();
+                if (jsonStr[pos] !== ':') throw new Error('Expected : after key');
+                pos++;
+                const value = parseValue(depth + 1);
+                pairs.push(nextIndent + key + ': ' + value);
+
+                skipWhitespace();
+                if (jsonStr[pos] === '}') {
+                    pos++;
+                    break;
+                }
+                if (jsonStr[pos] !== ',') throw new Error('Expected , or }');
+                pos++;
+            }
+
+            return '{\n' + pairs.join(',\n') + '\n' + currentIndent + '}';
+        }
+
+        function parseArray(depth) {
+            const indentStr = typeof indent === 'string' ? indent : ' '.repeat(indent);
+            const currentIndent = indentStr.repeat(depth);
+            const nextIndent = indentStr.repeat(depth + 1);
+
+            pos++; // skip [
+            skipWhitespace();
+
+            if (jsonStr[pos] === ']') {
+                pos++;
+                return '[]';
+            }
+
+            const items = [];
+            while (true) {
+                const value = parseValue(depth + 1);
+                items.push(nextIndent + value);
+
+                skipWhitespace();
+                if (jsonStr[pos] === ']') {
+                    pos++;
+                    break;
+                }
+                if (jsonStr[pos] !== ',') throw new Error('Expected , or ]');
+                pos++;
+            }
+
+            return '[\n' + items.join(',\n') + '\n' + currentIndent + ']';
+        }
+
+        return parseValue(0);
     }
 
     /**

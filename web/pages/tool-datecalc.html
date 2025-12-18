@@ -1,0 +1,106 @@
+<!-- 自动拆分自 web/index.html：tool-datecalc -->
+<section id="page-tool-datecalc" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>日期计算器</h1>
+		                        <p class="subtitle">日期差值、加减、星期、周数、年龄等计算</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearDateCalcTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="datecalc-tool">
+		                    <!-- 日期差值计算 -->
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>📊 日期差值计算</h3>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="form-group">
+		                                <label>起始日期</label>
+		                                <input type="date" id="datecalc-diff-start">
+		                            </div>
+		                            <div class="form-group">
+		                                <label>结束日期</label>
+		                                <input type="date" id="datecalc-diff-end">
+		                            </div>
+		                            <div class="datecalc-result" id="datecalc-diff-result"></div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 日期加减 -->
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>➕ 日期加减</h3>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="form-group">
+		                                <label>基准日期</label>
+		                                <input type="date" id="datecalc-add-base">
+		                            </div>
+		                            <div class="datecalc-add-row">
+		                                <div class="form-group">
+		                                    <label>数值</label>
+		                                    <input type="number" id="datecalc-add-value" value="1">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>单位</label>
+		                                    <select id="datecalc-add-unit">
+		                                        <option value="days">天</option>
+		                                        <option value="weeks">周</option>
+		                                        <option value="months">月</option>
+		                                        <option value="years">年</option>
+		                                    </select>
+		                                </div>
+		                            </div>
+		                            <div class="datecalc-result" id="datecalc-add-result"></div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 星期和周数 -->
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>📅 星期与周数</h3>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="form-group">
+		                                <label>日期</label>
+		                                <input type="date" id="datecalc-weekday-date">
+		                            </div>
+		                            <div class="datecalc-result" id="datecalc-weekday-result"></div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 年龄计算 -->
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>🎂 年龄计算</h3>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="form-group">
+		                                <label>出生日期</label>
+		                                <input type="date" id="datecalc-age-birth">
+		                            </div>
+		                            <div class="form-group">
+		                                <label>参考日期（可选，默认今天）</label>
+		                                <input type="date" id="datecalc-age-ref">
+		                            </div>
+		                            <div class="datecalc-result" id="datecalc-age-result"></div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 月年信息 -->
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>📆 月/年信息</h3>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="form-group">
+		                                <label>日期</label>
+		                                <input type="date" id="datecalc-info-date">
+		                            </div>
+		                            <div class="datecalc-result" id="datecalc-info-result"></div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

@@ -1,0 +1,66 @@
+<!-- 自动拆分自 web/index.html：tool-unicode -->
+<section id="page-tool-unicode" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>Unicode 编解码</h1>
+		                        <p class="subtitle">支持 \uXXXX、\xXX、&#xXXXX;、&#NNNN; 多种格式</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearUnicodeTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="tool-single unicode-tool">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输入</h3>
+		                            <div class="panel-actions">
+		                                <div class="btn-group">
+		                                    <button class="btn btn-sm active" id="unicode-encode-btn" onclick="setUnicodeMode('encode')">编码</button>
+		                                    <button class="btn btn-sm" id="unicode-decode-btn" onclick="setUnicodeMode('decode')">解码</button>
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="unicode-input" placeholder="输入要转换的文本..." oninput="updateUnicodeTool()"></textarea>
+		                            <div class="unicode-format-row" id="unicode-format-row" style="display:none;">
+		                                <label>解码格式：</label>
+		                                <select id="unicode-decode-format" onchange="updateUnicodeTool()">
+		                                    <option value="auto">自动检测</option>
+		                                    <option value="unicode">\uXXXX</option>
+		                                    <option value="hex">\xXX</option>
+		                                    <option value="html">HTML 实体</option>
+		                                </select>
+		                                <span class="unicode-detect" id="unicode-detect"></span>
+		                            </div>
+		                            <div class="unicode-encode-format" id="unicode-encode-format">
+		                                <label>编码格式：</label>
+		                                <select id="unicode-format" onchange="updateUnicodeTool()">
+		                                    <option value="unicode">\uXXXX (Unicode)</option>
+		                                    <option value="hex">\xXX (Hex UTF-8)</option>
+		                                    <option value="html_hex">&#xXXXX; (HTML Hex)</option>
+		                                    <option value="html_dec">&#NNNN; (HTML Dec)</option>
+		                                </select>
+		                            </div>
+		                            <div class="tool-options">
+		                                <label class="checkbox-label">
+		                                    <input type="checkbox" id="unicode-batch" onchange="updateUnicodeTool()">
+		                                    <span>逐行处理</span>
+		                                </label>
+		                            </div>
+		                            <div id="unicode-errors" class="error-list"></div>
+		                        </div>
+		                    </div>
+
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输出</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="copyUnicodeOutput(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="unicode-output" readonly placeholder="转换结果..."></textarea>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

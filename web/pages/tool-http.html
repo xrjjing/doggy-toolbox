@@ -1,0 +1,114 @@
+<!-- 自动拆分自 web/index.html：tool-http -->
+<section id="page-tool-http" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>HTTP 请求测试</h1>
+		                        <p class="subtitle">类似 Postman 的 HTTP 请求测试工具</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearHttpTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="http-tool">
+		                    <!-- 请求配置 -->
+		                    <div class="http-request">
+		                        <div class="http-url-bar">
+		                            <select id="http-method" class="http-method-select">
+		                                <option value="GET">GET</option>
+		                                <option value="POST">POST</option>
+		                                <option value="PUT">PUT</option>
+		                                <option value="DELETE">DELETE</option>
+		                                <option value="PATCH">PATCH</option>
+		                                <option value="HEAD">HEAD</option>
+		                                <option value="OPTIONS">OPTIONS</option>
+		                            </select>
+		                            <input type="text" id="http-url" placeholder="https://api.example.com/endpoint" class="http-url-input">
+		                            <button class="btn btn-primary" onclick="sendHttpRequest()">发送</button>
+		                        </div>
+
+		                        <!-- 请求选项卡 -->
+		                        <div class="http-tabs">
+		                            <button class="http-tab active" data-tab="params" onclick="switchHttpTab('params')">Query 参数</button>
+		                            <button class="http-tab" data-tab="headers" onclick="switchHttpTab('headers')">请求头</button>
+		                            <button class="http-tab" data-tab="body" onclick="switchHttpTab('body')">请求体</button>
+		                            <button class="http-tab" data-tab="curl" onclick="switchHttpTab('curl')">cURL</button>
+		                        </div>
+
+		                        <!-- Query 参数 -->
+		                        <div class="http-tab-content active" id="http-tab-params">
+		                            <div class="http-kv-editor" id="http-params-editor">
+		                                <div class="http-kv-row">
+		                                    <input type="text" placeholder="Key" class="http-kv-key">
+		                                    <input type="text" placeholder="Value" class="http-kv-value">
+		                                    <button class="btn btn-sm btn-ghost" onclick="addHttpParam()">+</button>
+		                                </div>
+		                            </div>
+		                        </div>
+
+		                        <!-- 请求头 -->
+		                        <div class="http-tab-content" id="http-tab-headers">
+		                            <div class="http-kv-editor" id="http-headers-editor">
+		                                <div class="http-kv-row">
+		                                    <input type="text" placeholder="Header Name" class="http-kv-key">
+		                                    <input type="text" placeholder="Header Value" class="http-kv-value">
+		                                    <button class="btn btn-sm btn-ghost" onclick="addHttpHeader()">+</button>
+		                                </div>
+		                            </div>
+		                        </div>
+
+		                        <!-- 请求体 -->
+		                        <div class="http-tab-content" id="http-tab-body">
+		                            <div class="http-body-type">
+		                                <label>
+		                                    <input type="radio" name="http-body-type" value="none" checked onchange="switchHttpBodyType('none')">
+		                                    <span>None</span>
+		                                </label>
+		                                <label>
+		                                    <input type="radio" name="http-body-type" value="json" onchange="switchHttpBodyType('json')">
+		                                    <span>JSON</span>
+		                                </label>
+		                                <label>
+		                                    <input type="radio" name="http-body-type" value="form" onchange="switchHttpBodyType('form')">
+		                                    <span>Form</span>
+		                                </label>
+		                                <label>
+		                                    <input type="radio" name="http-body-type" value="raw" onchange="switchHttpBodyType('raw')">
+		                                    <span>Raw</span>
+		                                </label>
+		                            </div>
+		                            <div id="http-body-editor" style="display: none;">
+		                                <textarea id="http-body-text" placeholder="请求体内容..." spellcheck="false"></textarea>
+		                            </div>
+		                        </div>
+
+		                        <!-- cURL -->
+		                        <div class="http-tab-content" id="http-tab-curl">
+		                            <textarea id="http-curl-input" placeholder="粘贴 cURL 命令..." spellcheck="false"></textarea>
+		                            <div class="http-curl-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="importCurl()">导入</button>
+		                                <button class="btn btn-sm btn-ghost" onclick="exportCurl()">导出</button>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 响应展示 -->
+		                    <div class="http-response">
+		                        <div class="http-response-header">
+		                            <h3>响应</h3>
+		                            <div class="http-response-meta" id="http-response-meta"></div>
+		                        </div>
+		                        <div class="http-response-tabs">
+		                            <button class="http-tab active" data-tab="response-body" onclick="switchHttpResponseTab('response-body')">Body</button>
+		                            <button class="http-tab" data-tab="response-headers" onclick="switchHttpResponseTab('response-headers')">Headers</button>
+		                        </div>
+		                        <div class="http-response-content">
+		                            <div class="http-tab-content active" id="http-tab-response-body">
+		                                <textarea id="http-response-body" readonly placeholder="响应内容将显示在这里..." spellcheck="false"></textarea>
+		                            </div>
+		                            <div class="http-tab-content" id="http-tab-response-headers">
+		                                <textarea id="http-response-headers-text" readonly placeholder="响应头将显示在这里..." spellcheck="false"></textarea>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

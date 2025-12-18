@@ -36,14 +36,17 @@ if web_dir.exists() and web_dir.is_dir():
     print("   ✓ web 目录存在")
 
     # 统计资源文件
-    html_files = list(web_dir.glob("*.html"))
-    css_files = list(web_dir.glob("*.css"))
-    js_files = list(web_dir.glob("*.js"))
+    html_files = list(web_dir.rglob("*.html"))
+    css_files = list(web_dir.rglob("*.css"))
+    js_files = list(web_dir.rglob("*.js"))
     tool_scripts = list(web_dir.glob("tools_m*.js"))
+    page_fragments = list((web_dir / "pages").glob("*.html")) if (web_dir / "pages").exists() else []
+    split_app_scripts = list((web_dir / "js").glob("app_*.js")) if (web_dir / "js").exists() else []
 
     print(f"   - HTML 文件: {len(html_files)}")
+    print(f"     - 页面片段 web/pages/*.html: {len(page_fragments)}")
     print(f"   - CSS 文件: {len(css_files)}")
-    print(f"   - JS 文件: {len(js_files)} (其中工具模块: {len(tool_scripts)})")
+    print(f"   - JS 文件: {len(js_files)} (其中工具模块: {len(tool_scripts)}，拆分入口脚本: {len(split_app_scripts)})")
 else:
     print("   ✗ web 目录不存在")
     success = False

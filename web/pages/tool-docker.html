@@ -1,0 +1,393 @@
+<!-- 自动拆分自 web/index.html：tool-docker -->
+<section id="page-tool-docker" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>Docker 命令生成器</h1>
+		                        <p class="subtitle">可视化生成 Docker 命令</p>
+		                    </div>
+		                </div>
+		                <div class="docker-tool">
+		                    <!-- 场景选择器 -->
+		                    <div class="tool-tabs-modern" role="tablist" aria-label="Docker 场景">
+		                                                    <button type="button" class="tool-tab tool-tab-modern active" onclick="switchDockerScene('run', event)" role="tab" aria-selected="true">
+		                                                        <span class="tab-icon" aria-hidden="true">▶️</span>
+		                                                        <span class="tab-label">Run</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('build', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">🏗️</span>
+		                                                        <span class="tab-label">Build</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('compose', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">🐙</span>
+		                                                        <span class="tab-label">Compose</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('exec', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">💻</span>
+		                                                        <span class="tab-label">Exec</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('logs', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">📄</span>
+		                                                        <span class="tab-label">Logs</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('ps', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">📊</span>
+		                                                        <span class="tab-label">PS</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('images', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">🖼️</span>
+		                                                        <span class="tab-label">Images</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('container', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">📦</span>
+		                                                        <span class="tab-label">Container</span>
+		                                                    </button>
+		                                                </div>
+		                    <!-- Run 场景 -->
+		                    <div id="docker-scene-run" class="docker-scene active">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>基本设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>镜像名称 *</label>
+		                                    <input type="text" id="docker-run-image" placeholder="nginx:latest" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>容器名称</label>
+		                                    <input type="text" id="docker-run-name" placeholder="my-container" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-run-detach" onchange="updateDockerCommand()">
+		                                        后台运行 (-d)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-run-interactive" onchange="updateDockerCommand()">
+		                                        交互模式 (-it)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-run-rm" onchange="updateDockerCommand()">
+		                                        退出时自动删除 (--rm)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>端口映射</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>端口映射 (格式: 8080:80 或 80，多个用逗号分隔)</label>
+		                                    <input type="text" id="docker-run-ports" placeholder="8080:80, 443:443" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>卷挂载</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>卷挂载 (格式: /host/path:/container/path，多个用逗号分隔)</label>
+		                                    <input type="text" id="docker-run-volumes" placeholder="/data:/var/data, /logs:/var/logs" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>环境变量</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>环境变量 (格式: KEY=value，多个用逗号分隔)</label>
+		                                    <input type="text" id="docker-run-env" placeholder="NODE_ENV=production, PORT=3000" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>网络和资源</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>网络模式</label>
+		                                    <select id="docker-run-network" onchange="updateDockerCommand()">
+		                                        <option value="">默认</option>
+		                                        <option value="bridge">bridge</option>
+		                                        <option value="host">host</option>
+		                                        <option value="none">none</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>重启策略</label>
+		                                    <select id="docker-run-restart" onchange="updateDockerCommand()">
+		                                        <option value="">不自动重启</option>
+		                                        <option value="no">no</option>
+		                                        <option value="always">always</option>
+		                                        <option value="unless-stopped">unless-stopped</option>
+		                                        <option value="on-failure">on-failure</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>内存限制 (如: 512m, 2g)</label>
+		                                    <input type="text" id="docker-run-memory" placeholder="512m" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>CPU 限制 (如: 0.5, 2)</label>
+		                                    <input type="text" id="docker-run-cpus" placeholder="1.0" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>启动命令 (覆盖默认命令)</label>
+		                                    <input type="text" id="docker-run-command" placeholder="/bin/bash" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Build 场景 -->
+		                    <div id="docker-scene-build" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>构建设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>构建路径 *</label>
+		                                    <input type="text" id="docker-build-path" placeholder="." oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>镜像标签 *</label>
+		                                    <input type="text" id="docker-build-tag" placeholder="myapp:latest" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>Dockerfile 路径</label>
+		                                    <input type="text" id="docker-build-file" placeholder="Dockerfile" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>构建参数 (格式: KEY=value，多个用逗号分隔)</label>
+		                                    <input type="text" id="docker-build-arg" placeholder="NODE_VERSION=16, ENV=prod" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>目标阶段 (多阶段构建)</label>
+		                                    <input type="text" id="docker-build-target" placeholder="production" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-build-nocache" onchange="updateDockerCommand()">
+		                                        不使用缓存 (--no-cache)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-build-pull" onchange="updateDockerCommand()">
+		                                        总是拉取最新基础镜像 (--pull)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Compose 场景 -->
+		                    <div id="docker-scene-compose" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>Compose 设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>操作类型 *</label>
+		                                    <select id="docker-compose-action" onchange="updateDockerComposeForm(); updateDockerCommand()">
+		                                        <option value="up">up - 启动服务</option>
+		                                        <option value="down">down - 停止并删除</option>
+		                                        <option value="start">start - 启动已存在的容器</option>
+		                                        <option value="stop">stop - 停止容器</option>
+		                                        <option value="restart">restart - 重启服务</option>
+		                                        <option value="ps">ps - 列出容器</option>
+		                                        <option value="logs">logs - 查看日志</option>
+		                                        <option value="build">build - 构建服务</option>
+		                                        <option value="pull">pull - 拉取镜像</option>
+		                                        <option value="exec">exec - 执行命令</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>Compose 文件路径</label>
+		                                    <input type="text" id="docker-compose-file" placeholder="docker-compose.yml" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>项目名称</label>
+		                                    <input type="text" id="docker-compose-project" placeholder="myproject" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group" id="docker-compose-service-group">
+		                                    <label>服务名称</label>
+		                                    <input type="text" id="docker-compose-service" placeholder="web" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group" id="docker-compose-detach-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-compose-detach" onchange="updateDockerCommand()">
+		                                        后台运行 (-d)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group" id="docker-compose-volumes-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-compose-volumes" onchange="updateDockerCommand()">
+		                                        删除卷 (--volumes)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Exec 场景 -->
+		                    <div id="docker-scene-exec" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>执行命令</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>容器名称 *</label>
+		                                    <input type="text" id="docker-exec-container" placeholder="my-container" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>命令 *</label>
+		                                    <input type="text" id="docker-exec-command" placeholder="/bin/bash" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-exec-interactive" checked onchange="updateDockerCommand()">
+		                                        交互模式 (-it)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>工作目录</label>
+		                                    <input type="text" id="docker-exec-workdir" placeholder="/app" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>用户</label>
+		                                    <input type="text" id="docker-exec-user" placeholder="root" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Logs 场景 -->
+		                    <div id="docker-scene-logs" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>日志查看</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>容器名称 *</label>
+		                                    <input type="text" id="docker-logs-container" placeholder="my-container" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-logs-follow" onchange="updateDockerCommand()">
+		                                        持续跟踪 (-f)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-logs-timestamps" onchange="updateDockerCommand()">
+		                                        显示时间戳 (-t)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>显示行数 (如: 100)</label>
+		                                    <input type="text" id="docker-logs-tail" placeholder="100" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>开始时间 (如: 2023-01-01T00:00:00)</label>
+		                                    <input type="text" id="docker-logs-since" placeholder="2023-01-01T00:00:00" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- PS 场景 -->
+		                    <div id="docker-scene-ps" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>容器列表</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-ps-all" onchange="updateDockerCommand()">
+		                                        显示所有容器 (-a)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-ps-quiet" onchange="updateDockerCommand()">
+		                                        仅显示ID (-q)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>过滤条件 (如: status=running)</label>
+		                                    <input type="text" id="docker-ps-filter" placeholder="status=running" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Images 场景 -->
+		                    <div id="docker-scene-images" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>镜像列表</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-images-all" onchange="updateDockerCommand()">
+		                                        显示所有镜像 (-a)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-images-quiet" onchange="updateDockerCommand()">
+		                                        仅显示ID (-q)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>过滤条件 (如: dangling=true)</label>
+		                                    <input type="text" id="docker-images-filter" placeholder="dangling=true" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Container 场景 -->
+		                    <div id="docker-scene-container" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>容器管理</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>操作类型 *</label>
+		                                    <select id="docker-container-action" onchange="updateDockerCommand()">
+		                                        <option value="start">start - 启动</option>
+		                                        <option value="stop">stop - 停止</option>
+		                                        <option value="restart">restart - 重启</option>
+		                                        <option value="pause">pause - 暂停</option>
+		                                        <option value="unpause">unpause - 恢复</option>
+		                                        <option value="rm">rm - 删除</option>
+		                                        <option value="kill">kill - 强制停止</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>容器名称 * (多个用空格分隔)</label>
+		                                    <input type="text" id="docker-container-names" placeholder="container1 container2" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group" id="docker-container-force-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-container-force" onchange="updateDockerCommand()">
+		                                        强制操作 (-f)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 命令预览 -->
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>生成的命令</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="copyDockerCommand(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="docker-command-preview">
+		                                <div class="docker-command-desc" id="docker-command-desc">选择操作类型并填写参数</div>
+		                                <textarea id="docker-command-output" readonly placeholder="生成的 Docker 命令将显示在这里..." spellcheck="false"></textarea>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

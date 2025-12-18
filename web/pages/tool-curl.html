@@ -1,0 +1,62 @@
+<!-- 自动拆分自 web/index.html：tool-curl -->
+<section id="page-tool-curl" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>cURL 解析</h1>
+		                        <p class="subtitle">解析 cURL 命令，生成多语言代码</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-secondary" onclick="clearCurlTool()">清空</button>
+		                    </div>
+		                </div>
+
+		                <div class="curl-tool">
+		                    <div class="converter-layout curl-layout">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>cURL 命令</h3>
+		                                <div class="panel-actions">
+		                                    <button class="btn btn-sm btn-primary" onclick="parseCurlCommand()">解析</button>
+		                                </div>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="curl-input" placeholder="粘贴 cURL 命令...&#10;例如: curl -X POST https://api.example.com -H 'Content-Type: application/json' -d '{&quot;key&quot;: &quot;value&quot;}'"></textarea>
+		                                <div id="curl-errors" class="error-list"></div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>解析结果</h3>
+		                                <div class="panel-actions">
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyCurlParsed(this)">复制</button>
+		                                </div>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="curl-parsed" readonly placeholder="解析后的请求信息..."></textarea>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <div class="curl-code-panel">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>代码生成</h3>
+		                                <div class="panel-actions">
+		                                    <div class="format-toggle">
+		                                        <button id="curl-lang-fetch" class="btn btn-sm btn-ghost format-btn active" onclick="setCurlLang('fetch')">Fetch</button>
+		                                        <button id="curl-lang-axios" class="btn btn-sm btn-ghost format-btn" onclick="setCurlLang('axios')">Axios</button>
+		                                        <button id="curl-lang-python" class="btn btn-sm btn-ghost format-btn" onclick="setCurlLang('python')">Python</button>
+		                                        <button id="curl-lang-node" class="btn btn-sm btn-ghost format-btn" onclick="setCurlLang('node')">Node.js</button>
+		                                        <button id="curl-lang-php" class="btn btn-sm btn-ghost format-btn" onclick="setCurlLang('php')">PHP</button>
+		                                        <button id="curl-lang-go" class="btn btn-sm btn-ghost format-btn" onclick="setCurlLang('go')">Go</button>
+		                                    </div>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyCurlCode(this)">复制</button>
+		                                </div>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="curl-code" readonly placeholder="生成的代码..."></textarea>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

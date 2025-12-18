@@ -1,0 +1,44 @@
+<!-- 自动拆分自 web/index.html：tool-url -->
+<section id="page-tool-url" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>URL 编解码</h1>
+		                        <p class="subtitle">URL encode / decode，支持批量处理</p>
+		                    </div>
+		                </div>
+		                <div class="converter-layout">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输入</h3>
+		                            <div class="panel-actions">
+		                                <div class="format-toggle" title="选择模式">
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="url-encode-btn" onclick="setUrlMode('encode')">编码</button>
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="url-decode-btn" onclick="setUrlMode('decode')">解码</button>
+		                                </div>
+		                                <button class="btn btn-sm btn-ghost" onclick="clearUrlTool()">清空</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="url-input" placeholder="输入内容..."></textarea>
+		                            <div class="tool-options-row">
+		                                <label class="tool-check" title="按行处理输入/输出">
+		                                    <input type="checkbox" id="url-batch" onchange="updateUrlTool()">
+		                                    批量（按行）
+		                                </label>
+		                            </div>
+		                            <div id="url-errors" class="error-list"></div>
+		                        </div>
+		                    </div>
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输出</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="copyUrlOutput(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="url-output" readonly placeholder="输出结果..."></textarea>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

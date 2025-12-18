@@ -1,0 +1,64 @@
+<!-- 自动拆分自 web/index.html：tool-csv -->
+<section id="page-tool-csv" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>CSV 文本格式化</h1>
+		                        <p class="subtitle">CSV 文本转换、分隔符调整与 JSON 互转</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearCsvTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="csv-tool">
+		                    <div class="converter-layout csv-layout">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>输入</h3>
+		                                <div class="panel-actions">
+		                                    <div class="format-toggle" title="输入格式">
+		                                        <button class="btn btn-sm btn-ghost format-btn active" id="csv-in-csv" onclick="setCsvInputFormat('csv')">CSV</button>
+		                                        <button class="btn btn-sm btn-ghost format-btn" id="csv-in-json" onclick="setCsvInputFormat('json')">JSON</button>
+		                                    </div>
+		                                </div>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="csv-input" placeholder="name,age,city&#10;Alice,30,New York&#10;Bob,25,London" spellcheck="false" oninput="updateCsvTool()"></textarea>
+		                                <div id="csv-errors" class="error-list"></div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>输出</h3>
+		                                <div class="panel-actions">
+		                                    <div class="format-toggle" title="输出格式">
+		                                        <button class="btn btn-sm btn-ghost format-btn" id="csv-out-csv" onclick="setCsvOutputFormat('csv')">CSV</button>
+		                                        <button class="btn btn-sm btn-ghost format-btn active" id="csv-out-json" onclick="setCsvOutputFormat('json')">JSON</button>
+		                                    </div>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyCsvOutput(this)">复制</button>
+		                                </div>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="csv-output" readonly placeholder="转换结果..." spellcheck="false"></textarea>
+		                            </div>
+		                        </div>
+		                    </div>
+		                    <div class="csv-options">
+		                        <div class="option-group">
+		                            <label class="tool-check">
+		                                <input type="checkbox" id="csv-has-header" checked onchange="updateCsvTool()">
+		                                <span>首行为表头</span>
+		                            </label>
+		                        </div>
+		                        <div class="option-group">
+		                            <label>分隔符：</label>
+		                            <select id="csv-delimiter" onchange="updateCsvTool()">
+		                                <option value="," selected>逗号 (,)</option>
+		                                <option value="\t">制表符 (Tab)</option>
+		                                <option value=";">分号 (;)</option>
+		                                <option value="|">竖线 (|)</option>
+		                            </select>
+		                            <button class="btn btn-sm btn-ghost" onclick="detectCsvDelimiter()" title="自动检测分隔符">自动检测</button>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

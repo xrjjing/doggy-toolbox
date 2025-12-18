@@ -1,0 +1,101 @@
+<!-- 自动拆分自 web/index.html：tool-markdown -->
+<section id="page-tool-markdown" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>Markdown 预览</h1>
+		                        <p class="subtitle">实时预览 Markdown 渲染效果</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <div class="format-toggle">
+		                            <button class="btn btn-sm btn-ghost format-btn view-mode-btn active" data-mode="split" onclick="setMarkdownViewMode('split')" title="分屏模式">分屏</button>
+		                            <button class="btn btn-sm btn-ghost format-btn view-mode-btn" data-mode="edit" onclick="setMarkdownViewMode('edit')" title="仅编辑">编辑</button>
+		                            <button class="btn btn-sm btn-ghost format-btn view-mode-btn" data-mode="preview" onclick="setMarkdownViewMode('preview')" title="仅预览">预览</button>
+		                        </div>
+		                        <button class="btn btn-ghost" onclick="openModal('markdown-help-modal')">语法帮助</button>
+		                        <button class="btn btn-ghost" onclick="clearMarkdownTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="markdown-tool">
+		                    <div class="converter-layout" id="markdown-layout">
+		                        <div class="converter-panel" id="markdown-edit-panel">
+		                            <div class="panel-header">
+		                                <h3>Markdown 输入</h3>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="markdown-input" placeholder="# 标题&#10;&#10;输入 **Markdown** 文本..." spellcheck="false" oninput="updateMarkdownTool()"></textarea>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel" id="markdown-preview-panel">
+		                            <div class="panel-header">
+		                                <h3>预览</h3>
+		                                <div class="panel-actions">
+                                    <button class="btn btn-sm btn-primary" onclick="exportMarkdownAsHtml()">导出 HTML</button>
+                                    <button class="btn btn-sm btn-ghost" onclick="copyMarkdownHtml(this)">复制 HTML</button>
+		                                </div>
+		                            </div>
+		                            <div class="panel-body">
+		                                <div id="markdown-preview" class="markdown-preview"></div>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>
+
+<!-- Markdown 语法帮助弹窗 -->
+<div id="markdown-help-modal" class="modal">
+    <div class="modal-overlay" onclick="closeModal('markdown-help-modal')"></div>
+    <div class="modal-content modal-lg">
+        <div class="modal-header">
+            <h2>Markdown 语法参考</h2>
+            <button class="close-btn" onclick="closeModal('markdown-help-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="markdown-help-grid">
+                <!-- 标题 -->
+                <div class="help-item">
+                    <span class="help-title">标题 Header</span>
+                    <code class="help-code"># H1<br>## H2<br>### H3</code>
+                </div>
+                <!-- 强调 -->
+                <div class="help-item">
+                    <span class="help-title">强调 Emphasis</span>
+                    <code class="help-code">**加粗**<br>*斜体*<br>~~删除线~~</code>
+                </div>
+                <!-- 列表 -->
+                <div class="help-item">
+                    <span class="help-title">列表 Lists</span>
+                    <code class="help-code">- 无序列表<br>1. 有序列表</code>
+                </div>
+                <!-- 引用 -->
+                <div class="help-item">
+                    <span class="help-title">引用 Blockquote</span>
+                    <code class="help-code">&gt; 引用文本</code>
+                </div>
+                <!-- 代码 -->
+                <div class="help-item">
+                    <span class="help-title">代码 Code</span>
+                    <code class="help-code">`行内代码`</code>
+                    <code class="help-code">```js<br>代码块<br>```</code>
+                </div>
+                <!-- 链接与图片 -->
+                <div class="help-item">
+                    <span class="help-title">链接与图片</span>
+                    <code class="help-code">[链接文字](URL)<br>![图片说明](URL)</code>
+                </div>
+                <!-- 表格 -->
+                <div class="help-item">
+                    <span class="help-title">表格 Table</span>
+                    <code class="help-code">| 表头 | 表头 |<br>| --- | --- |<br>| 内容 | 内容 |</code>
+                </div>
+                <!-- 分割线 -->
+                <div class="help-item">
+                    <span class="help-title">其他 Other</span>
+                    <code class="help-code">--- (水平分割线)<br>- [x] 任务列表</code>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="closeModal('markdown-help-modal')">关闭</button>
+        </div>
+    </div>
+</div>

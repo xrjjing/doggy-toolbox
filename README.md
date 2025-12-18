@@ -144,8 +144,15 @@ doggy-toolbox/
 │   └── node_converter.py    # 节点转换服务
 ├── web/                 # 前端资源
 │   ├── index.html       # 主页面
+│   ├── pages/           # 页面片段（按需注入）
 │   ├── styles.css       # 样式表
-│   ├── app.js           # 主逻辑
+│   ├── js/              # 拆分后的前端主逻辑
+│   │   ├── app_state.js         # 全局状态（集中管理）
+│   │   ├── app_core.js          # 启动/导航/主题/页面加载
+│   │   ├── app_computer_usage.js# 凭证/命令/页签
+│   │   ├── app_nodes_converter.js# 节点转换/节点列表
+│   │   └── app_tools_*.js       # 工具页逻辑（分文件）
+│   ├── app.js           # 兼容占位（已拆分）
 │   └── tools_m*.js      # 各工具模块
 └── icons/               # 图标资源
 ```

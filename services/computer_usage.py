@@ -41,15 +41,26 @@ class Credential:
 
 
 class ComputerUsageService:
-    def __init__(self, data_dir: Path):
+    def __init__(
+        self,
+        data_dir: Path,
+        commands_file: Path | None = None,
+        credentials_file: Path | None = None,
+        tabs_file: Path | None = None,
+    ):
+        # 说明：
+        # - data_dir 作为默认目录（兼容旧版：根目录就是 data_dir）
+        # - 允许显式传入文件路径，实现“旧版根目录/新版子目录/混合”的兼容读取
         self.data_dir = data_dir
-        self.commands_file = data_dir / "commands.json"
-        self.credentials_file = data_dir / "credentials.json"
-        self.tabs_file = data_dir / "command_tabs.json"
+        self.commands_file = commands_file or (data_dir / "commands.json")
+        self.credentials_file = credentials_file or (data_dir / "credentials.json")
+        self.tabs_file = tabs_file or (data_dir / "command_tabs.json")
         self._ensure_files()
 
     def _ensure_files(self):
-        self.data_dir.mkdir(parents=True, exist_ok=True)
+        # 兼容“混合布局”：按各自文件所在目录创建
+        for p in (self.commands_file.parent, self.credentials_file.parent, self.tabs_file.parent):
+            p.mkdir(parents=True, exist_ok=True)
         if not self.commands_file.exists():
             self.commands_file.write_text("[]", encoding="utf-8")
         if not self.credentials_file.exists():

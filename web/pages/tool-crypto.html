@@ -1,0 +1,102 @@
+<!-- 自动拆分自 web/index.html：tool-crypto -->
+<section id="page-tool-crypto" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>对称加密（AES/DES）</h1>
+		                        <p class="subtitle">ECB + PKCS7（支持 Base64/Hex 输出）</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <div class="format-toggle" title="选择操作">
+		                            <button class="btn btn-sm btn-ghost format-btn" id="crypto-encrypt-btn" onclick="setCryptoMode('encrypt')">加密</button>
+		                            <button class="btn btn-sm btn-ghost format-btn" id="crypto-decrypt-btn" onclick="setCryptoMode('decrypt')">解密</button>
+		                        </div>
+		                        <button class="btn btn-ghost" onclick="clearCryptoTool()">清空</button>
+		                        <button class="btn btn-primary" onclick="runCryptoTool()">执行</button>
+		                    </div>
+		                </div>
+		                <div class="converter-layout crypto-layout">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3 id="crypto-input-header">输入</h3>
+		                            <div class="panel-actions">
+		                                <select id="crypto-input-encoding" disabled>
+		                                    <option value="utf8">utf-8</option>
+		                                </select>
+		                                <select id="crypto-input-kind" disabled>
+		                                    <option value="text">文本</option>
+		                                </select>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="crypto-mode-row">
+		                                <div class="format-toggle" title="模式">
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="crypto-advanced-btn" onclick="setCryptoLevel('advanced')">高级</button>
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="crypto-simple-btn" onclick="setCryptoLevel('simple')">简单</button>
+		                                </div>
+		                                <div class="crypto-inline-actions">
+		                                    <select id="crypto-algo" onchange="updateCryptoToolUi()">
+		                                        <option value="aes">AES</option>
+		                                        <option value="des">DES</option>
+		                                    </select>
+		                                    <select id="crypto-aes-keysize" onchange="updateCryptoToolUi()" title="仅 AES 支持 128/256">
+		                                        <option value="128">128</option>
+		                                        <option value="256">256</option>
+		                                    </select>
+		                                    <select id="crypto-mode" disabled>
+		                                        <option value="ecb">ECB</option>
+		                                    </select>
+		                                    <select id="crypto-padding" disabled>
+		                                        <option value="pkcs7">Pkcs7</option>
+		                                    </select>
+		                                </div>
+		                            </div>
+
+		                            <div id="crypto-advanced-options" class="crypto-advanced-options">
+		                                <div class="crypto-key-grid">
+		                                    <div class="form-group">
+		                                        <label>key（UTF-8）</label>
+		                                        <input type="text" id="crypto-key" placeholder="输入 key..." oninput="updateCryptoToolUi()">
+		                                    </div>
+		                                    <div class="form-group" id="crypto-iv-group">
+		                                        <label>iv（ECB 不使用）</label>
+		                                        <input type="text" id="crypto-iv" placeholder="ECB 模式下不需要 iv" disabled>
+		                                    </div>
+		                                    <label class="tool-check" title="不足右补 0x00，超出截断；关闭后严格校验字节长度">
+		                                        <input type="checkbox" id="crypto-auto-key" checked onchange="updateCryptoToolUi()">
+		                                        自动调整 key 长度
+		                                    </label>
+		                                    <div class="crypto-key-hint" id="crypto-key-hint"></div>
+		                                </div>
+		                            </div>
+
+		                            <textarea id="crypto-input" placeholder="输入内容..." spellcheck="false"></textarea>
+		                            <div id="crypto-errors" class="error-list"></div>
+		                        </div>
+		                    </div>
+
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3 id="crypto-output-header">输出</h3>
+		                            <div class="panel-actions">
+		                                <div id="crypto-output-format-wrap">
+		                                    <select id="crypto-output-format" onchange="updateCryptoToolUi()">
+		                                        <option value="base64">Base64</option>
+		                                        <option value="hex">Hex</option>
+		                                    </select>
+		                                </div>
+		                                <div id="crypto-input-format-wrap" style="display:none">
+		                                    <select id="crypto-input-format" onchange="updateCryptoToolUi()">
+		                                        <option value="auto">自动识别</option>
+		                                        <option value="base64">Base64</option>
+		                                        <option value="hex">Hex</option>
+		                                    </select>
+		                                </div>
+		                                <button class="btn btn-sm btn-ghost" onclick="copyCryptoOutput(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="crypto-output" readonly placeholder="输出结果..." spellcheck="false"></textarea>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

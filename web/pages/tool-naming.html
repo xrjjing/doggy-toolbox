@@ -1,0 +1,92 @@
+<!-- 自动拆分自 web/index.html：tool-naming -->
+<section id="page-tool-naming" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>变量命名转换</h1>
+		                        <p class="subtitle">7 种格式互转（含中文名称）</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearNamingTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="naming-grid">
+		                    <div class="naming-card naming-input">
+		                        <div class="naming-card-header">
+		                            <div class="naming-card-title">输入</div>
+		                        </div>
+		                        <div class="naming-card-body">
+		                            <textarea id="naming-input" placeholder="如：userAge / user_age / user-age / USER_AGE" oninput="updateNamingTool()"></textarea>
+		                        </div>
+		                    </div>
+
+		                    <div class="naming-card">
+		                        <div class="naming-card-header">
+		                            <div class="naming-card-title">空格小写（space case）</div>
+		                            <button class="btn btn-sm btn-ghost" onclick="copyNamingOutput(this, 'space')">复制</button>
+		                        </div>
+		                        <div class="naming-card-body">
+		                            <div class="naming-output" id="naming-space"></div>
+		                        </div>
+		                    </div>
+
+		                    <div class="naming-card">
+		                        <div class="naming-card-header">
+		                            <div class="naming-card-title">单词首字母大写（Camel Case）</div>
+		                            <button class="btn btn-sm btn-ghost" onclick="copyNamingOutput(this, 'camelSpace')">复制</button>
+		                        </div>
+		                        <div class="naming-card-body">
+		                            <div class="naming-output" id="naming-camelSpace"></div>
+		                        </div>
+		                    </div>
+
+		                    <div class="naming-card">
+		                        <div class="naming-card-header">
+		                            <div class="naming-card-title">连字符小写（kebab-case）</div>
+		                            <button class="btn btn-sm btn-ghost" onclick="copyNamingOutput(this, 'kebab')">复制</button>
+		                        </div>
+		                        <div class="naming-card-body">
+		                            <div class="naming-output" id="naming-kebab"></div>
+		                        </div>
+		                    </div>
+
+		                    <div class="naming-card">
+		                        <div class="naming-card-header">
+		                            <div class="naming-card-title">下划线全大写（SNAKE_CASE）</div>
+		                            <button class="btn btn-sm btn-ghost" onclick="copyNamingOutput(this, 'snakeUpper')">复制</button>
+		                        </div>
+		                        <div class="naming-card-body">
+		                            <div class="naming-output" id="naming-snakeUpper"></div>
+		                        </div>
+		                    </div>
+
+		                    <div class="naming-card">
+		                        <div class="naming-card-header">
+		                            <div class="naming-card-title">大驼峰（CamelCase）</div>
+		                            <button class="btn btn-sm btn-ghost" onclick="copyNamingOutput(this, 'pascal')">复制</button>
+		                        </div>
+		                        <div class="naming-card-body">
+		                            <div class="naming-output" id="naming-pascal"></div>
+		                        </div>
+		                    </div>
+
+		                    <div class="naming-card">
+		                        <div class="naming-card-header">
+		                            <div class="naming-card-title">小驼峰（camelCase）</div>
+		                            <button class="btn btn-sm btn-ghost" onclick="copyNamingOutput(this, 'camel')">复制</button>
+		                        </div>
+		                        <div class="naming-card-body">
+		                            <div class="naming-output" id="naming-camel"></div>
+		                        </div>
+		                    </div>
+
+		                    <div class="naming-card">
+		                        <div class="naming-card-header">
+		                            <div class="naming-card-title">下划线小写（snake_case）</div>
+		                            <button class="btn btn-sm btn-ghost" onclick="copyNamingOutput(this, 'snake')">复制</button>
+		                        </div>
+		                        <div class="naming-card-body">
+		                            <div class="naming-output" id="naming-snake"></div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

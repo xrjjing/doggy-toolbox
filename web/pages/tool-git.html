@@ -1,0 +1,283 @@
+<!-- 自动拆分自 web/index.html：tool-git -->
+<section id="page-tool-git" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>Git 命令生成器</h1>
+		                        <p class="subtitle">可视化生成常用 Git 命令</p>
+		                    </div>
+		                </div>
+		                <div class="git-tool">
+		                    <!-- 场景选择器 -->
+		                    <div class="tool-tabs-modern" role="tablist" aria-label="Git 场景">
+		                                            <button type="button" class="tool-tab tool-tab-modern active" onclick="switchGitScene('commit', event)" role="tab" aria-selected="true">
+		                                                <span class="tab-icon" aria-hidden="true">📋</span>
+		                                                <span class="tab-label">提交</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('branch', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">🌿</span>
+		                                                <span class="tab-label">分支</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('log', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">📜</span>
+		                                                <span class="tab-label">日志</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('reset', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">⏮</span>
+		                                                <span class="tab-label">重置</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('clone', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">📥</span>
+		                                                <span class="tab-label">克隆</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('merge', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">🔀</span>
+		                                                <span class="tab-label">合并</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('stash', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">💾</span>
+		                                                <span class="tab-label">暂存</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('templates', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">📋</span>
+		                                                <span class="tab-label">模板</span>
+		                                            </button>
+		                                        </div>
+		                    <!-- Commit 场景 -->
+		                    <div id="git-scene-commit" class="git-scene active">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>提交设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>提交消息 *</label>
+		                                    <input type="text" id="git-commit-message" placeholder="feat: 添加新功能" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-commit-all" onchange="updateGitCommand()">
+		                                        自动暂存已跟踪文件 (-a)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-commit-amend" onchange="updateGitCommand()">
+		                                        修改上次提交 (--amend)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-commit-noverify" onchange="updateGitCommand()">
+		                                        跳过钩子 (--no-verify)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Branch 场景 -->
+		                    <div id="git-scene-branch" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>分支操作</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>操作类型</label>
+		                                    <select id="git-branch-action" onchange="updateGitBranchForm();updateGitCommand()">
+		                                        <option value="create">创建分支</option>
+		                                        <option value="switch">切换分支</option>
+		                                        <option value="delete">删除分支</option>
+		                                        <option value="rename">重命名分支</option>
+		                                        <option value="list">列出分支</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group" id="git-branch-name-group">
+		                                    <label>分支名称 *</label>
+		                                    <input type="text" id="git-branch-name" placeholder="feature/new-feature" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group" id="git-branch-newname-group" style="display:none">
+		                                    <label>新分支名称 *</label>
+		                                    <input type="text" id="git-branch-newname" placeholder="feature/updated-feature" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group" id="git-branch-force-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-branch-force" onchange="updateGitCommand()">
+		                                        强制操作 (-D)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group" id="git-branch-remote-group" style="display:none">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-branch-remote" onchange="updateGitCommand()">
+		                                        列出远程分支 (-r)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Log 场景 -->
+		                    <div id="git-scene-log" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>日志选项</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-log-oneline" onchange="updateGitCommand()">
+		                                        单行显示 (--oneline)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-log-graph" onchange="updateGitCommand()">
+		                                        显示分支图 (--graph)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>显示数量</label>
+		                                    <input type="number" id="git-log-count" min="1" placeholder="10" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>按作者过滤</label>
+		                                    <input type="text" id="git-log-author" placeholder="username" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>按消息过滤</label>
+		                                    <input type="text" id="git-log-grep" placeholder="关键词" oninput="updateGitCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Reset 场景 -->
+		                    <div id="git-scene-reset" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>重置设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>重置模式</label>
+		                                    <select id="git-reset-mode" onchange="updateGitCommand()">
+		                                        <option value="soft">软重置 (--soft) - 保留工作目录和暂存区</option>
+		                                        <option value="mixed">混合重置 (--mixed) - 保留工作目录</option>
+		                                        <option value="hard">硬重置 (--hard) - 丢弃所有修改</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>目标引用</label>
+		                                    <input type="text" id="git-reset-ref" placeholder="HEAD~1 或 commit hash" oninput="updateGitCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Clone 场景 -->
+		                    <div id="git-scene-clone" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>克隆设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>仓库 URL *</label>
+		                                    <input type="text" id="git-clone-url" placeholder="https://github.com/user/repo.git" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>指定分支</label>
+		                                    <input type="text" id="git-clone-branch" placeholder="main" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>目标目录</label>
+		                                    <input type="text" id="git-clone-dir" placeholder="项目名称" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>浅克隆深度</label>
+		                                    <input type="number" id="git-clone-depth" min="1" placeholder="不限制" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-clone-recursive" onchange="updateGitCommand()">
+		                                        递归克隆子模块 (--recursive)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Merge 场景 -->
+		                    <div id="git-scene-merge" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>合并设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>要合并的分支 *</label>
+		                                    <input type="text" id="git-merge-branch" placeholder="feature/branch" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-merge-noff" onchange="updateGitCommand()">
+		                                        禁用快进合并 (--no-ff)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-merge-squash" onchange="updateGitCommand()">
+		                                        压缩合并 (--squash)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>合并消息</label>
+		                                    <input type="text" id="git-merge-message" placeholder="可选" oninput="updateGitCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Stash 场景 -->
+		                    <div id="git-scene-stash" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>暂存操作</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>操作类型</label>
+		                                    <select id="git-stash-action" onchange="updateGitStashForm();updateGitCommand()">
+		                                        <option value="save">保存暂存</option>
+		                                        <option value="list">查看列表</option>
+		                                        <option value="pop">弹出暂存</option>
+		                                        <option value="apply">应用暂存</option>
+		                                        <option value="drop">删除暂存</option>
+		                                        <option value="clear">清空所有</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group" id="git-stash-message-group">
+		                                    <label>暂存消息</label>
+		                                    <input type="text" id="git-stash-message" placeholder="工作进度" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group" id="git-stash-index-group" style="display:none">
+		                                    <label>暂存索引</label>
+		                                    <input type="number" id="git-stash-index" min="0" placeholder="0" oninput="updateGitCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 常用命令模板 -->
+		                    <div id="git-scene-templates" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>常用命令模板</h3></div>
+		                            <div class="panel-body">
+		                                <div class="git-templates" id="git-templates-list"></div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 命令预览区 -->
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>生成的命令</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="copyGitCommand(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="git-command-preview">
+		                                <div class="git-command-desc" id="git-command-desc">选择操作类型并填写参数</div>
+		                                <textarea id="git-command-output" readonly placeholder="生成的 Git 命令将显示在这里..." spellcheck="false"></textarea>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

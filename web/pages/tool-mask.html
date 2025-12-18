@@ -1,0 +1,54 @@
+<!-- 自动拆分自 web/index.html：tool-mask -->
+<section id="page-tool-mask" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>数据脱敏</h1>
+		                        <p class="subtitle">手机号、身份证、邮箱等敏感信息脱敏</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearMaskTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="mask-tool">
+		                    <div class="converter-layout">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>原始数据</h3>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="mask-input" placeholder="输入需要脱敏的数据..." spellcheck="false" oninput="updateMaskTool()"></textarea>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>脱敏结果</h3>
+		                                <div class="panel-actions">
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyMaskOutput(this)">复制</button>
+		                                </div>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="mask-output" readonly placeholder="脱敏后的数据将显示在这里..." spellcheck="false"></textarea>
+		                            </div>
+		                        </div>
+		                    </div>
+		                    <div class="mask-options">
+		                        <div class="form-group">
+		                            <label>脱敏类型：</label>
+		                            <select id="mask-type" onchange="updateMaskTool()">
+		                                <option value="auto">自动检测</option>
+		                                <option value="phone">手机号</option>
+		                                <option value="idcard">身份证</option>
+		                                <option value="email">邮箱</option>
+		                                <option value="bankcard">银行卡</option>
+		                                <option value="name">姓名</option>
+		                                <option value="address">地址</option>
+		                                <option value="json">JSON 递归脱敏</option>
+		                            </select>
+		                        </div>
+		                        <div class="form-group" id="mask-json-fields-group" style="display: none;">
+		                            <label>敏感字段（逗号分隔）：</label>
+		                            <input type="text" id="mask-json-fields" placeholder="phone,idcard,email,name..." oninput="updateMaskTool()">
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

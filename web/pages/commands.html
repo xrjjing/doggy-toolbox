@@ -1,0 +1,27 @@
+<!-- 自动拆分自 web/index.html：commands -->
+<section id="page-commands" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h1>命令管理</h1>
+                        <p class="subtitle">管理常用的命令组合</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn btn-ghost" onclick="showTabModal()">
+                            <span class="btn-icon">📁</span>管理页签
+                        </button>
+                        <button class="btn btn-ghost" onclick="showImportModal('commands')">
+                            <span class="btn-icon">📥</span>批量导入
+                        </button>
+                        <button class="btn btn-primary" onclick="showCommandModal()">
+                            <span class="btn-icon">+</span>添加命令
+                        </button>
+                    </div>
+                </div>
+                <div class="tabs-bar" id="command-tabs">
+                    <!-- 页签将由JS动态渲染 -->
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="command-search" placeholder="搜索命令标题..." oninput="filterCommands()">
+                </div>
+                <div id="commands-list" class="commands-grid"></div>
+            </section>

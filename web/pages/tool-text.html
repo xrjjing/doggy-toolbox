@@ -1,0 +1,72 @@
+<!-- 自动拆分自 web/index.html：tool-text -->
+<section id="page-tool-text" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>文本处理</h1>
+		                        <p class="subtitle">去重、排序、行处理等常用文本操作</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearTextTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="converter-layout">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输入</h3>
+		                            <div class="panel-actions">
+		                                <span class="text-stats" id="text-stats"></span>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="text-input" placeholder="输入文本（每行一条）..." spellcheck="false"></textarea>
+		                        </div>
+		                    </div>
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输出</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="copyTextOutput(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="text-output" readonly placeholder="处理结果..." spellcheck="false"></textarea>
+		                        </div>
+		                    </div>
+		                </div>
+		                <div class="text-actions-panel">
+		                    <div class="text-action-group">
+		                        <div class="text-action-label">去重</div>
+		                        <div class="text-action-btns">
+		                            <button class="btn btn-sm btn-secondary" onclick="textDeduplicate()">去重</button>
+		                            <label class="tool-check">
+		                                <input type="checkbox" id="text-case-sensitive">
+		                                区分大小写
+		                            </label>
+		                            <label class="tool-check">
+		                                <input type="checkbox" id="text-trim-lines" checked>
+		                                忽略首尾空白
+		                            </label>
+		                        </div>
+		                    </div>
+		                    <div class="text-action-group">
+		                        <div class="text-action-label">排序</div>
+		                        <div class="text-action-btns">
+		                            <button class="btn btn-sm btn-secondary" onclick="textSort('asc')">A→Z</button>
+		                            <button class="btn btn-sm btn-secondary" onclick="textSort('desc')">Z→A</button>
+		                            <button class="btn btn-sm btn-secondary" onclick="textSort('length-asc')">短→长</button>
+		                            <button class="btn btn-sm btn-secondary" onclick="textSort('length-desc')">长→短</button>
+		                            <button class="btn btn-sm btn-secondary" onclick="textSort('random')">随机</button>
+		                            <button class="btn btn-sm btn-secondary" onclick="textReverse()">反转</button>
+		                        </div>
+		                    </div>
+		                    <div class="text-action-group">
+		                        <div class="text-action-label">行处理</div>
+		                        <div class="text-action-btns">
+		                            <button class="btn btn-sm btn-secondary" onclick="textRemoveEmpty()">删除空行</button>
+		                            <button class="btn btn-sm btn-secondary" onclick="textTrimLines()">去首尾空白</button>
+		                            <button class="btn btn-sm btn-secondary" onclick="textAddLineNumbers()">添加行号</button>
+		                            <button class="btn btn-sm btn-secondary" onclick="textRemoveLineNumbers()">移除行号</button>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

@@ -1,0 +1,63 @@
+<!-- 自动拆分自 web/index.html：tool-websocket -->
+<section id="page-tool-websocket" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>WebSocket 测试</h1>
+		                        <p class="subtitle">WebSocket 连接测试与消息收发</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearWebSocketTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="websocket-tool">
+		                    <!-- 连接配置 -->
+		                    <div class="websocket-connection">
+		                        <div class="websocket-url-bar">
+		                            <input type="text" id="ws-url" placeholder="wss://echo.websocket.org" class="ws-url-input">
+		                            <button class="btn btn-primary" id="ws-connect-btn" onclick="toggleWebSocketConnection()">连接</button>
+		                            <span class="ws-status" id="ws-status">未连接</span>
+		                        </div>
+		                        <div class="websocket-options">
+		                            <label class="tool-check">
+		                                <input type="checkbox" id="ws-auto-reconnect">
+		                                <span>自动重连</span>
+		                            </label>
+		                            <label class="tool-check">
+		                                <input type="checkbox" id="ws-format-json" checked>
+		                                <span>自动格式化 JSON</span>
+		                            </label>
+		                        </div>
+		                    </div>
+
+		                    <!-- 消息发送 -->
+		                    <div class="websocket-send">
+		                        <div class="websocket-send-header">
+		                            <h3>发送消息</h3>
+		                            <div class="websocket-send-type">
+		                                <label>
+		                                    <input type="radio" name="ws-message-type" value="text" checked>
+		                                    <span>文本</span>
+		                                </label>
+		                                <label>
+		                                    <input type="radio" name="ws-message-type" value="json">
+		                                    <span>JSON</span>
+		                                </label>
+		                            </div>
+		                        </div>
+		                        <textarea id="ws-message-input" placeholder="输入要发送的消息..." spellcheck="false"></textarea>
+		                        <div class="websocket-send-actions">
+		                            <button class="btn btn-primary" onclick="sendWebSocketMessage()">发送</button>
+		                            <button class="btn btn-ghost" onclick="sendWebSocketPing()">Ping</button>
+		                        </div>
+		                    </div>
+
+		                    <!-- 消息历史 -->
+		                    <div class="websocket-messages">
+		                        <div class="websocket-messages-header">
+		                            <h3>消息历史</h3>
+		                            <button class="btn btn-sm btn-ghost" onclick="clearWebSocketMessages()">清空历史</button>
+		                        </div>
+		                        <div class="websocket-messages-list" id="ws-messages-list"></div>
+		                    </div>
+		                </div>
+		            </section>

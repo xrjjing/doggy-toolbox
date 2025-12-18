@@ -1,0 +1,82 @@
+<!-- 自动拆分自 web/index.html：tool-qrcode -->
+<section id="page-tool-qrcode" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>二维码生成</h1>
+		                        <p class="subtitle">生成和下载二维码图片</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearQrcodeTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="qrcode-tool">
+		                    <!-- 左侧：输入区 -->
+		                    <div class="qrcode-input-section">
+		                        <div class="tool-card">
+		                            <div class="card-header">
+		                                <h3>输入内容</h3>
+		                                <span class="byte-counter" id="qrcode-byte-count">0 字节</span>
+		                            </div>
+		                            <div class="card-body">
+		                                <textarea id="qrcode-input" class="code-input" placeholder="输入文本、URL 或其他内容..." rows="6"></textarea>
+
+		                                <div class="qrcode-options">
+		                                    <div class="qrcode-option-group">
+		                                        <label>尺寸</label>
+		                                        <select id="qrcode-size">
+		                                            <option value="128">128 × 128</option>
+		                                            <option value="256" selected>256 × 256</option>
+		                                            <option value="512">512 × 512</option>
+		                                            <option value="1024">1024 × 1024</option>
+		                                        </select>
+		                                    </div>
+		                                    <div class="qrcode-option-group">
+		                                        <label>纠错级别</label>
+		                                        <select id="qrcode-error-level">
+		                                            <option value="L">低 (7%)</option>
+		                                            <option value="M" selected>中 (15%)</option>
+		                                            <option value="Q">较高 (25%)</option>
+		                                            <option value="H">高 (30%)</option>
+		                                        </select>
+		                                    </div>
+		                                    <div class="qrcode-option-group">
+		                                        <label>前景色</label>
+		                                        <input type="color" id="qrcode-dark-color" value="#000000">
+		                                    </div>
+		                                    <div class="qrcode-option-group">
+		                                        <label>背景色</label>
+		                                        <input type="color" id="qrcode-light-color" value="#ffffff">
+		                                    </div>
+		                                </div>
+
+		                                <button class="btn btn-primary btn-block" onclick="generateQrcode()">生成二维码</button>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 右侧：预览区 -->
+		                    <div class="qrcode-preview-section">
+		                        <div class="tool-card">
+		                            <div class="card-header">
+		                                <h3>预览</h3>
+		                            </div>
+		                            <div class="card-body qrcode-preview-container">
+		                                <div id="qrcode-preview" class="qrcode-preview">
+		                                    <div class="qrcode-placeholder">
+		                                        <span class="placeholder-icon">📱</span>
+		                                        <span class="placeholder-text">二维码将显示在这里</span>
+		                                    </div>
+		                                </div>
+		                                <div class="qrcode-actions" id="qrcode-actions" style="display: none;">
+		                                    <button class="btn btn-secondary" onclick="downloadQrcode()">
+		                                        <span>💾</span> 下载 PNG
+		                                    </button>
+		                                    <button class="btn btn-secondary" onclick="copyQrcode()">
+		                                        <span>📋</span> 复制图片
+		                                    </button>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

@@ -1,0 +1,44 @@
+<!-- 自动拆分自 web/index.html：tool-b64hex -->
+<section id="page-tool-b64hex" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>Base64 ↔ Hex</h1>
+		                        <p class="subtitle">支持单条与批量互转</p>
+		                    </div>
+		                </div>
+		                <div class="converter-layout">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输入</h3>
+		                            <div class="panel-actions">
+		                                <div class="format-toggle" title="选择转换方向">
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="b64hex-b2h-btn" onclick="setB64HexMode('b64_to_hex')">Base64→Hex</button>
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="b64hex-h2b-btn" onclick="setB64HexMode('hex_to_b64')">Hex→Base64</button>
+		                                </div>
+		                                <button class="btn btn-sm btn-ghost" onclick="clearB64HexTool()">清空</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="b64hex-input" placeholder="输入内容..." spellcheck="false"></textarea>
+		                            <div class="tool-options-row">
+		                                <label class="tool-check" title="按行处理输入/输出">
+		                                    <input type="checkbox" id="b64hex-batch" onchange="updateB64HexTool()">
+		                                    批量（按行）
+		                                </label>
+		                            </div>
+		                            <div id="b64hex-errors" class="error-list"></div>
+		                        </div>
+		                    </div>
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输出</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="copyB64HexOutput(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="b64hex-output" readonly placeholder="输出结果..."></textarea>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

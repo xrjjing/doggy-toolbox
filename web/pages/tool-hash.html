@@ -1,0 +1,55 @@
+<!-- 自动拆分自 web/index.html：tool-hash -->
+<section id="page-tool-hash" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>哈希（MD5/SHA-256）</h1>
+		                        <p class="subtitle">支持加盐（后缀）与批量计算</p>
+		                    </div>
+		                </div>
+		                <div class="converter-layout">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输入</h3>
+		                            <div class="panel-actions">
+		                                <select id="hash-algo" onchange="updateHashTool()" title="选择算法">
+		                                    <option value="md5">MD5</option>
+		                                    <option value="sha256">SHA-256</option>
+		                                </select>
+		                                <button class="btn btn-sm btn-ghost" onclick="clearHashTool()">清空</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="hash-input" placeholder="输入内容..." oninput="updateHashTool()"></textarea>
+		                            <div class="tool-options-row">
+		                                <label class="tool-check" title="按行计算：每行输出一条 hash（空行输出空行）">
+		                                    <input type="checkbox" id="hash-batch" onchange="updateHashTool()">
+		                                    批量（按行）
+		                                </label>
+		                                <label class="tool-check" title="盐策略：后缀加盐（明文 + 盐）">
+		                                    <input type="checkbox" id="hash-use-salt" onchange="toggleHashSalt()">
+		                                    加盐（后缀）
+		                                </label>
+		                            </div>
+		                            <div id="hash-salt-row" class="hash-salt-row" style="display:none">
+		                                <div class="form-group">
+		                                    <label>盐（salt，UTF-8）</label>
+		                                    <input type="text" id="hash-salt" placeholder="后缀加盐：明文 + 盐（可留空）" oninput="updateHashTool()">
+		                                </div>
+		                                <div class="hash-note">提示：输出为小写 Hex</div>
+		                            </div>
+		                            <div id="hash-errors" class="error-list"></div>
+		                        </div>
+		                    </div>
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输出</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="copyHashOutput(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="hash-output" readonly placeholder="输出结果（Hex）..."></textarea>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

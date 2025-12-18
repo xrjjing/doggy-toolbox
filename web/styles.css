@@ -33,8 +33,14 @@
     /* 毛玻璃效果变量 */
     --glass-bg: hsla(220, 15%, 14%, 0.85);
     --glass-sidebar: hsla(220, 15%, 11%, 0.75);
+    --glass-sidebar-rgb: 20, 25, 35;
     --glass-blur: 20px;
     --glass-opacity: 0.6;
+
+    /* 简约模式：窗口三按钮“胶囊”配色变量（默认：暗色系） */
+    --minimal-pill-bg: rgba(30, 41, 59, 0.55);
+    --minimal-pill-bg-hover: rgba(30, 41, 59, 0.7);
+    --minimal-pill-border: rgba(255, 255, 255, 0.35);
 }
 
 /* ========== 亮色主题 (Light) - 清爽日间 ========== */
@@ -60,6 +66,35 @@
     /* 亮色毛玻璃 */
     --glass-bg: hsla(210, 20%, 98%, 0.85);
     --glass-sidebar: hsla(0, 0%, 100%, 0.75);
+    --glass-sidebar-rgb: 255, 255, 255;
+}
+
+/* 简约模式：窗口三按钮“胶囊”按主题自适配（亮色系用米白底） */
+[data-theme="light"],
+[data-theme="cute"],
+[data-theme="office"],
+[data-theme="neon-light"],
+[data-theme="cyberpunk-light"] {
+    --minimal-pill-bg: rgba(255, 248, 235, 0.92);
+    --minimal-pill-bg-hover: rgba(255, 248, 235, 0.98);
+    --minimal-pill-border: rgba(0, 0, 0, 0.12);
+}
+
+/* 毛玻璃模式下更“透”一点，避免胶囊过实 */
+[data-glass="true"] {
+    --minimal-pill-bg: rgba(30, 41, 59, 0.35);
+    --minimal-pill-bg-hover: rgba(30, 41, 59, 0.5);
+    --minimal-pill-border: rgba(255, 255, 255, 0.28);
+}
+
+[data-theme="light"][data-glass="true"],
+[data-theme="cute"][data-glass="true"],
+[data-theme="office"][data-glass="true"],
+[data-theme="neon-light"][data-glass="true"],
+[data-theme="cyberpunk-light"][data-glass="true"] {
+    --minimal-pill-bg: rgba(255, 248, 235, 0.65);
+    --minimal-pill-bg-hover: rgba(255, 248, 235, 0.78);
+    --minimal-pill-border: rgba(0, 0, 0, 0.1);
 }
 
 body {
@@ -90,9 +125,9 @@ body {
     backdrop-filter: blur(20px);
 }
 
-/* 侧边栏毛玻璃 */
+/* 侧边栏毛玻璃 - 使用变量控制透明度 */
 [data-glass="true"] .sidebar {
-    background: var(--glass-sidebar) !important;
+    background: rgba(var(--glass-sidebar-rgb), var(--glass-opacity, 0.6)) !important;
     -webkit-backdrop-filter: blur(var(--glass-blur));
     backdrop-filter: blur(var(--glass-blur));
 }
@@ -397,8 +432,59 @@ body {
     display: flex;
 }
 
+[data-titlebar-mode="minimal"] .floating-controls {
+    /* 简约模式：三按钮下移一点，避免贴顶；容器全宽用于承载“从按钮右侧开始”的拖拽带 */
+    top: 10px;
+    left: 0;
+    right: 0;
+    height: 28px; /* 12px按钮 + 上下各8px内边距 = 28px */
+    padding: 0;
+    background: transparent;
+    border: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-radius: 0;
+}
+
+[data-titlebar-mode="minimal"] .floating-controls:hover {
+    background: transparent;
+}
+
+[data-titlebar-mode="minimal"] .floating-drag-region {
+    /* 可拖拽范围：从三按钮右侧开始，等高延伸到右边框 */
+    left: 100px; /* 按钮胶囊的右侧起点（留一点缓冲，避免遮挡按钮） */
+    right: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 0;
+    z-index: 0;
+}
+
+[data-titlebar-mode="minimal"] .floating-window-buttons {
+    /* 三按钮胶囊：恢复“有底框”的视觉，并保证在窗口内 */
+    position: absolute;
+    left: 12px;
+    top: 0;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--minimal-pill-bg);
+    border: 1px solid var(--minimal-pill-border);
+    border-radius: 20px;
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    z-index: 1;
+}
+
+[data-titlebar-mode="minimal"] .floating-window-buttons:hover {
+    background: var(--minimal-pill-bg-hover);
+}
+
 [data-titlebar-mode="minimal"] .app {
     height: 100vh;
+    margin-top: 0;
 }
 
 /* ========== 标题栏模式选择器样式 ========== */
@@ -439,6 +525,7 @@ body {
     border-color: var(--accent);
     color: white;
 }
+
 
 .app {
     display: flex;
@@ -681,6 +768,7 @@ body {
 .nav-sublist .nav-item {
     padding: 10px 14px;
     margin: 3px 0;
+    color: var(--text-secondary); /* 统一使用次级文字颜色，与父级一致 */
 }
 
 .nav-text {
@@ -2301,6 +2389,7 @@ select option {
     --title-gradient: linear-gradient(135deg, hsl(340, 70%, 65%), hsl(20, 80%, 65%));
     --glass-bg: hsla(30, 30%, 97%, 0.8);
     --glass-sidebar: hsla(30, 40%, 94%, 0.75);
+    --glass-sidebar-rgb: 245, 235, 225;
     --glass-blur: 20px;
 }
 
@@ -2345,6 +2434,7 @@ select option {
     --title-gradient: linear-gradient(135deg, hsl(220, 60%, 45%), hsl(220, 70%, 55%));
     --glass-bg: hsla(220, 10%, 94%, 0.8);
     --glass-sidebar: hsla(220, 15%, 97%, 0.75);
+    --glass-sidebar-rgb: 245, 247, 250;
     --glass-blur: 20px;
 }
 
@@ -2372,6 +2462,7 @@ select option {
     --title-gradient: linear-gradient(90deg, hsl(180, 100%, 50%), hsl(140, 100%, 50%));
     --glass-bg: hsla(230, 25%, 10%, 0.75);
     --glass-sidebar: hsla(220, 30%, 8%, 0.7);
+    --glass-sidebar-rgb: 15, 20, 30;
     --glass-blur: 25px;
 }
 
@@ -2429,6 +2520,7 @@ select option {
     --title-gradient: linear-gradient(90deg, hsl(300, 100%, 65%), hsl(190, 100%, 50%));
     --glass-bg: hsla(260, 40%, 8%, 0.75);
     --glass-sidebar: hsla(270, 45%, 7%, 0.7);
+    --glass-sidebar-rgb: 18, 12, 28;
     --glass-blur: 25px;
 }
 
@@ -2507,6 +2599,7 @@ select option {
     --title-gradient: linear-gradient(90deg, hsl(280, 80%, 55%), hsl(190, 90%, 45%));
     --glass-bg: hsla(280, 30%, 95%, 0.8);
     --glass-sidebar: hsla(280, 60%, 75%, 0.7);
+    --glass-sidebar-rgb: 200, 160, 220;
     --glass-blur: 20px;
 }
 
@@ -2598,6 +2691,7 @@ select option {
     --title-gradient: linear-gradient(90deg, hsl(200, 70%, 45%), hsl(160, 70%, 40%));
     --glass-bg: hsla(180, 25%, 95%, 0.8);
     --glass-sidebar: hsla(200, 60%, 75%, 0.7);
+    --glass-sidebar-rgb: 150, 200, 220;
     --glass-blur: 20px;
 }
 
@@ -5365,10 +5459,14 @@ select option {
     flex: 1;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     background: var(--bg-secondary);
     border-radius: 12px;
     border: 1px solid var(--border-light);
     overflow: hidden;
+    min-height: 250px;
+    padding: 16px;
 }
 
 .qrcode-preview-header {
@@ -5388,11 +5486,22 @@ select option {
     min-height: 200px;
 }
 
-.qrcode-preview-container canvas {
+.qrcode-preview-container canvas,
+.qrcode-preview-container img,
+.qrcode-preview img {
     max-width: 100%;
     max-height: 100%;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 确保二维码图片有合适的显示尺寸 */
+#qrcode-preview img {
+    width: auto;
+    height: auto;
+    min-width: 200px;
+    min-height: 200px;
+    object-fit: contain;
 }
 
 .qrcode-placeholder {
@@ -5477,4 +5586,103 @@ select option {
     .qrcode-options {
         grid-template-columns: 1fr;
     }
+}
+
+/* ========== Toast 通知 ========== */
+.toast-container {
+    position: fixed;
+    top: 60px;
+    right: 16px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    color: var(--text-primary);
+    font-size: 14px;
+    pointer-events: auto;
+    animation: toastIn 0.25s ease-out;
+    max-width: 320px;
+}
+
+.toast.toast-out {
+    animation: toastOut 0.2s ease-in forwards;
+}
+
+.toast-icon {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+}
+
+.toast.toast-success { border-left: 3px solid var(--success); }
+.toast.toast-error { border-left: 3px solid var(--danger); }
+.toast.toast-warning { border-left: 3px solid var(--warning); }
+.toast.toast-info { border-left: 3px solid var(--accent); }
+
+.toast.toast-success .toast-icon { color: var(--success); }
+.toast.toast-error .toast-icon { color: var(--danger); }
+.toast.toast-warning .toast-icon { color: var(--warning); }
+.toast.toast-info .toast-icon { color: var(--accent); }
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastOut {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(20px); }
+}
+
+/* ========== Markdown 帮助弹窗 ========== */
+.markdown-help-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    padding: 4px;
+}
+
+.help-item {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+}
+
+.help-title {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 8px;
+}
+
+.help-code {
+    display: block;
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 12px;
+    background: var(--bg-card);
+    padding: 8px;
+    border-radius: 6px;
+    color: var(--text-primary);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    border: 1px solid var(--border);
+}
+
+[data-theme="light"] .help-code {
+    background: #f5f5f5;
+    border-color: #e0e0e0;
 }

@@ -1,0 +1,48 @@
+<!-- 自动拆分自 web/index.html：tool-sql -->
+<section id="page-tool-sql" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>SQL 格式化</h1>
+		                        <p class="subtitle">SQL 语句美化与压缩</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearSqlTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="sql-tool">
+		                    <div class="converter-layout sql-layout">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>输入</h3>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="sql-input" placeholder="SELECT * FROM users WHERE id = 1" oninput="updateSqlTool()"></textarea>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>输出</h3>
+		                                <div class="format-toggle">
+		                                    <button class="btn btn-sm btn-ghost format-btn active" id="sql-format-btn" onclick="setSqlMode('format')">格式化</button>
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="sql-minify-btn" onclick="setSqlMode('minify')">压缩</button>
+		                                </div>
+		                            </div>
+		                            <div class="panel-body">
+		                                <textarea id="sql-output" readonly placeholder="格式化/压缩结果"></textarea>
+		                                <button class="btn btn-sm btn-ghost copy-output-btn" onclick="copySqlOutput(this)">复制</button>
+		                            </div>
+		                        </div>
+		                    </div>
+		                    <div id="sql-errors" class="error-list"></div>
+		                    <div class="sql-tables-panel" id="sql-tables-panel" style="display:none">
+		                        <div class="converter-panel">
+		                            <div class="panel-header">
+		                                <h3>涉及表名</h3>
+		                            </div>
+		                            <div class="panel-body">
+		                                <div class="sql-tables-list" id="sql-tables-list"></div>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

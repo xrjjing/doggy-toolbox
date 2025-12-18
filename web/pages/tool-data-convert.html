@@ -1,0 +1,61 @@
+<!-- 自动拆分自 web/index.html：tool-data-convert -->
+<section id="page-tool-data-convert" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>数据格式转换</h1>
+		                        <p class="subtitle">JSON ↔ YAML / XML 双向转换</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearDataConvertTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="converter-layout">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输入</h3>
+		                            <div class="panel-actions">
+		                                <div class="format-toggle" title="输入格式">
+		                                    <button class="btn btn-sm btn-ghost format-btn active" id="data-in-auto" onclick="setDataInputFormat('auto')">自动</button>
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="data-in-json" onclick="setDataInputFormat('json')">JSON</button>
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="data-in-yaml" onclick="setDataInputFormat('yaml')">YAML</button>
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="data-in-xml" onclick="setDataInputFormat('xml')">XML</button>
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="data-convert-input" placeholder="粘贴 JSON / YAML / XML 数据..." spellcheck="false" oninput="updateDataConvertTool()"></textarea>
+		                            <div class="data-detect" id="data-detect"></div>
+		                            <div id="data-convert-errors" class="error-list"></div>
+		                        </div>
+		                    </div>
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输出</h3>
+		                            <div class="panel-actions">
+		                                <div class="format-toggle" title="输出格式">
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="data-out-json" onclick="setDataOutputFormat('json')">JSON</button>
+		                                    <button class="btn btn-sm btn-ghost format-btn active" id="data-out-yaml" onclick="setDataOutputFormat('yaml')">YAML</button>
+		                                    <button class="btn btn-sm btn-ghost format-btn" id="data-out-xml" onclick="setDataOutputFormat('xml')">XML</button>
+		                                </div>
+		                                <button class="btn btn-sm btn-ghost" onclick="copyDataConvertOutput(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="data-convert-output" readonly placeholder="转换结果..." spellcheck="false"></textarea>
+		                        </div>
+		                    </div>
+		                </div>
+		                <div class="data-convert-options">
+		                    <div class="option-group">
+		                        <label>XML 根元素：</label>
+		                        <input type="text" id="data-xml-root" placeholder="root" value="root" oninput="updateDataConvertTool()" style="width: 100px;">
+		                    </div>
+		                    <div class="option-group">
+		                        <label>JSON 缩进：</label>
+		                        <select id="data-json-indent" onchange="updateDataConvertTool()">
+		                            <option value="2">2 空格</option>
+		                            <option value="4">4 空格</option>
+		                        </select>
+		                    </div>
+		                </div>
+		            </section>

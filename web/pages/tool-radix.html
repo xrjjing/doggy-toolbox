@@ -1,0 +1,61 @@
+<!-- 自动拆分自 web/index.html：tool-radix -->
+<section id="page-tool-radix" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>进制转换</h1>
+		                        <p class="subtitle">2 / 8 / 10 / 16 进制互转，支持大数（BigInt）</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <button class="btn btn-ghost" onclick="clearRadixTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="tool-single radix-tool">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输入</h3>
+		                            <div class="panel-actions">
+		                                <select id="radix-from" onchange="updateRadixTool()">
+		                                    <option value="auto">自动检测</option>
+		                                    <option value="2">二进制</option>
+		                                    <option value="8">八进制</option>
+		                                    <option value="10">十进制</option>
+		                                    <option value="16">十六进制</option>
+		                                </select>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <input type="text" id="radix-input" placeholder="输入数字（支持 0x / 0o / 0b 前缀）" oninput="updateRadixTool()">
+		                            <div class="radix-detect" id="radix-detect"></div>
+		                            <div id="radix-errors" class="error-list"></div>
+		                        </div>
+		                    </div>
+
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输出</h3>
+		                        </div>
+		                        <div class="panel-body radix-output">
+		                            <div class="radix-row">
+		                                <div class="radix-row-label">二进制 (BIN)</div>
+		                                <input type="text" id="radix-out-bin" readonly placeholder="-" />
+		                                <button class="btn btn-sm btn-ghost" onclick="copyRadixOutput(this, 'bin')">复制</button>
+		                            </div>
+		                            <div class="radix-row">
+		                                <div class="radix-row-label">八进制 (OCT)</div>
+		                                <input type="text" id="radix-out-oct" readonly placeholder="-" />
+		                                <button class="btn btn-sm btn-ghost" onclick="copyRadixOutput(this, 'oct')">复制</button>
+		                            </div>
+		                            <div class="radix-row">
+		                                <div class="radix-row-label">十进制 (DEC)</div>
+		                                <input type="text" id="radix-out-dec" readonly placeholder="-" />
+		                                <button class="btn btn-sm btn-ghost" onclick="copyRadixOutput(this, 'dec')">复制</button>
+		                            </div>
+		                            <div class="radix-row">
+		                                <div class="radix-row-label">十六进制 (HEX)</div>
+		                                <input type="text" id="radix-out-hex" readonly placeholder="-" />
+		                                <button class="btn btn-sm btn-ghost" onclick="copyRadixOutput(this, 'hex')">复制</button>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

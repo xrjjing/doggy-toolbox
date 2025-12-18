@@ -48,11 +48,17 @@ def main():
         min_size=(800, 600),
         background_color="#1f2937",
         frameless=True,  # 无边框窗口，自定义标题栏
-        easy_drag=True,  # 启用拖拽，配合 data-pywebview-drag-region
+        # 只允许在标记了 .pywebview-drag-region 的区域拖拽窗口：
+        # - 避免在滑动条/输入框等交互控件上拖动时“误触拖动整个窗口”
+        # - 该问题在“简约模式 + 调整毛玻璃透明度滑块”场景更明显
+        easy_drag=False,
         transparent=True,
     )
     api.set_window(window)  # 传递窗口引用
-    webview.start(debug=False)
+    # 启用本地 HTTP 服务：
+    # - 允许前端通过 fetch()/XHR 加载 web/pages/* 等静态资源（避免 file:// 限制）
+    # - 对“index.html 拆分为页面片段按需注入”的架构是必要条件
+    webview.start(debug=False, http_server=True)
     sys.exit()
 
 

@@ -1,0 +1,65 @@
+<!-- 自动拆分自 web/index.html：tool-jwt -->
+<section id="page-tool-jwt" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>JWT 解码</h1>
+		                        <p class="subtitle">支持 base64url 解码与 JSON 输出</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <label class="tool-check">
+		                            <input type="checkbox" id="jwt-show-header" checked onchange="updateJwtTool()">
+		                            显示 Header
+		                        </label>
+		                        <label class="tool-check">
+		                            <input type="checkbox" id="jwt-show-payload" checked onchange="updateJwtTool()">
+		                            显示 Payload
+		                        </label>
+		                    </div>
+		                </div>
+		                <div class="converter-layout jwt-layout">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输入</h3>
+		                            <div class="panel-actions">
+		                                <select id="jwt-input-type" onchange="updateJwtTool()">
+		                                    <option value="auto">自动识别</option>
+		                                    <option value="jwt">JWT（header.payload[.signature]）</option>
+		                                    <option value="header_payload">Header+Payload（两段）</option>
+		                                    <option value="header">仅 Header（base64url）</option>
+		                                    <option value="payload">仅 Payload（base64url）</option>
+		                                </select>
+		                                <button class="btn btn-sm btn-ghost" onclick="clearJwtTool()">清空</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="jwt-input" placeholder="粘贴 JWT（支持 Bearer 前缀）..."></textarea>
+		                            <div id="jwt-errors" class="error-list"></div>
+		                        </div>
+		                    </div>
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输出</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="copyJwtAll(this)">复制全部</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body jwt-output">
+		                            <div class="jwt-section" id="jwt-header-section">
+		                                <div class="jwt-section-header">
+		                                    <div class="jwt-section-title">Header（JSON）</div>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyJwtPart(this, 'header')">复制</button>
+		                                </div>
+		                                <textarea id="jwt-header-output" readonly placeholder="Header JSON..."></textarea>
+		                            </div>
+		                            <div class="jwt-section" id="jwt-payload-section">
+		                                <div class="jwt-section-header">
+		                                    <div class="jwt-section-title">Payload（JSON）</div>
+		                                    <button class="btn btn-sm btn-ghost" onclick="copyJwtPart(this, 'payload')">复制</button>
+		                                </div>
+		                                <textarea id="jwt-payload-output" readonly placeholder="Payload JSON..."></textarea>
+		                            </div>
+		                            <div class="jwt-warning" id="jwt-warning"></div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

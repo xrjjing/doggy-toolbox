@@ -1,0 +1,77 @@
+<!-- 自动拆分自 web/index.html：tool-hmac -->
+<section id="page-tool-hmac" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>HMAC 计算</h1>
+		                        <p class="subtitle">支持 MD5/SHA1/SHA256/SHA512，多种密钥格式</p>
+		                    </div>
+		                    <div class="page-actions">
+		                        <label class="tool-check">
+		                            <input type="checkbox" id="hmac-batch">
+		                            批量模式（按行）
+		                        </label>
+		                        <button class="btn btn-ghost" onclick="clearHmacTool()">清空</button>
+		                    </div>
+		                </div>
+		                <div class="tool-single hmac-tool">
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>配置</h3>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="hmac-config-grid">
+		                                <div class="form-group">
+		                                    <label>算法</label>
+		                                    <select id="hmac-algo" onchange="updateHmacTool()">
+		                                        <option value="md5">HMAC-MD5</option>
+		                                        <option value="sha1">HMAC-SHA1</option>
+		                                        <option value="sha256" selected>HMAC-SHA256</option>
+		                                        <option value="sha512">HMAC-SHA512</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>密钥格式</label>
+		                                    <select id="hmac-key-format" onchange="updateHmacTool()">
+		                                        <option value="text" selected>文本 (UTF-8)</option>
+		                                        <option value="hex">十六进制 (Hex)</option>
+		                                        <option value="base64">Base64</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>输出格式</label>
+		                                    <select id="hmac-output-format" onchange="updateHmacTool()">
+		                                        <option value="hex" selected>十六进制 (Hex)</option>
+		                                        <option value="base64">Base64</option>
+		                                    </select>
+		                                </div>
+		                            </div>
+		                            <div class="form-group" style="margin-top: 12px;">
+		                                <label>密钥 (Secret Key)</label>
+		                                <input type="text" id="hmac-key" placeholder="输入密钥..." oninput="updateHmacTool()">
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输入</h3>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="hmac-input" placeholder="输入待计算的消息..." oninput="updateHmacTool()"></textarea>
+		                        </div>
+		                    </div>
+
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>输出</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="copyHmacOutput(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <textarea id="hmac-output" readonly placeholder="HMAC 结果..."></textarea>
+		                            <div id="hmac-errors" class="error-list"></div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

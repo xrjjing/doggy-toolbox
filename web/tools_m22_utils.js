@@ -41,10 +41,14 @@
                 continue;
             }
 
-            // 代码块（```）
-            if (line.trim().startsWith('```')) {
+            // 代码块（```）- 必须是独立的开始标记，不能是行内代码如 ```code```
+            const trimmedLine = line.trim();
+            const isCodeBlockStart = trimmedLine.startsWith('```') &&
+                !trimmedLine.slice(3).includes('```'); // 排除行内代码 ```code```
+
+            if (isCodeBlockStart) {
                 const codeBlock = [];
-                const lang = line.trim().slice(3).trim();
+                const lang = trimmedLine.slice(3).trim();
                 i++;
                 while (i < lines.length && !lines[i].trim().startsWith('```')) {
                     codeBlock.push(lines[i]);
@@ -152,6 +156,9 @@
                     type: 'paragraph',
                     text: paraLines.join(' ')
                 });
+            } else {
+                // 防止无限循环：如果没有匹配任何模式，跳过当前行
+                i++;
             }
         }
 
@@ -160,35 +167,57 @@
 
     // ==================== 行内元素解析 ====================
     function parseInline(text) {
+        // 先处理代码块（在 HTML 转义之前），避免代码内容被转义
+        // 行内代码 ```code``` (三个反引号，优先处理)
+        text = text.replace(/```([^`]+)```/g, (_, code) => {
+            return `\x00CODE\x00${escapeHtml(code)}\x00/CODE\x00`;
+        });
+
+        // 行内代码 `code` (单个反引号)
+        text = text.replace(/`([^`]+)`/g, (_, code) => {
+            return `\x00CODE\x00${escapeHtml(code)}\x00/CODE\x00`;
+        });
+
+        // 现在转义其他 HTML
         let result = escapeHtml(text);
+
+        // 在恢复代码块之前处理格式化（避免影响代码内容）
+        // 删除线 ~~text~~ （不跨行，排除换行符）
+        result = result.replace(/~~([^~\n]+)~~/g, '<del>$1</del>');
+
+        // 粗体 **text** 或 __text__
+        result = result.replace(/\*\*([^\*\n]+)\*\*/g, '<strong>$1</strong>');
+        result = result.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
+
+        // 斜体 *text* 或 _text_
+        result = result.replace(/\*([^\*\n]+)\*/g, '<em>$1</em>');
+        result = result.replace(/_([^_\n]+)_/g, '<em>$1</em>');
+
+        // 恢复代码块标记（在格式化之后，保护代码内容不被格式化）
+        result = result.replace(/\x00CODE\x00/g, '<code>');
+        result = result.replace(/\x00\/CODE\x00/g, '</code>');
 
         // 图片 ![alt](url)
         result = result.replace(/!\[([^\]]*)\]\(([^\)]+)\)/g, (_, alt, url) => {
-            return `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" />`;
+            // 过滤危险协议
+            const lowerUrl = url.trim().toLowerCase();
+            if (lowerUrl.startsWith('javascript:') || lowerUrl.startsWith('data:') ||
+                lowerUrl.startsWith('vbscript:')) {
+                url = '#unsafe-url-removed';
+            }
+            return `<img src="${url}" alt="${alt}" />`;
         });
 
         // 链接 [text](url)
-        result = result.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, (_, text, url) => {
-            let safeUrl = escapeHtml(url);
-            // 过滤 javascript: 协议，防止 XSS
-            if (safeUrl.trim().toLowerCase().startsWith('javascript:')) {
-                safeUrl = '#unsafe-url-removed';
+        result = result.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, (_, linkText, url) => {
+            // 过滤危险协议，防止 XSS
+            const lowerUrl = url.trim().toLowerCase();
+            if (lowerUrl.startsWith('javascript:') || lowerUrl.startsWith('data:') ||
+                lowerUrl.startsWith('vbscript:')) {
+                url = '#unsafe-url-removed';
             }
-            return `<a href="${safeUrl}">${escapeHtml(text)}</a>`;
+            return `<a href="${url}">${linkText}</a>`;
         });
-
-        // 行内代码 `code`
-        result = result.replace(/`([^`]+)`/g, (_, code) => {
-            return `<code>${escapeHtml(code)}</code>`;
-        });
-
-        // 粗体 **text** 或 __text__
-        result = result.replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>');
-        result = result.replace(/__([^_]+)__/g, '<strong>$1</strong>');
-
-        // 斜体 *text* 或 _text_
-        result = result.replace(/\*([^\*]+)\*/g, '<em>$1</em>');
-        result = result.replace(/_([^_]+)_/g, '<em>$1</em>');
 
         return result;
     }
