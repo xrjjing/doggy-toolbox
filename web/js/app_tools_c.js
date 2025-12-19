@@ -707,90 +707,6 @@ function updateDockerComposeForm() {
     }
 }
 
-function updateDockerServiceForm() {
-    const action = document.getElementById('docker-service-action')?.value;
-    const nameGroup = document.getElementById('docker-service-name-group');
-    const imageGroup = document.getElementById('docker-service-image-group');
-    const replicasGroup = document.getElementById('docker-service-replicas-group');
-    const portsGroup = document.getElementById('docker-service-ports-group');
-    const followGroup = document.getElementById('docker-service-follow-group');
-
-    if (!action) return;
-
-    // Hide all first
-    if (nameGroup) nameGroup.style.display = 'none';
-    if (imageGroup) imageGroup.style.display = 'none';
-    if (replicasGroup) replicasGroup.style.display = 'none';
-    if (portsGroup) portsGroup.style.display = 'none';
-    if (followGroup) followGroup.style.display = 'none';
-
-    switch (action) {
-        case 'create':
-            if (nameGroup) nameGroup.style.display = '';
-            if (imageGroup) imageGroup.style.display = '';
-            if (replicasGroup) replicasGroup.style.display = '';
-            if (portsGroup) portsGroup.style.display = '';
-            break;
-        case 'ps':
-        case 'rm':
-        case 'scale':
-        case 'update':
-            if (nameGroup) nameGroup.style.display = '';
-            break;
-        case 'logs':
-            if (nameGroup) nameGroup.style.display = '';
-            if (followGroup) followGroup.style.display = '';
-            break;
-    }
-    
-    // Additional specific fields logic
-    if (action === 'scale') {
-         if (replicasGroup) replicasGroup.style.display = '';
-    }
-    if (action === 'update') {
-         if (imageGroup) imageGroup.style.display = '';
-         if (replicasGroup) replicasGroup.style.display = '';
-    }
-}
-
-function updateDockerSwarmForm() {
-    const action = document.getElementById('docker-swarm-action')?.value;
-    
-    // Groups
-    const advGroup = document.getElementById('docker-swarm-advertise-group');
-    const listenGroup = document.getElementById('docker-swarm-listen-group');
-    const tokenGroup = document.getElementById('docker-swarm-token-group');
-    const remoteGroup = document.getElementById('docker-swarm-remote-group');
-    const forceGroup = document.getElementById('docker-swarm-force-group');
-    const stackNameGroup = document.getElementById('docker-stack-name-group');
-    const stackFileGroup = document.getElementById('docker-stack-file-group');
-
-    if (!action) return;
-
-    // Hide all
-    const allGroups = [advGroup, listenGroup, tokenGroup, remoteGroup, forceGroup, stackNameGroup, stackFileGroup];
-    allGroups.forEach(g => { if(g) g.style.display = 'none'; });
-
-    if (action === 'swarm-init') {
-        if (advGroup) advGroup.style.display = '';
-        if (listenGroup) listenGroup.style.display = '';
-        if (forceGroup) forceGroup.style.display = ''; 
-    } else if (action === 'swarm-join') {
-        if (tokenGroup) tokenGroup.style.display = '';
-        if (advGroup) advGroup.style.display = '';
-        if (listenGroup) listenGroup.style.display = '';
-        if (remoteGroup) remoteGroup.style.display = '';
-    } else if (action === 'swarm-leave') {
-        if (forceGroup) forceGroup.style.display = '';
-    } else if (action.startsWith('stack-')) {
-        if (action !== 'stack-ls') {
-            if (stackNameGroup) stackNameGroup.style.display = '';
-        }
-        if (action === 'stack-deploy') {
-            if (stackFileGroup) stackFileGroup.style.display = '';
-        }
-    }
-}
 
 function updateDockerCommand() {
     const outputEl = document.getElementById('docker-command-output');
@@ -814,8 +730,6 @@ function updateDockerCommand() {
             case 'ps': result = generatePsCmd(); break;
             case 'images': result = generateImagesCmd(); break;
             case 'container': result = generateContainerCmd(); break;
-            case 'service': result = generateServiceCmd(); break;
-            case 'swarm': result = generateSwarmCmd(); break;
         }
 
         if (result) {
@@ -991,66 +905,466 @@ function generateContainerCmd() {
     return DogToolboxM27Utils.generateContainerCommand(action, containers, options);
 }
 
-function generateServiceCmd() {
-    const action = document.getElementById('docker-service-action')?.value;
-    const serviceName = document.getElementById('docker-service-name')?.value.trim();
-    
-    if (!action) return null;
-    if (action !== 'ls' && !serviceName && action !== 'create') {
-        return null;
-    }
-    
-    const options = {
-        image: document.getElementById('docker-service-image')?.value.trim(),
-        replicas: parseInt(document.getElementById('docker-service-replicas')?.value) || undefined,
-        follow: document.getElementById('docker-service-follow')?.checked || false
-    };
-
-    if (action === 'create') {
-        options.name = serviceName; // Use input as --name
-    }
-    
-    const portsStr = document.getElementById('docker-service-ports')?.value.trim();
-    if (portsStr) {
-        options.ports = portsStr.split(',').map(p => p.trim()).filter(p => p);
-    }
-    
-    return DogToolboxM27Utils.generateServiceCommand(action, serviceName, options);
-}
-
-function generateSwarmCmd() {
-    const actionFull = document.getElementById('docker-swarm-action')?.value;
-    if (!actionFull) return null;
-
-    if (actionFull.startsWith('swarm-')) {
-        const action = actionFull.replace('swarm-', '');
-        const options = {
-            advertiseAddr: document.getElementById('docker-swarm-advertise')?.value.trim(),
-            listenAddr: document.getElementById('docker-swarm-listen')?.value.trim(),
-            token: document.getElementById('docker-swarm-token')?.value.trim(),
-            remoteAddrs: document.getElementById('docker-swarm-remote')?.value.trim(),
-            force: document.getElementById('docker-swarm-force')?.checked || false,
-            forceNewCluster: (action === 'init' && document.getElementById('docker-swarm-force')?.checked) || false
-        };
-        return DogToolboxM27Utils.generateSwarmCommand(action, options);
-    } 
-    else if (actionFull.startsWith('stack-')) {
-        const action = actionFull.replace('stack-', '');
-        const stackName = document.getElementById('docker-stack-name')?.value.trim();
-        
-        if (action !== 'ls' && !stackName) return null;
-
-        const options = {
-            composeFile: document.getElementById('docker-stack-file')?.value.trim()
-        };
-        return DogToolboxM27Utils.generateStackCommand(action, stackName, options);
-    }
-    
-    return null;
-}
 
 function copyDockerCommand(btn) {
     const output = document.getElementById('docker-command-output').value;
+    if (!output) return;
+    copyToolText(btn, output, { showTextFeedback: true });
+}
+
+// ==================== Docker Service 命令生成器 ====================
+
+let currentDockerServiceScene = 'create';
+
+function switchDockerServiceScene(scene, evt) {
+    currentDockerServiceScene = scene;
+
+    // 更新标签激活状态
+    const container = document.querySelector('.docker-service-tool');
+    if (container) {
+        container.querySelectorAll('.tool-tab').forEach(tab => {
+            tab.classList.remove('active');
+            tab.setAttribute('aria-selected', 'false');
+        });
+    }
+    if (evt?.target) {
+        const tab = evt.target.closest('.tool-tab');
+        if (tab) {
+            tab.classList.add('active');
+            tab.setAttribute('aria-selected', 'true');
+        }
+    }
+
+    // 更新场景显示
+    document.querySelectorAll('.docker-service-scene').forEach(s => {
+        s.classList.remove('active');
+    });
+    document.getElementById(`docker-service-scene-${scene}`)?.classList.add('active');
+
+    const toolEl = document.querySelector('.docker-service-tool');
+    if (toolEl && !toolEl.dataset.panelFilterInit) {
+        initPanelFiltering('.docker-service-tool');
+        toolEl.dataset.panelFilterInit = 'true';
+    }
+
+    resetPanelFiltering('.docker-service-tool');
+    updateDockerServiceCommand();
+}
+
+function updateDockerServiceCommand() {
+    const outputEl = document.getElementById('docker-service-command-output');
+    const descEl = document.getElementById('docker-service-command-desc');
+
+    if (!window.DogToolboxM27Utils) {
+        if (outputEl) outputEl.value = '';
+        if (descEl) descEl.textContent = '工具模块未加载';
+        return;
+    }
+
+    try {
+        let result = null;
+
+        switch (currentDockerServiceScene) {
+            case 'create': result = generateServiceCreateCmd(); break;
+            case 'update': result = generateServiceUpdateCmd(); break;
+            case 'scale': result = generateServiceScaleCmd(); break;
+            case 'logs': result = generateServiceLogsCmd(); break;
+            case 'ps': result = generateServicePsCmd(); break;
+            case 'ls': result = generateServiceLsCmd(); break;
+            case 'rm': result = generateServiceRmCmd(); break;
+        }
+
+        if (result) {
+            if (outputEl) outputEl.value = result.command || '';
+            if (descEl) descEl.textContent = result.description || '';
+        } else {
+            if (outputEl) outputEl.value = '';
+            if (descEl) descEl.textContent = '请填写必要参数';
+        }
+    } catch (e) {
+        if (outputEl) outputEl.value = '';
+        if (descEl) descEl.textContent = `错误：${e.message || String(e)}`;
+    }
+}
+
+function generateServiceCreateCmd() {
+    const image = document.getElementById('docker-service-create-image')?.value.trim();
+    const name = document.getElementById('docker-service-create-name')?.value.trim();
+
+    const imageValid = validateInput('docker-service-create-image', image);
+    const nameValid = validateInput('docker-service-create-name', name);
+
+    if (!imageValid || !nameValid) {
+        return null;
+    }
+
+    const options = {
+        image,
+        name,
+        replicas: document.getElementById('docker-service-create-replicas')?.value.trim(),
+        endpointMode: document.getElementById('docker-service-create-endpoint-mode')?.value.trim(),
+        cpuLimit: document.getElementById('docker-service-create-cpu-limit')?.value.trim(),
+        cpuReserve: document.getElementById('docker-service-create-cpu-reserve')?.value.trim(),
+        memoryLimit: document.getElementById('docker-service-create-memory-limit')?.value.trim(),
+        memoryReserve: document.getElementById('docker-service-create-memory-reserve')?.value.trim(),
+        updateParallelism: document.getElementById('docker-service-create-update-parallelism')?.value.trim(),
+        updateDelay: document.getElementById('docker-service-create-update-delay')?.value.trim(),
+        updateFailureAction: document.getElementById('docker-service-create-update-failure-action')?.value.trim()
+    };
+
+    const publishStr = document.getElementById('docker-service-create-publish')?.value.trim();
+    if (publishStr) {
+        options.publish = publishStr.split(',').map(p => p.trim()).filter(p => p);
+    }
+
+    const networksStr = document.getElementById('docker-service-create-networks')?.value.trim();
+    if (networksStr) {
+        options.networks = networksStr.split(',').map(n => n.trim()).filter(n => n);
+    }
+
+    const mountsStr = document.getElementById('docker-service-create-mounts')?.value.trim();
+    if (mountsStr) {
+        options.mounts = mountsStr.split(',').map(m => m.trim()).filter(m => m);
+    }
+
+    return DogToolboxM27Utils.generateServiceCreateCommand(options);
+}
+
+function generateServiceUpdateCmd() {
+    const serviceName = document.getElementById('docker-service-update-name')?.value.trim();
+
+    if (!validateInput('docker-service-update-name', serviceName)) {
+        return null;
+    }
+
+    const options = {
+        image: document.getElementById('docker-service-update-image')?.value.trim(),
+        replicas: document.getElementById('docker-service-update-replicas')?.value.trim(),
+        endpointMode: document.getElementById('docker-service-update-endpoint-mode')?.value.trim(),
+        cpuLimit: document.getElementById('docker-service-update-cpu-limit')?.value.trim(),
+        cpuReserve: document.getElementById('docker-service-update-cpu-reserve')?.value.trim(),
+        memoryLimit: document.getElementById('docker-service-update-memory-limit')?.value.trim(),
+        memoryReserve: document.getElementById('docker-service-update-memory-reserve')?.value.trim(),
+        updateParallelism: document.getElementById('docker-service-update-update-parallelism')?.value.trim(),
+        updateDelay: document.getElementById('docker-service-update-update-delay')?.value.trim(),
+        updateFailureAction: document.getElementById('docker-service-update-update-failure-action')?.value.trim()
+    };
+
+    const publishStr = document.getElementById('docker-service-update-publish')?.value.trim();
+    if (publishStr) {
+        options.publish = publishStr.split(',').map(p => p.trim()).filter(p => p);
+    }
+
+    const networksStr = document.getElementById('docker-service-update-networks')?.value.trim();
+    if (networksStr) {
+        options.networks = networksStr.split(',').map(n => n.trim()).filter(n => n);
+    }
+
+    const mountsStr = document.getElementById('docker-service-update-mounts')?.value.trim();
+    if (mountsStr) {
+        options.mounts = mountsStr.split(',').map(m => m.trim()).filter(m => m);
+    }
+
+    return DogToolboxM27Utils.generateServiceUpdateCommand(serviceName, options);
+}
+
+function generateServiceScaleCmd() {
+    const serviceName = document.getElementById('docker-service-scale-name')?.value.trim();
+    const replicas = document.getElementById('docker-service-scale-replicas')?.value.trim();
+
+    const nameValid = validateInput('docker-service-scale-name', serviceName);
+    const replicasValid = validateInput('docker-service-scale-replicas', replicas);
+
+    if (!nameValid || !replicasValid) {
+        return null;
+    }
+
+    return DogToolboxM27Utils.generateServiceScaleCommand(serviceName, replicas);
+}
+
+function generateServiceLogsCmd() {
+    const serviceName = document.getElementById('docker-service-logs-name')?.value.trim();
+
+    if (!validateInput('docker-service-logs-name', serviceName)) {
+        return null;
+    }
+
+    const options = {
+        follow: document.getElementById('docker-service-logs-follow')?.checked || false,
+        timestamps: document.getElementById('docker-service-logs-timestamps')?.checked || false,
+        tail: document.getElementById('docker-service-logs-tail')?.value.trim()
+    };
+
+    return DogToolboxM27Utils.generateServiceLogsCommand(serviceName, options);
+}
+
+function generateServicePsCmd() {
+    const serviceName = document.getElementById('docker-service-ps-name')?.value.trim();
+
+    if (!validateInput('docker-service-ps-name', serviceName)) {
+        return null;
+    }
+
+    return DogToolboxM27Utils.generateServicePsCommand(serviceName);
+}
+
+function generateServiceLsCmd() {
+    return DogToolboxM27Utils.generateServiceLsCommand();
+}
+
+function generateServiceRmCmd() {
+    const namesStr = document.getElementById('docker-service-rm-names')?.value.trim();
+
+    if (!validateInput('docker-service-rm-names', namesStr)) {
+        return null;
+    }
+
+    const names = namesStr.split(/\s+/).filter(n => n);
+    if (names.length === 0) return null;
+
+    return DogToolboxM27Utils.generateServiceRmCommand(names);
+}
+
+function copyDockerServiceCommand(btn) {
+    const output = document.getElementById('docker-service-command-output').value;
+    if (!output) return;
+    copyToolText(btn, output, { showTextFeedback: true });
+}
+
+// ==================== Docker Swarm 命令生成器 ====================
+
+let currentDockerSwarmL1 = 'swarm';
+let currentDockerSwarmL2 = 'init';
+let currentDockerStackL2 = 'deploy';
+
+function switchDockerSwarmL1Tab(l1, evt) {
+    currentDockerSwarmL1 = l1;
+
+    // 更新 L1 标签激活状态
+    const container = document.querySelector('.docker-swarm-tool');
+    if (container) {
+        container.querySelectorAll('.tool-tabs-modern:not(.tool-tabs-modern-level2) > .tool-tab').forEach(tab => {
+            tab.classList.remove('active');
+            tab.setAttribute('aria-selected', 'false');
+        });
+    }
+    if (evt?.target) {
+        const tab = evt.target.closest('.tool-tab');
+        if (tab) {
+            tab.classList.add('active');
+            tab.setAttribute('aria-selected', 'true');
+        }
+    }
+
+    // 更新 L1 场景显示
+    document.querySelectorAll('.docker-swarm-l1-scene').forEach(s => {
+        s.classList.remove('active');
+    });
+    document.getElementById(`docker-swarm-l1-scene-${l1}`)?.classList.add('active');
+
+    updateDockerSwarmCommand();
+}
+
+function switchDockerSwarmL2Tab(l1, l2, evt) {
+    if (l1 === 'swarm') {
+        currentDockerSwarmL2 = l2;
+    } else {
+        currentDockerStackL2 = l2;
+    }
+
+    // 更新 L2 标签激活状态
+    const l1Container = document.getElementById(`docker-swarm-l1-scene-${l1}`);
+    if (l1Container) {
+        l1Container.querySelectorAll('.tool-tabs-modern-level2 .tool-tab').forEach(tab => {
+            tab.classList.remove('active');
+            tab.setAttribute('aria-selected', 'false');
+        });
+    }
+    if (evt?.target) {
+        const tab = evt.target.closest('.tool-tab');
+        if (tab) {
+            tab.classList.add('active');
+            tab.setAttribute('aria-selected', 'true');
+        }
+    }
+
+    // 更新 L2 场景显示
+    const sceneClass = l1 === 'swarm' ? 'docker-swarm-l2-scene' : 'docker-stack-l2-scene';
+    const scenePrefix = l1 === 'swarm' ? 'docker-swarm-l2-scene' : 'docker-stack-l2-scene';
+
+    if (l1Container) {
+        l1Container.querySelectorAll(`.${sceneClass}`).forEach(s => {
+            s.classList.remove('active');
+        });
+    }
+    document.getElementById(`${scenePrefix}-${l2}`)?.classList.add('active');
+
+    updateDockerSwarmCommand();
+}
+
+function updateDockerSwarmCommand() {
+    const outputEl = document.getElementById('docker-swarm-command-output');
+    const descEl = document.getElementById('docker-swarm-command-desc');
+
+    if (!window.DogToolboxM27Utils) {
+        if (outputEl) outputEl.value = '';
+        if (descEl) descEl.textContent = '工具模块未加载';
+        return;
+    }
+
+    try {
+        let result = null;
+
+        if (currentDockerSwarmL1 === 'swarm') {
+            switch (currentDockerSwarmL2) {
+                case 'init': result = generateSwarmInitCmd(); break;
+                case 'join': result = generateSwarmJoinCmd(); break;
+                case 'leave': result = generateSwarmLeaveCmd(); break;
+                case 'update': result = generateSwarmUpdateCmd(); break;
+                case 'unlock': result = generateSwarmUnlockCmd(); break;
+            }
+        } else {
+            switch (currentDockerStackL2) {
+                case 'deploy': result = generateStackDeployCmd(); break;
+                case 'ls': result = generateStackLsCmd(); break;
+                case 'ps': result = generateStackPsCmd(); break;
+                case 'services': result = generateStackServicesCmd(); break;
+                case 'rm': result = generateStackRmCmd(); break;
+            }
+        }
+
+        if (result) {
+            if (outputEl) outputEl.value = result.command || '';
+            if (descEl) descEl.textContent = result.description || '';
+        } else {
+            if (outputEl) outputEl.value = '';
+            if (descEl) descEl.textContent = '请填写必要参数';
+        }
+    } catch (e) {
+        if (outputEl) outputEl.value = '';
+        if (descEl) descEl.textContent = `错误：${e.message || String(e)}`;
+    }
+}
+
+function generateSwarmInitCmd() {
+    const options = {
+        advertiseAddr: document.getElementById('swarm-init-advertise-addr')?.value.trim(),
+        listenAddr: document.getElementById('swarm-init-listen-addr')?.value.trim(),
+        forceNewCluster: document.getElementById('swarm-init-force-new-cluster')?.checked || false
+    };
+
+    return DogToolboxM27Utils.generateSwarmInitCommand(options);
+}
+
+function generateSwarmJoinCmd() {
+    const addr = document.getElementById('swarm-join-addr')?.value.trim();
+    const token = document.getElementById('swarm-join-token')?.value.trim();
+
+    const addrValid = validateInput('swarm-join-addr', addr);
+    const tokenValid = validateInput('swarm-join-token', token);
+
+    if (!addrValid || !tokenValid) {
+        return null;
+    }
+
+    const options = {
+        token,
+        advertiseAddr: document.getElementById('swarm-join-advertise-addr')?.value.trim(),
+        listenAddr: document.getElementById('swarm-join-listen-addr')?.value.trim()
+    };
+
+    return DogToolboxM27Utils.generateSwarmJoinCommand(addr, options);
+}
+
+function generateSwarmLeaveCmd() {
+    const options = {
+        force: document.getElementById('swarm-leave-force')?.checked || false
+    };
+
+    return DogToolboxM27Utils.generateSwarmLeaveCommand(options);
+}
+
+function generateSwarmUpdateCmd() {
+    const autolockTrue = document.getElementById('swarm-update-autolock-true')?.checked || false;
+    const autolockFalse = document.getElementById('swarm-update-autolock-false')?.checked || false;
+
+    const options = {
+        certExpiry: document.getElementById('swarm-update-cert-expiry')?.value.trim(),
+        dispatcherHeartbeat: document.getElementById('swarm-update-dispatcher-heartbeat')?.value.trim()
+    };
+
+    if (autolockTrue) options.autolock = true;
+    else if (autolockFalse) options.autolock = false;
+
+    return DogToolboxM27Utils.generateSwarmUpdateCommand(options);
+}
+
+function generateSwarmUnlockCmd() {
+    return DogToolboxM27Utils.generateSwarmUnlockCommand();
+}
+
+function generateStackDeployCmd() {
+    const stackName = document.getElementById('stack-deploy-name')?.value.trim();
+    const composeFiles = document.getElementById('stack-deploy-compose-files')?.value.trim();
+
+    const nameValid = validateInput('stack-deploy-name', stackName);
+    const filesValid = validateInput('stack-deploy-compose-files', composeFiles);
+
+    if (!nameValid || !filesValid) {
+        return null;
+    }
+
+    const files = composeFiles.split(',').map(f => f.trim()).filter(f => f);
+
+    const options = {
+        composeFiles: files,
+        withRegistryAuth: document.getElementById('stack-deploy-with-registry-auth')?.checked || false,
+        prune: document.getElementById('stack-deploy-prune')?.checked || false,
+        resolveImage: document.getElementById('stack-deploy-resolve-image')?.value.trim()
+    };
+
+    return DogToolboxM27Utils.generateStackDeployCommand(stackName, options);
+}
+
+function generateStackLsCmd() {
+    return DogToolboxM27Utils.generateStackLsCommand();
+}
+
+function generateStackPsCmd() {
+    const stackName = document.getElementById('stack-ps-name')?.value.trim();
+
+    if (!validateInput('stack-ps-name', stackName)) {
+        return null;
+    }
+
+    return DogToolboxM27Utils.generateStackPsCommand(stackName);
+}
+
+function generateStackServicesCmd() {
+    const stackName = document.getElementById('stack-services-name')?.value.trim();
+
+    if (!validateInput('stack-services-name', stackName)) {
+        return null;
+    }
+
+    return DogToolboxM27Utils.generateStackServicesCommand(stackName);
+}
+
+function generateStackRmCmd() {
+    const namesStr = document.getElementById('stack-rm-names')?.value.trim();
+
+    if (!validateInput('stack-rm-names', namesStr)) {
+        return null;
+    }
+
+    const names = namesStr.split(/\s+/).filter(n => n);
+    if (names.length === 0) return null;
+
+    return DogToolboxM27Utils.generateStackRmCommand(names);
+}
+
+function copyDockerSwarmCommand(btn) {
+    const output = document.getElementById('docker-swarm-command-output').value;
     if (!output) return;
     copyToolText(btn, output, { showTextFeedback: true });
 }

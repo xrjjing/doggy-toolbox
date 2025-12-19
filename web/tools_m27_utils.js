@@ -467,170 +467,311 @@
         return buildResult(parts.join(' '), `容器操作：${action}`);
     }
 
-    // ==================== docker service (Swarm) ====================
+    // ==================== docker service ====================
 
     /**
-     * 生成 docker service 命令
-     * @param {string} action - 操作类型：create, ls, ps, logs, scale, update, rm
-     * @param {string} serviceName - 服务名称
+     * 生成 docker service create 命令
      * @param {object} options - 选项
-     * @returns {{command: string, description: string}} 生成的命令对象
+     * @returns {{command: string, description: string}}
      */
-    function generateServiceCommand(action, serviceName, options = {}) {
+    function generateServiceCreateCommand(options = {}) {
         const opts = normalizeOptions(options);
-        const act = (action || '').toLowerCase();
+        if (!opts.image) throw new Error('镜像名称不能为空');
+        if (!opts.name) throw new Error('服务名称不能为空');
 
-        if (act === 'create') {
-            if (!serviceName) throw new Error('服务名称不能为空');
-            const parts = ['docker service create'];
-            if (opts.name) parts.push(`--name ${escapeArg(opts.name)}`);
-            if (opts.replicas) parts.push(`--replicas ${opts.replicas}`);
-            if (opts.image) parts.push(escapeArg(opts.image));
-            return buildResult(parts.join(' '), '创建服务');
+        const parts = ['docker service create'];
+        parts.push(`--name ${escapeArg(opts.name)}`);
+
+        if (opts.replicas) parts.push(`--replicas ${opts.replicas}`);
+        if (opts.publish) {
+            const publishParts = buildOption('--publish', opts.publish);
+            if (publishParts) parts.push(publishParts);
+        }
+        if (opts.networks) {
+            const networkParts = buildOption('--network', opts.networks);
+            if (networkParts) parts.push(networkParts);
+        }
+        if (opts.endpointMode) parts.push(`--endpoint-mode ${escapeArg(opts.endpointMode)}`);
+        if (opts.cpuLimit) parts.push(`--limit-cpu ${escapeArg(opts.cpuLimit)}`);
+        if (opts.cpuReserve) parts.push(`--reserve-cpu ${escapeArg(opts.cpuReserve)}`);
+        if (opts.memoryLimit) parts.push(`--limit-memory ${escapeArg(opts.memoryLimit)}`);
+        if (opts.memoryReserve) parts.push(`--reserve-memory ${escapeArg(opts.memoryReserve)}`);
+        if (opts.updateParallelism) parts.push(`--update-parallelism ${opts.updateParallelism}`);
+        if (opts.updateDelay) parts.push(`--update-delay ${escapeArg(opts.updateDelay)}`);
+        if (opts.updateFailureAction) parts.push(`--update-failure-action ${escapeArg(opts.updateFailureAction)}`);
+        if (opts.mounts) {
+            const mountParts = buildOption('--mount', opts.mounts);
+            if (mountParts) parts.push(mountParts);
         }
 
-        if (act === 'ls') {
-            return buildResult('docker service ls', '列出服务');
-        }
-
-        if (act === 'ps') {
-            if (!serviceName) throw new Error('服务名称不能为空');
-            return buildResult(`docker service ps ${escapeArg(serviceName)}`, '查看服务任务');
-        }
-
-        if (act === 'logs') {
-            if (!serviceName) throw new Error('服务名称不能为空');
-            const parts = ['docker service logs'];
-            if (opts.follow) parts.push('-f');
-            parts.push(escapeArg(serviceName));
-            return buildResult(parts.join(' '), '查看服务日志');
-        }
-
-        if (act === 'scale') {
-            if (!serviceName) throw new Error('服务名称不能为空');
-            const replicas = opts.replicas || 1;
-            return buildResult(`docker service scale ${escapeArg(serviceName)}=${replicas}`, '伸缩服务');
-        }
-
-        if (act === 'update') {
-            if (!serviceName) throw new Error('服务名称不能为空');
-            const parts = ['docker service update'];
-            if (opts.image) parts.push(`--image ${escapeArg(opts.image)}`);
-            if (opts.replicas) parts.push(`--replicas ${opts.replicas}`);
-            parts.push(escapeArg(serviceName));
-            return buildResult(parts.join(' '), '更新服务');
-        }
-
-        if (act === 'rm') {
-            if (!serviceName) throw new Error('服务名称不能为空');
-            return buildResult(`docker service rm ${escapeArg(serviceName)}`, '删除服务');
-        }
-
-        throw new Error(`未知的 service 操作: ${action}`);
+        parts.push(escapeArg(opts.image));
+        return buildResult(parts.join(' '), '创建服务');
     }
 
-    // ==================== docker stack (Swarm) ====================
+    /**
+     * 生成 docker service update 命令
+     * @param {string} serviceName - 服务名称
+     * @param {object} options - 选项
+     * @returns {{command: string, description: string}}
+     */
+    function generateServiceUpdateCommand(serviceName, options = {}) {
+        if (!serviceName) throw new Error('服务名称不能为空');
+
+        const opts = normalizeOptions(options);
+        const parts = ['docker service update'];
+
+        if (opts.image) parts.push(`--image ${escapeArg(opts.image)}`);
+        if (opts.replicas) parts.push(`--replicas ${opts.replicas}`);
+        if (opts.publish) {
+            const publishParts = buildOption('--publish-add', opts.publish);
+            if (publishParts) parts.push(publishParts);
+        }
+        if (opts.networks) {
+            const networkParts = buildOption('--network-add', opts.networks);
+            if (networkParts) parts.push(networkParts);
+        }
+        if (opts.endpointMode) parts.push(`--endpoint-mode ${escapeArg(opts.endpointMode)}`);
+        if (opts.cpuLimit) parts.push(`--limit-cpu ${escapeArg(opts.cpuLimit)}`);
+        if (opts.cpuReserve) parts.push(`--reserve-cpu ${escapeArg(opts.cpuReserve)}`);
+        if (opts.memoryLimit) parts.push(`--limit-memory ${escapeArg(opts.memoryLimit)}`);
+        if (opts.memoryReserve) parts.push(`--reserve-memory ${escapeArg(opts.memoryReserve)}`);
+        if (opts.updateParallelism) parts.push(`--update-parallelism ${opts.updateParallelism}`);
+        if (opts.updateDelay) parts.push(`--update-delay ${escapeArg(opts.updateDelay)}`);
+        if (opts.updateFailureAction) parts.push(`--update-failure-action ${escapeArg(opts.updateFailureAction)}`);
+        if (opts.mounts) {
+            const mountParts = buildOption('--mount-add', opts.mounts);
+            if (mountParts) parts.push(mountParts);
+        }
+
+        parts.push(escapeArg(serviceName));
+        return buildResult(parts.join(' '), '更新服务');
+    }
 
     /**
-     * 生成 docker stack 命令
-     * @param {string} action - 操作类型：deploy, ls, ps, services, rm
-     * @param {string} stackName - 堆栈名称
-     * @param {object} options - 选项
-     * @returns {{command: string, description: string}} 生成的命令对象
+     * 生成 docker service scale 命令
+     * @param {string} serviceName - 服务名称
+     * @param {string|number} replicas - 副本数量
+     * @returns {{command: string, description: string}}
      */
-    function generateStackCommand(action, stackName, options = {}) {
+    function generateServiceScaleCommand(serviceName, replicas) {
+        if (!serviceName) throw new Error('服务名称不能为空');
+        if (replicas === undefined || replicas === '') throw new Error('副本数量不能为空');
+
+        return buildResult(`docker service scale ${escapeArg(serviceName)}=${replicas}`, '伸缩服务副本');
+    }
+
+    /**
+     * 生成 docker service logs 命令
+     * @param {string} serviceName - 服务名称
+     * @param {object} options - 选项
+     * @returns {{command: string, description: string}}
+     */
+    function generateServiceLogsCommand(serviceName, options = {}) {
+        if (!serviceName) throw new Error('服务名称不能为空');
+
         const opts = normalizeOptions(options);
-        const act = (action || '').toLowerCase();
+        const parts = ['docker service logs'];
 
-        if (act === 'deploy') {
-            if (!stackName) throw new Error('堆栈名称不能为空');
-            const parts = ['docker stack deploy'];
-            if (opts.composeFile) {
-                parts.push(`-c ${escapeArg(opts.composeFile)}`);
-            }
-            parts.push(escapeArg(stackName));
-            return buildResult(parts.join(' '), '部署堆栈');
+        if (opts.follow) parts.push('--follow');
+        if (opts.timestamps) parts.push('--timestamps');
+        if (opts.tail) parts.push(`--tail ${opts.tail}`);
+
+        parts.push(escapeArg(serviceName));
+        return buildResult(parts.join(' '), '查看服务日志');
+    }
+
+    /**
+     * 生成 docker service ps 命令
+     * @param {string} serviceName - 服务名称
+     * @returns {{command: string, description: string}}
+     */
+    function generateServicePsCommand(serviceName) {
+        if (!serviceName) throw new Error('服务名称不能为空');
+        return buildResult(`docker service ps ${escapeArg(serviceName)}`, '查看服务任务');
+    }
+
+    /**
+     * 生成 docker service ls 命令
+     * @returns {{command: string, description: string}}
+     */
+    function generateServiceLsCommand() {
+        return buildResult('docker service ls', '列出服务');
+    }
+
+    /**
+     * 生成 docker service rm 命令
+     * @param {string|Array<string>} serviceNames - 服务名称
+     * @returns {{command: string, description: string}}
+     */
+    function generateServiceRmCommand(serviceNames) {
+        if (!serviceNames || (Array.isArray(serviceNames) && serviceNames.length === 0)) {
+            throw new Error('服务名称不能为空');
         }
 
-        if (act === 'ls') {
-            return buildResult('docker stack ls', '列出堆栈');
+        const parts = ['docker service rm'];
+        if (Array.isArray(serviceNames)) {
+            serviceNames.forEach(name => parts.push(escapeArg(name)));
+        } else {
+            parts.push(escapeArg(serviceNames));
         }
 
-        if (act === 'ps') {
-            if (!stackName) throw new Error('堆栈名称不能为空');
-            return buildResult(`docker stack ps ${escapeArg(stackName)}`, '查看堆栈任务');
-        }
-
-        if (act === 'services') {
-            if (!stackName) throw new Error('堆栈名称不能为空');
-            return buildResult(`docker stack services ${escapeArg(stackName)}`, '查看堆栈服务');
-        }
-
-        if (act === 'rm') {
-            if (!stackName) throw new Error('堆栈名称不能为空');
-            return buildResult(`docker stack rm ${escapeArg(stackName)}`, '删除堆栈');
-        }
-
-        throw new Error(`未知的 stack 操作: ${action}`);
+        return buildResult(parts.join(' '), '删除服务');
     }
 
     // ==================== docker swarm ====================
 
     /**
-     * 生成 docker swarm 命令
-     * @param {string} action - 操作类型：init, join, leave, update, ca
+     * 生成 docker swarm init 命令
      * @param {object} options - 选项
-     * @returns {{command: string, description: string}} 生成的命令对象
+     * @returns {{command: string, description: string}}
      */
-    function generateSwarmCommand(action, options = {}) {
+    function generateSwarmInitCommand(options = {}) {
         const opts = normalizeOptions(options);
-        const act = (action || '').toLowerCase();
+        const parts = ['docker swarm init'];
 
-        if (act === 'init') {
-            const parts = ['docker swarm init'];
-            if (opts.advertiseAddr) parts.push(`--advertise-addr ${escapeArg(opts.advertiseAddr)}`);
-            if (opts.listenAddr) parts.push(`--listen-addr ${escapeArg(opts.listenAddr)}`);
-            if (opts.forceNewCluster) parts.push('--force-new-cluster');
-            return buildResult(parts.join(' '), '初始化 Swarm 集群');
+        if (opts.advertiseAddr) parts.push(`--advertise-addr ${escapeArg(opts.advertiseAddr)}`);
+        if (opts.listenAddr) parts.push(`--listen-addr ${escapeArg(opts.listenAddr)}`);
+        if (opts.forceNewCluster) parts.push('--force-new-cluster');
+
+        return buildResult(parts.join(' '), '初始化 Swarm 集群');
+    }
+
+    /**
+     * 生成 docker swarm join 命令
+     * @param {string} addr - Manager/Worker 地址
+     * @param {object} options - 选项
+     * @returns {{command: string, description: string}}
+     */
+    function generateSwarmJoinCommand(addr, options = {}) {
+        if (!addr) throw new Error('节点地址不能为空');
+
+        const opts = normalizeOptions(options);
+        const parts = ['docker swarm join'];
+
+        if (opts.token) parts.push(`--token ${escapeArg(opts.token)}`);
+        if (opts.advertiseAddr) parts.push(`--advertise-addr ${escapeArg(opts.advertiseAddr)}`);
+        if (opts.listenAddr) parts.push(`--listen-addr ${escapeArg(opts.listenAddr)}`);
+
+        parts.push(escapeArg(addr));
+        return buildResult(parts.join(' '), '加入 Swarm 集群');
+    }
+
+    /**
+     * 生成 docker swarm leave 命令
+     * @param {object} options - 选项
+     * @returns {{command: string, description: string}}
+     */
+    function generateSwarmLeaveCommand(options = {}) {
+        const opts = normalizeOptions(options);
+        const parts = ['docker swarm leave'];
+
+        if (opts.force) parts.push('--force');
+
+        return buildResult(parts.join(' '), '离开 Swarm 集群');
+    }
+
+    /**
+     * 生成 docker swarm update 命令
+     * @param {object} options - 选项
+     * @returns {{command: string, description: string}}
+     */
+    function generateSwarmUpdateCommand(options = {}) {
+        const opts = normalizeOptions(options);
+        const parts = ['docker swarm update'];
+
+        if (opts.autolock === true) parts.push('--autolock=true');
+        else if (opts.autolock === false) parts.push('--autolock=false');
+        if (opts.certExpiry) parts.push(`--cert-expiry ${escapeArg(opts.certExpiry)}`);
+        if (opts.dispatcherHeartbeat) parts.push(`--dispatcher-heartbeat ${escapeArg(opts.dispatcherHeartbeat)}`);
+
+        return buildResult(parts.join(' '), '更新 Swarm 集群配置');
+    }
+
+    /**
+     * 生成 docker swarm unlock 命令
+     * @returns {{command: string, description: string}}
+     */
+    function generateSwarmUnlockCommand() {
+        return buildResult('docker swarm unlock', '解锁 Swarm 集群');
+    }
+
+    // ==================== docker stack ====================
+
+    /**
+     * 生成 docker stack deploy 命令
+     * @param {string} stackName - Stack 名称
+     * @param {object} options - 选项
+     * @returns {{command: string, description: string}}
+     */
+    function generateStackDeployCommand(stackName, options = {}) {
+        if (!stackName) throw new Error('Stack 名称不能为空');
+
+        const opts = normalizeOptions(options);
+        const parts = ['docker stack deploy'];
+
+        if (opts.composeFiles) {
+            const files = Array.isArray(opts.composeFiles) ? opts.composeFiles : [opts.composeFiles];
+            files.forEach(f => {
+                if (f) parts.push(`-c ${escapeArg(f)}`);
+            });
         }
 
-        if (act === 'join') {
-            const parts = ['docker swarm join'];
-            if (opts.token) parts.push(`--token ${escapeArg(opts.token)}`);
-            if (opts.advertiseAddr) parts.push(`--advertise-addr ${escapeArg(opts.advertiseAddr)}`);
-            if (opts.listenAddr) parts.push(`--listen-addr ${escapeArg(opts.listenAddr)}`);
-            
-            // 地址列表
-            if (opts.remoteAddrs) {
-                 if (Array.isArray(opts.remoteAddrs)) {
-                     opts.remoteAddrs.forEach(addr => parts.push(escapeArg(addr)));
-                 } else {
-                     parts.push(escapeArg(opts.remoteAddrs));
-                 }
-            }
-            return buildResult(parts.join(' '), '加入 Swarm 集群');
+        if (opts.withRegistryAuth) parts.push('--with-registry-auth');
+        if (opts.prune) parts.push('--prune');
+        if (opts.resolveImage && opts.resolveImage !== 'always') {
+            parts.push(`--resolve-image ${escapeArg(opts.resolveImage)}`);
         }
 
-        if (act === 'leave') {
-            const parts = ['docker swarm leave'];
-            if (opts.force) parts.push('--force');
-            return buildResult(parts.join(' '), '离开 Swarm 集群');
+        parts.push(escapeArg(stackName));
+        return buildResult(parts.join(' '), '部署 Stack');
+    }
+
+    /**
+     * 生成 docker stack ls 命令
+     * @returns {{command: string, description: string}}
+     */
+    function generateStackLsCommand() {
+        return buildResult('docker stack ls', '列出 Stack');
+    }
+
+    /**
+     * 生成 docker stack ps 命令
+     * @param {string} stackName - Stack 名称
+     * @returns {{command: string, description: string}}
+     */
+    function generateStackPsCommand(stackName) {
+        if (!stackName) throw new Error('Stack 名称不能为空');
+        return buildResult(`docker stack ps ${escapeArg(stackName)}`, '查看 Stack 任务');
+    }
+
+    /**
+     * 生成 docker stack services 命令
+     * @param {string} stackName - Stack 名称
+     * @returns {{command: string, description: string}}
+     */
+    function generateStackServicesCommand(stackName) {
+        if (!stackName) throw new Error('Stack 名称不能为空');
+        return buildResult(`docker stack services ${escapeArg(stackName)}`, '查看 Stack 服务');
+    }
+
+    /**
+     * 生成 docker stack rm 命令
+     * @param {string|Array<string>} stackNames - Stack 名称
+     * @returns {{command: string, description: string}}
+     */
+    function generateStackRmCommand(stackNames) {
+        if (!stackNames || (Array.isArray(stackNames) && stackNames.length === 0)) {
+            throw new Error('Stack 名称不能为空');
         }
 
-        if (act === 'update') {
-            const parts = ['docker swarm update'];
-            if (opts.autolock) parts.push('--autolock');
-            if (opts.certExpiry) parts.push(`--cert-expiry ${escapeArg(opts.certExpiry)}`);
-            if (opts.dispatcherHeartbeat) parts.push(`--dispatcher-heartbeat ${escapeArg(opts.dispatcherHeartbeat)}`);
-            return buildResult(parts.join(' '), '更新 Swarm 集群配置');
-        }
-        
-        if (act === 'unlock') {
-             const parts = ['docker swarm unlock'];
-             return buildResult(parts.join(' '), '解锁 Swarm 集群');
+        const parts = ['docker stack rm'];
+        if (Array.isArray(stackNames)) {
+            stackNames.forEach(name => parts.push(escapeArg(name)));
+        } else {
+            parts.push(escapeArg(stackNames));
         }
 
-        throw new Error(`未知的 swarm 操作: ${action}`);
+        return buildResult(parts.join(' '), '删除 Stack');
     }
 
     // 导出 API
@@ -644,9 +785,23 @@
         generateImagesCommand,
         generatePullPushCommand,
         generateContainerCommand,
-        generateServiceCommand,
-        generateStackCommand,
-        generateSwarmCommand,
+        generateServiceCreateCommand,
+        generateServiceUpdateCommand,
+        generateServiceScaleCommand,
+        generateServiceLogsCommand,
+        generateServicePsCommand,
+        generateServiceLsCommand,
+        generateServiceRmCommand,
+        generateSwarmInitCommand,
+        generateSwarmJoinCommand,
+        generateSwarmLeaveCommand,
+        generateSwarmUpdateCommand,
+        generateSwarmUnlockCommand,
+        generateStackDeployCommand,
+        generateStackLsCommand,
+        generateStackPsCommand,
+        generateStackServicesCommand,
+        generateStackRmCommand,
         // 仅供测试
         _escapeArg: escapeArg
     };

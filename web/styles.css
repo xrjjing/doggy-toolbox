@@ -5172,12 +5172,16 @@ select option {
 
 /* ========== Git/Docker 场景切换样式 ========== */
 .git-scene,
-.docker-scene {
+.docker-scene,
+.docker-service-scene,
+.docker-swarm-scene {
     display: none;
 }
 
 .git-scene.active,
-.docker-scene.active {
+.docker-scene.active,
+.docker-service-scene.active,
+.docker-swarm-scene.active {
     display: block;
 }
 

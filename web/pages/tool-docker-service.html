@@ -1,0 +1,327 @@
+<!-- 自动拆分自 web/index.html：tool-docker-service -->
+<section id="page-tool-docker-service" class="page">
+		                <div class="page-header">
+		                    <div class="page-title">
+		                        <h1>Docker Service 命令生成器</h1>
+		                        <p class="subtitle">可视化生成 Docker Service 命令</p>
+		                    </div>
+		                </div>
+		                <div class="docker-service-tool">
+		                    <!-- 场景选择器 -->
+		                    <div class="tool-tabs-modern" role="tablist" aria-label="Docker Service 场景">
+		                                                    <button type="button" class="tool-tab tool-tab-modern active" onclick="switchDockerServiceScene('create', event)" role="tab" aria-selected="true">
+		                                                        <span class="tab-icon" aria-hidden="true">🆕</span>
+		                                                        <span class="tab-label">创建</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerServiceScene('update', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">♻️</span>
+		                                                        <span class="tab-label">更新</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerServiceScene('scale', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">📈</span>
+		                                                        <span class="tab-label">伸缩</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerServiceScene('logs', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">📄</span>
+		                                                        <span class="tab-label">日志</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerServiceScene('ps', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">📊</span>
+		                                                        <span class="tab-label">任务</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerServiceScene('ls', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">📋</span>
+		                                                        <span class="tab-label">服务列表</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerServiceScene('rm', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">🗑️</span>
+		                                                        <span class="tab-label">删除</span>
+		                                                    </button>
+		                                                </div>
+		                    <!-- Create 场景 -->
+		                    <div id="docker-service-scene-create" class="docker-service-scene active">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>基本设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>镜像名称 *</label>
+		                                    <input type="text" id="docker-service-create-image" placeholder="nginx:latest" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>服务名称 *</label>
+		                                    <input type="text" id="docker-service-create-name" placeholder="web-service" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>副本数量</label>
+		                                    <input type="number" id="docker-service-create-replicas" min="0" placeholder="1" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>网络设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>发布端口 (格式: 8080:80 或 80，多个用逗号分隔)</label>
+		                                    <input type="text" id="docker-service-create-publish" placeholder="8080:80, 443:443" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>加入网络 (多个用逗号分隔)</label>
+		                                    <input type="text" id="docker-service-create-networks" placeholder="frontend, backend" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>端点模式 (endpoint-mode)</label>
+		                                    <select id="docker-service-create-endpoint-mode" onchange="updateDockerServiceCommand()">
+		                                        <option value="">默认</option>
+		                                        <option value="vip">vip</option>
+		                                        <option value="dnsrr">dnsrr</option>
+		                                    </select>
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>资源限制</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>CPU 限制 (如: 0.5)</label>
+		                                    <input type="text" id="docker-service-create-cpu-limit" placeholder="1.0" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>CPU 预留 (如: 0.25)</label>
+		                                    <input type="text" id="docker-service-create-cpu-reserve" placeholder="0.5" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>内存限制 (如: 512m)</label>
+		                                    <input type="text" id="docker-service-create-memory-limit" placeholder="512m" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>内存预留 (如: 256m)</label>
+		                                    <input type="text" id="docker-service-create-memory-reserve" placeholder="256m" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>更新策略</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>并行更新数 (update-parallelism)</label>
+		                                    <input type="number" id="docker-service-create-update-parallelism" min="0" placeholder="1" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>更新间隔 (如: 10s)</label>
+		                                    <input type="text" id="docker-service-create-update-delay" placeholder="10s" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>失败处理 (update-failure-action)</label>
+		                                    <select id="docker-service-create-update-failure-action" onchange="updateDockerServiceCommand()">
+		                                        <option value="">默认</option>
+		                                        <option value="pause">pause - 暂停</option>
+		                                        <option value="continue">continue - 继续</option>
+		                                        <option value="rollback">rollback - 回滚</option>
+		                                    </select>
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>挂载配置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>挂载配置 (格式: type=bind,source=/host,target=/data，多个用逗号分隔)</label>
+		                                    <input type="text" id="docker-service-create-mounts" placeholder="type=volume,source=data,target=/var/lib/data" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Update 场景 -->
+		                    <div id="docker-service-scene-update" class="docker-service-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>基本设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>服务名称 *</label>
+		                                    <input type="text" id="docker-service-update-name" placeholder="web-service" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>镜像 (可选)</label>
+		                                    <input type="text" id="docker-service-update-image" placeholder="nginx:1.25" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>副本数量</label>
+		                                    <input type="number" id="docker-service-update-replicas" min="0" placeholder="2" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>网络设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>发布端口 (新增，多个用逗号分隔)</label>
+		                                    <input type="text" id="docker-service-update-publish" placeholder="8080:80, 443:443" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>加入网络 (新增，多个用逗号分隔)</label>
+		                                    <input type="text" id="docker-service-update-networks" placeholder="frontend, backend" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>端点模式 (endpoint-mode)</label>
+		                                    <select id="docker-service-update-endpoint-mode" onchange="updateDockerServiceCommand()">
+		                                        <option value="">默认</option>
+		                                        <option value="vip">vip</option>
+		                                        <option value="dnsrr">dnsrr</option>
+		                                    </select>
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>资源限制</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>CPU 限制 (如: 0.5)</label>
+		                                    <input type="text" id="docker-service-update-cpu-limit" placeholder="1.0" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>CPU 预留 (如: 0.25)</label>
+		                                    <input type="text" id="docker-service-update-cpu-reserve" placeholder="0.5" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>内存限制 (如: 512m)</label>
+		                                    <input type="text" id="docker-service-update-memory-limit" placeholder="512m" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>内存预留 (如: 256m)</label>
+		                                    <input type="text" id="docker-service-update-memory-reserve" placeholder="256m" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>更新策略</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>并行更新数 (update-parallelism)</label>
+		                                    <input type="number" id="docker-service-update-update-parallelism" min="0" placeholder="1" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>更新间隔 (如: 10s)</label>
+		                                    <input type="text" id="docker-service-update-update-delay" placeholder="10s" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>失败处理 (update-failure-action)</label>
+		                                    <select id="docker-service-update-update-failure-action" onchange="updateDockerServiceCommand()">
+		                                        <option value="">默认</option>
+		                                        <option value="pause">pause - 暂停</option>
+		                                        <option value="continue">continue - 继续</option>
+		                                        <option value="rollback">rollback - 回滚</option>
+		                                    </select>
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>挂载配置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>挂载配置 (新增，多个用逗号分隔)</label>
+		                                    <input type="text" id="docker-service-update-mounts" placeholder="type=bind,source=/host,target=/data" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Scale 场景 -->
+		                    <div id="docker-service-scene-scale" class="docker-service-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>副本伸缩</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>服务名称 *</label>
+		                                    <input type="text" id="docker-service-scale-name" placeholder="web-service" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>副本数量 *</label>
+		                                    <input type="number" id="docker-service-scale-replicas" min="0" placeholder="3" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Logs 场景 -->
+		                    <div id="docker-service-scene-logs" class="docker-service-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>日志查看</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>服务名称 *</label>
+		                                    <input type="text" id="docker-service-logs-name" placeholder="web-service" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-service-logs-follow" onchange="updateDockerServiceCommand()">
+		                                        持续跟踪 (--follow)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-service-logs-timestamps" onchange="updateDockerServiceCommand()">
+		                                        显示时间戳 (--timestamps)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>显示行数 (如: 100)</label>
+		                                    <input type="text" id="docker-service-logs-tail" placeholder="100" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- PS 场景 -->
+		                    <div id="docker-service-scene-ps" class="docker-service-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>任务列表</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group" id="docker-service-ps-name-group">
+		                                    <label>服务名称 *</label>
+		                                    <input type="text" id="docker-service-ps-name" placeholder="web-service" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- LS 场景 -->
+		                    <div id="docker-service-scene-ls" class="docker-service-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>服务列表</h3></div>
+		                            <div class="panel-body">
+		                                <p class="form-help">无需参数，直接列出所有服务</p>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- RM 场景 -->
+		                    <div id="docker-service-scene-rm" class="docker-service-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>删除服务</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>服务名称 * (多个用空格分隔)</label>
+		                                    <input type="text" id="docker-service-rm-names" placeholder="web-service api-service" oninput="updateDockerServiceCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- 命令预览 -->
+		                    <div class="converter-panel">
+		                        <div class="panel-header">
+		                            <h3>生成的命令</h3>
+		                            <div class="panel-actions">
+		                                <button class="btn btn-sm btn-ghost" onclick="copyDockerServiceCommand(this)">复制</button>
+		                            </div>
+		                        </div>
+		                        <div class="panel-body">
+		                            <div class="docker-command-preview">
+		                                <div class="docker-command-desc" id="docker-service-command-desc">选择场景并填写参数</div>
+		                                <textarea id="docker-service-command-output" readonly placeholder="生成的 Docker Service 命令将显示在这里..." spellcheck="false"></textarea>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </section>

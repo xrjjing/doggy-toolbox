@@ -1,0 +1,320 @@
+<!-- 自动拆分自 web/index.html：tool-docker-swarm -->
+<section id="page-tool-docker-swarm" class="page">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Docker Swarm 命令生成器</h1>
+            <p class="subtitle">可视化生成 Docker Swarm 和 Stack 命令</p>
+        </div>
+    </div>
+    <div class="docker-swarm-tool">
+        <!-- Level 1 Tabs -->
+        <div class="tool-tabs-modern" role="tablist" aria-label="Docker Swarm/Stack">
+            <button type="button" class="tool-tab tool-tab-modern active" onclick="switchDockerSwarmL1Tab('swarm', event)" role="tab" aria-selected="true">
+                <span class="tab-icon" aria-hidden="true">🌐</span>
+                <span class="tab-label">Swarm</span>
+            </button>
+            <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerSwarmL1Tab('stack', event)" role="tab" aria-selected="false">
+                <span class="tab-icon" aria-hidden="true">📚</span>
+                <span class="tab-label">Stack</span>
+            </button>
+        </div>
+
+        <!-- Level 1 Content: Swarm -->
+        <div id="docker-swarm-l1-scene-swarm" class="docker-swarm-l1-scene active">
+            <!-- Level 2 Tabs: Swarm Operations -->
+            <div class="tool-tabs-modern tool-tabs-modern-level2" role="tablist" aria-label="Swarm Operations">
+                <button type="button" class="tool-tab tool-tab-modern active" onclick="switchDockerSwarmL2Tab('swarm', 'init', event)" role="tab" aria-selected="true">
+                    <span class="tab-icon" aria-hidden="true">✨</span>
+                    <span class="tab-label">Init</span>
+                </button>
+                <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerSwarmL2Tab('swarm', 'join', event)" role="tab" aria-selected="false">
+                    <span class="tab-icon" aria-hidden="true">🔗</span>
+                    <span class="tab-label">Join</span>
+                </button>
+                <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerSwarmL2Tab('swarm', 'leave', event)" role="tab" aria-selected="false">
+                    <span class="tab-icon" aria-hidden="true">🚪</span>
+                    <span class="tab-label">Leave</span>
+                </button>
+                <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerSwarmL2Tab('swarm', 'update', event)" role="tab" aria-selected="false">
+                    <span class="tab-icon" aria-hidden="true">🔄</span>
+                    <span class="tab-label">Update</span>
+                </button>
+                <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerSwarmL2Tab('swarm', 'unlock', event)" role="tab" aria-selected="false">
+                    <span class="tab-icon" aria-hidden="true">🔓</span>
+                    <span class="tab-label">Unlock</span>
+                </button>
+            </div>
+
+            <!-- Swarm Init Scene -->
+            <div id="docker-swarm-l2-scene-init" class="docker-swarm-l2-scene active">
+                <div class="converter-panel">
+                    <div class="panel-header"><h3>初始化 Swarm</h3></div>
+                    <div class="panel-body">
+                        <div class="form-group">
+                            <label>广播地址 (--advertise-addr)</label>
+                            <input type="text" id="swarm-init-advertise-addr" placeholder="例如: 192.168.1.100" oninput="updateDockerSwarmCommand()">
+                        </div>
+                        <div class="form-group">
+                            <label>监听地址 (--listen-addr)</label>
+                            <input type="text" id="swarm-init-listen-addr" placeholder="例如: 0.0.0.0:2377" oninput="updateDockerSwarmCommand()">
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="swarm-init-force-new-cluster" onchange="updateDockerSwarmCommand()">
+                                强制创建新集群 (--force-new-cluster)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Swarm Join Scene -->
+            <div id="docker-swarm-l2-scene-join" class="docker-swarm-l2-scene">
+                <div class="converter-panel">
+                    <div class="panel-header"><h3>加入 Swarm</h3></div>
+                    <div class="panel-body">
+                        <div class="form-group">
+                            <label>Manager / Worker 地址 *</label>
+                            <input type="text" id="swarm-join-addr" placeholder="例如: 192.168.1.100:2377" oninput="updateDockerSwarmCommand()">
+                        </div>
+                         <div class="form-group">
+                            <label>Token *</label>
+                            <input type="text" id="swarm-join-token" placeholder="SWMTKN-..." oninput="updateDockerSwarmCommand()">
+                        </div>
+                        <div class="form-group">
+                            <label>广播地址 (--advertise-addr)</label>
+                            <input type="text" id="swarm-join-advertise-addr" placeholder="本节点广播地址" oninput="updateDockerSwarmCommand()">
+                        </div>
+                        <div class="form-group">
+                            <label>监听地址 (--listen-addr)</label>
+                            <input type="text" id="swarm-join-listen-addr" placeholder="本节点监听地址" oninput="updateDockerSwarmCommand()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Swarm Leave Scene -->
+            <div id="docker-swarm-l2-scene-leave" class="docker-swarm-l2-scene">
+                <div class="converter-panel">
+                    <div class="panel-header"><h3>离开 Swarm</h3></div>
+                    <div class="panel-body">
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="swarm-leave-force" onchange="updateDockerSwarmCommand()">
+                                强制离开 (--force)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Swarm Update Scene -->
+            <div id="docker-swarm-l2-scene-update" class="docker-swarm-l2-scene">
+                <div class="converter-panel">
+                    <div class="panel-header"><h3>更新 Swarm 设置</h3></div>
+                    <div class="panel-body">
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="swarm-update-autolock-true" onchange="updateDockerSwarmCommand()">
+                                启用自动锁定 (--autolock=true)
+                            </label>
+                             <label class="checkbox-label">
+                                <input type="checkbox" id="swarm-update-autolock-false" onchange="updateDockerSwarmCommand()">
+                                禁用自动锁定 (--autolock=false)
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>证书有效期 (--cert-expiry)</label>
+                            <input type="text" id="swarm-update-cert-expiry" placeholder="例如: 2160h (90天)" oninput="updateDockerSwarmCommand()">
+                        </div>
+                         <div class="form-group">
+                            <label>调度器心跳 (--dispatcher-heartbeat)</label>
+                            <input type="text" id="swarm-update-dispatcher-heartbeat" placeholder="例如: 5s" oninput="updateDockerSwarmCommand()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Swarm Unlock Scene -->
+            <div id="docker-swarm-l2-scene-unlock" class="docker-swarm-l2-scene">
+                <div class="converter-panel">
+                    <div class="panel-header"><h3>解锁 Swarm</h3></div>
+                    <div class="panel-body">
+                        <p>此操作不需要额外参数。它会提示您输入解锁密钥。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Level 1 Content: Stack -->
+        <div id="docker-swarm-l1-scene-stack" class="docker-swarm-l1-scene">
+            <!-- Level 2 Tabs: Stack Operations -->
+            <div class="tool-tabs-modern tool-tabs-modern-level2" role="tablist" aria-label="Stack Operations">
+                <button type="button" class="tool-tab tool-tab-modern active" onclick="switchDockerSwarmL2Tab('stack', 'deploy', event)" role="tab" aria-selected="true">
+                    <span class="tab-icon" aria-hidden="true">🚀</span>
+                    <span class="tab-label">Deploy</span>
+                </button>
+                <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerSwarmL2Tab('stack', 'ls', event)" role="tab" aria-selected="false">
+                    <span class="tab-icon" aria-hidden="true">📋</span>
+                    <span class="tab-label">LS</span>
+                </button>
+                <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerSwarmL2Tab('stack', 'ps', event)" role="tab" aria-selected="false">
+                    <span class="tab-icon" aria-hidden="true">📌</span>
+                    <span class="tab-label">PS</span>
+                </button>
+                 <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerSwarmL2Tab('stack', 'services', event)" role="tab" aria-selected="false">
+                    <span class="tab-icon" aria-hidden="true">🔧</span>
+                    <span class="tab-label">Services</span>
+                </button>
+                <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerSwarmL2Tab('stack', 'rm', event)" role="tab" aria-selected="false">
+                    <span class="tab-icon" aria-hidden="true">🗑️</span>
+                    <span class="tab-label">RM</span>
+                </button>
+            </div>
+
+            <!-- Stack Deploy Scene -->
+            <div id="docker-stack-l2-scene-deploy" class="docker-stack-l2-scene active">
+                <div class="converter-panel">
+                    <div class="panel-header"><h3>部署 Stack</h3></div>
+                    <div class="panel-body">
+                         <div class="form-group">
+                            <label>Stack 名称 *</label>
+                            <input type="text" id="stack-deploy-name" placeholder="my-stack" oninput="updateDockerSwarmCommand()">
+                        </div>
+                        <div class="form-group">
+                            <label>Compose 文件 * (多个用逗号分隔)</label>
+                            <input type="text" id="stack-deploy-compose-files" placeholder="docker-compose.yml, docker-compose.prod.yml" oninput="updateDockerSwarmCommand()">
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="stack-deploy-with-registry-auth" onchange="updateDockerSwarmCommand()">
+                                携带注册表认证信息 (--with-registry-auth)
+                            </label>
+                        </div>
+                         <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="stack-deploy-prune" onchange="updateDockerSwarmCommand()">
+                                清理不再使用的服务 (--prune)
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>镜像解析模式 (--resolve-image)</label>
+                            <select id="stack-deploy-resolve-image" onchange="updateDockerSwarmCommand()">
+                                <option value="always">always</option>
+                                <option value="changed">changed</option>
+                                <option value="never">never</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stack LS Scene -->
+            <div id="docker-stack-l2-scene-ls" class="docker-stack-l2-scene">
+                 <div class="converter-panel">
+                    <div class="panel-header"><h3>列出 Stacks</h3></div>
+                    <div class="panel-body">
+                        <p>此操作不需要额外参数。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stack PS Scene -->
+            <div id="docker-stack-l2-scene-ps" class="docker-stack-l2-scene">
+                 <div class="converter-panel">
+                    <div class="panel-header"><h3>列出 Stack 中的任务</h3></div>
+                    <div class="panel-body">
+                         <div class="form-group">
+                            <label>Stack 名称 *</label>
+                            <input type="text" id="stack-ps-name" placeholder="my-stack" oninput="updateDockerSwarmCommand()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stack Services Scene -->
+            <div id="docker-stack-l2-scene-services" class="docker-stack-l2-scene">
+                 <div class="converter-panel">
+                    <div class="panel-header"><h3>列出 Stack 中的服务</h3></div>
+                    <div class="panel-body">
+                         <div class="form-group">
+                            <label>Stack 名称 *</label>
+                            <input type="text" id="stack-services-name" placeholder="my-stack" oninput="updateDockerSwarmCommand()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stack RM Scene -->
+            <div id="docker-stack-l2-scene-rm" class="docker-stack-l2-scene">
+                 <div class="converter-panel">
+                    <div class="panel-header"><h3>移除 Stack</h3></div>
+                    <div class="panel-body">
+                         <div class="form-group">
+                            <label>Stack 名称 * (多个用空格分隔)</label>
+                            <input type="text" id="stack-rm-names" placeholder="my-stack1 my-stack2" oninput="updateDockerSwarmCommand()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 命令预览 -->
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>生成的命令</h3>
+                <div class="panel-actions">
+                    <button class="btn btn-sm btn-ghost" onclick="copyDockerSwarmCommand(this)">复制</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="docker-swarm-command-preview">
+                    <div class="docker-swarm-command-desc" id="docker-swarm-command-desc">选择操作类型并填写参数</div>
+                    <textarea id="docker-swarm-command-output" readonly placeholder="生成的 Docker Swarm 命令将显示在这里..." spellcheck="false"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+/* 保证L1和L2场景切换的显示逻辑 */
+.docker-swarm-l1-scene,
+.docker-swarm-l2-scene,
+.docker-stack-l2-scene {
+    display: none;
+}
+.docker-swarm-l1-scene.active,
+.docker-swarm-l2-scene.active,
+.docker-stack-l2-scene.active {
+    display: block;
+}
+
+/* L2 tab的样式，可以比L1小一些 */
+.tool-tabs-modern-level2 .tool-tab-modern {
+    padding: 6px 12px;
+    font-size: 0.9em;
+}
+
+.tool-tabs-modern-level2 {
+    margin-bottom: 1rem;
+}
+
+.docker-swarm-command-preview textarea {
+    width: 100%;
+    min-height: 80px;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    padding: 0.5rem;
+    font-family: var(--font-family-mono);
+    color: var(--color-text-primary);
+    resize: vertical;
+}
+
+.docker-swarm-command-desc {
+    margin-bottom: 0.5rem;
+    font-size: 0.9em;
+    color: var(--color-text-secondary);
+}
+</style>
