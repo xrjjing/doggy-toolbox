@@ -5200,6 +5200,21 @@ select option {
     border-left: 3px solid #4f46e5;
 }
 
+.panel-return-indicator {
+    display: none;
+    color: var(--success);
+    margin-right: 6px;
+    font-weight: 700;
+}
+
+.panel-header.active-filter .panel-return-indicator {
+    display: inline-block;
+}
+
+.panel-header.active-filter:hover {
+    background-color: rgba(79, 70, 229, 0.15);
+}
+
 /* ========== Modern Template Cards (Redesign) ========== */
 .git-templates-grid {
     display: grid;

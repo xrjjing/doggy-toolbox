@@ -53,6 +53,19 @@
         return options || {};
     }
 
+    /**
+     * 包装命令结果
+     * @param {string} command - 命令字符串
+     * @param {string} description - 说明
+     * @returns {{command: string, description: string}}
+     */
+    function buildResult(command, description) {
+        return {
+            command,
+            description: description || ''
+        };
+    }
+
     // ==================== docker run ====================
 
     /**
@@ -76,7 +89,7 @@
      * @param {string} options.cpus - CPU 限制（--cpus），如 "1.5"
      * @param {boolean} options.privileged - 特权模式（--privileged）
      * @param {string} options.command - 容器启动命令（可选）
-     * @returns {string} 生成的 docker run 命令
+     * @returns {{command: string, description: string}} 生成的 docker run 命令对象
      */
     function generateRunCommand(image, options = {}) {
         if (!image || typeof image !== 'string') {
@@ -130,7 +143,7 @@
             parts.push(escapeArg(opts.command));
         }
 
-        return parts.join(' ');
+        return buildResult(parts.join(' '), '运行容器');
     }
 
     // ==================== docker build ====================
@@ -147,7 +160,7 @@
      * @param {boolean} options.rm - 构建后删除中间容器（--rm），默认为 true
      * @param {string} options.target - 多阶段构建目标（--target）
      * @param {string} options.platform - 目标平台（--platform），如 "linux/amd64"
-     * @returns {string} 生成的 docker build 命令
+     * @returns {{command: string, description: string}} 生成的 docker build 命令对象
      */
     function generateBuildCommand(path, options = {}) {
         if (!path || typeof path !== 'string') {
@@ -179,7 +192,7 @@
         // 构建路径
         parts.push(escapeArg(path));
 
-        return parts.join(' ');
+        return buildResult(parts.join(' '), '构建镜像');
     }
 
     // ==================== docker-compose ====================
@@ -198,7 +211,7 @@
      * @param {string|Array<string>} options.service - 指定服务名称，可选
      * @param {boolean} options.follow - 跟随日志（-f），适用于 logs
      * @param {number} options.tail - 显示最后 N 行日志（--tail），适用于 logs
-     * @returns {string} 生成的 docker-compose 命令
+     * @returns {{command: string, description: string}} 生成的 docker-compose 命令对象
      */
     function generateComposeCommand(action, options = {}) {
         const validActions = ['up', 'down', 'start', 'stop', 'restart', 'ps', 'logs', 'build', 'pull', 'exec'];
@@ -243,7 +256,7 @@
             }
         }
 
-        return parts.join(' ');
+        return buildResult(parts.join(' '), `Compose 操作：${action}`);
     }
 
     // ==================== docker exec ====================
@@ -258,7 +271,7 @@
      * @param {string} options.user - 用户（-u）
      * @param {string} options.workdir - 工作目录（-w）
      * @param {string|Array<string>} options.env - 环境变量（-e）
-     * @returns {string} 生成的 docker exec 命令
+     * @returns {{command: string, description: string}} 生成的 docker exec 命令对象
      */
     function generateExecCommand(container, command, options = {}) {
         if (!container || typeof container !== 'string') {
@@ -287,7 +300,7 @@
         parts.push(escapeArg(container));
         parts.push(command); // 命令可能包含多个参数，不自动转义
 
-        return parts.join(' ');
+        return buildResult(parts.join(' '), '在容器内执行命令');
     }
 
     // ==================== docker logs ====================
@@ -301,7 +314,7 @@
      * @param {boolean} options.timestamps - 显示时间戳（-t）
      * @param {string} options.since - 显示自指定时间以来的日志（--since），如 "2023-01-01"
      * @param {string} options.until - 显示指定时间之前的日志（--until）
-     * @returns {string} 生成的 docker logs 命令
+     * @returns {{command: string, description: string}} 生成的 docker logs 命令对象
      */
     function generateLogsCommand(container, options = {}) {
         if (!container || typeof container !== 'string') {
@@ -321,7 +334,7 @@
         // 容器
         parts.push(escapeArg(container));
 
-        return parts.join(' ');
+        return buildResult(parts.join(' '), '查看容器日志');
     }
 
     // ==================== docker ps ====================
@@ -334,7 +347,7 @@
      * @param {boolean} options.size - 显示文件大小（-s）
      * @param {string} options.filter - 过滤器（--filter），如 "status=running"
      * @param {string} options.format - 格式化输出（--format）
-     * @returns {string} 生成的 docker ps 命令
+     * @returns {{command: string, description: string}} 生成的 docker ps 命令对象
      */
     function generatePsCommand(options = {}) {
         const opts = normalizeOptions(options);
@@ -347,7 +360,7 @@
         if (opts.filter) parts.push(`--filter ${escapeArg(opts.filter)}`);
         if (opts.format) parts.push(`--format ${escapeArg(opts.format)}`);
 
-        return parts.join(' ');
+        return buildResult(parts.join(' '), '列出容器');
     }
 
     // ==================== docker images ====================
@@ -360,7 +373,7 @@
      * @param {boolean} options.digests - 显示摘要（--digests）
      * @param {string} options.filter - 过滤器（--filter），如 "dangling=true"
      * @param {string} options.format - 格式化输出（--format）
-     * @returns {string} 生成的 docker images 命令
+     * @returns {{command: string, description: string}} 生成的 docker images 命令对象
      */
     function generateImagesCommand(options = {}) {
         const opts = normalizeOptions(options);
@@ -373,7 +386,7 @@
         if (opts.filter) parts.push(`--filter ${escapeArg(opts.filter)}`);
         if (opts.format) parts.push(`--format ${escapeArg(opts.format)}`);
 
-        return parts.join(' ');
+        return buildResult(parts.join(' '), '列出镜像');
     }
 
     // ==================== docker pull/push ====================
@@ -385,7 +398,7 @@
      * @param {object} options - 选项
      * @param {boolean} options.allTags - 拉取所有标签（-a），仅适用于 pull
      * @param {string} options.platform - 目标平台（--platform），仅适用于 pull
-     * @returns {string} 生成的 docker pull/push 命令
+     * @returns {{command: string, description: string}} 生成的 docker pull/push 命令对象
      */
     function generatePullPushCommand(image, action, options = {}) {
         if (!image || typeof image !== 'string') {
@@ -407,7 +420,8 @@
         // 镜像
         parts.push(escapeArg(image));
 
-        return parts.join(' ');
+        const description = action === 'pull' ? '拉取镜像' : '推送镜像';
+        return buildResult(parts.join(' '), description);
     }
 
     // ==================== docker stop/start/restart/rm ====================
@@ -420,7 +434,7 @@
      * @param {boolean} options.force - 强制删除（-f），仅适用于 rm
      * @param {boolean} options.volumes - 同时删除卷（-v），仅适用于 rm
      * @param {number} options.time - 停止等待时间（-t），仅适用于 stop
-     * @returns {string} 生成的容器管理命令
+     * @returns {{command: string, description: string}} 生成的容器管理命令对象
      */
     function generateContainerCommand(action, containers, options = {}) {
         const validActions = ['stop', 'start', 'restart', 'rm'];
@@ -450,7 +464,7 @@
             parts.push(escapeArg(containers));
         }
 
-        return parts.join(' ');
+        return buildResult(parts.join(' '), `容器操作：${action}`);
     }
 
     // ==================== docker service (Swarm) ====================
@@ -460,7 +474,7 @@
      * @param {string} action - 操作类型：create, ls, ps, logs, scale, update, rm
      * @param {string} serviceName - 服务名称
      * @param {object} options - 选项
-     * @returns {string} 生成的命令
+     * @returns {{command: string, description: string}} 生成的命令对象
      */
     function generateServiceCommand(action, serviceName, options = {}) {
         const opts = normalizeOptions(options);
@@ -472,16 +486,16 @@
             if (opts.name) parts.push(`--name ${escapeArg(opts.name)}`);
             if (opts.replicas) parts.push(`--replicas ${opts.replicas}`);
             if (opts.image) parts.push(escapeArg(opts.image));
-            return parts.join(' ');
+            return buildResult(parts.join(' '), '创建服务');
         }
 
         if (act === 'ls') {
-            return 'docker service ls';
+            return buildResult('docker service ls', '列出服务');
         }
 
         if (act === 'ps') {
             if (!serviceName) throw new Error('服务名称不能为空');
-            return `docker service ps ${escapeArg(serviceName)}`;
+            return buildResult(`docker service ps ${escapeArg(serviceName)}`, '查看服务任务');
         }
 
         if (act === 'logs') {
@@ -489,13 +503,13 @@
             const parts = ['docker service logs'];
             if (opts.follow) parts.push('-f');
             parts.push(escapeArg(serviceName));
-            return parts.join(' ');
+            return buildResult(parts.join(' '), '查看服务日志');
         }
 
         if (act === 'scale') {
             if (!serviceName) throw new Error('服务名称不能为空');
             const replicas = opts.replicas || 1;
-            return `docker service scale ${escapeArg(serviceName)}=${replicas}`;
+            return buildResult(`docker service scale ${escapeArg(serviceName)}=${replicas}`, '伸缩服务');
         }
 
         if (act === 'update') {
@@ -504,12 +518,12 @@
             if (opts.image) parts.push(`--image ${escapeArg(opts.image)}`);
             if (opts.replicas) parts.push(`--replicas ${opts.replicas}`);
             parts.push(escapeArg(serviceName));
-            return parts.join(' ');
+            return buildResult(parts.join(' '), '更新服务');
         }
 
         if (act === 'rm') {
             if (!serviceName) throw new Error('服务名称不能为空');
-            return `docker service rm ${escapeArg(serviceName)}`;
+            return buildResult(`docker service rm ${escapeArg(serviceName)}`, '删除服务');
         }
 
         throw new Error(`未知的 service 操作: ${action}`);
@@ -522,7 +536,7 @@
      * @param {string} action - 操作类型：deploy, ls, ps, services, rm
      * @param {string} stackName - 堆栈名称
      * @param {object} options - 选项
-     * @returns {string} 生成的命令
+     * @returns {{command: string, description: string}} 生成的命令对象
      */
     function generateStackCommand(action, stackName, options = {}) {
         const opts = normalizeOptions(options);
@@ -535,29 +549,88 @@
                 parts.push(`-c ${escapeArg(opts.composeFile)}`);
             }
             parts.push(escapeArg(stackName));
-            return parts.join(' ');
+            return buildResult(parts.join(' '), '部署堆栈');
         }
 
         if (act === 'ls') {
-            return 'docker stack ls';
+            return buildResult('docker stack ls', '列出堆栈');
         }
 
         if (act === 'ps') {
             if (!stackName) throw new Error('堆栈名称不能为空');
-            return `docker stack ps ${escapeArg(stackName)}`;
+            return buildResult(`docker stack ps ${escapeArg(stackName)}`, '查看堆栈任务');
         }
 
         if (act === 'services') {
             if (!stackName) throw new Error('堆栈名称不能为空');
-            return `docker stack services ${escapeArg(stackName)}`;
+            return buildResult(`docker stack services ${escapeArg(stackName)}`, '查看堆栈服务');
         }
 
         if (act === 'rm') {
             if (!stackName) throw new Error('堆栈名称不能为空');
-            return `docker stack rm ${escapeArg(stackName)}`;
+            return buildResult(`docker stack rm ${escapeArg(stackName)}`, '删除堆栈');
         }
 
         throw new Error(`未知的 stack 操作: ${action}`);
+    }
+
+    // ==================== docker swarm ====================
+
+    /**
+     * 生成 docker swarm 命令
+     * @param {string} action - 操作类型：init, join, leave, update, ca
+     * @param {object} options - 选项
+     * @returns {{command: string, description: string}} 生成的命令对象
+     */
+    function generateSwarmCommand(action, options = {}) {
+        const opts = normalizeOptions(options);
+        const act = (action || '').toLowerCase();
+
+        if (act === 'init') {
+            const parts = ['docker swarm init'];
+            if (opts.advertiseAddr) parts.push(`--advertise-addr ${escapeArg(opts.advertiseAddr)}`);
+            if (opts.listenAddr) parts.push(`--listen-addr ${escapeArg(opts.listenAddr)}`);
+            if (opts.forceNewCluster) parts.push('--force-new-cluster');
+            return buildResult(parts.join(' '), '初始化 Swarm 集群');
+        }
+
+        if (act === 'join') {
+            const parts = ['docker swarm join'];
+            if (opts.token) parts.push(`--token ${escapeArg(opts.token)}`);
+            if (opts.advertiseAddr) parts.push(`--advertise-addr ${escapeArg(opts.advertiseAddr)}`);
+            if (opts.listenAddr) parts.push(`--listen-addr ${escapeArg(opts.listenAddr)}`);
+            
+            // 地址列表
+            if (opts.remoteAddrs) {
+                 if (Array.isArray(opts.remoteAddrs)) {
+                     opts.remoteAddrs.forEach(addr => parts.push(escapeArg(addr)));
+                 } else {
+                     parts.push(escapeArg(opts.remoteAddrs));
+                 }
+            }
+            return buildResult(parts.join(' '), '加入 Swarm 集群');
+        }
+
+        if (act === 'leave') {
+            const parts = ['docker swarm leave'];
+            if (opts.force) parts.push('--force');
+            return buildResult(parts.join(' '), '离开 Swarm 集群');
+        }
+
+        if (act === 'update') {
+            const parts = ['docker swarm update'];
+            if (opts.autolock) parts.push('--autolock');
+            if (opts.certExpiry) parts.push(`--cert-expiry ${escapeArg(opts.certExpiry)}`);
+            if (opts.dispatcherHeartbeat) parts.push(`--dispatcher-heartbeat ${escapeArg(opts.dispatcherHeartbeat)}`);
+            return buildResult(parts.join(' '), '更新 Swarm 集群配置');
+        }
+        
+        if (act === 'unlock') {
+             const parts = ['docker swarm unlock'];
+             return buildResult(parts.join(' '), '解锁 Swarm 集群');
+        }
+
+        throw new Error(`未知的 swarm 操作: ${action}`);
     }
 
     // 导出 API
@@ -573,6 +646,7 @@
         generateContainerCommand,
         generateServiceCommand,
         generateStackCommand,
+        generateSwarmCommand,
         // 仅供测试
         _escapeArg: escapeArg
     };

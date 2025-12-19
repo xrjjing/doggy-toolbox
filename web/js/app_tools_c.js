@@ -707,6 +707,91 @@ function updateDockerComposeForm() {
     }
 }
 
+function updateDockerServiceForm() {
+    const action = document.getElementById('docker-service-action')?.value;
+    const nameGroup = document.getElementById('docker-service-name-group');
+    const imageGroup = document.getElementById('docker-service-image-group');
+    const replicasGroup = document.getElementById('docker-service-replicas-group');
+    const portsGroup = document.getElementById('docker-service-ports-group');
+    const followGroup = document.getElementById('docker-service-follow-group');
+
+    if (!action) return;
+
+    // Hide all first
+    if (nameGroup) nameGroup.style.display = 'none';
+    if (imageGroup) imageGroup.style.display = 'none';
+    if (replicasGroup) replicasGroup.style.display = 'none';
+    if (portsGroup) portsGroup.style.display = 'none';
+    if (followGroup) followGroup.style.display = 'none';
+
+    switch (action) {
+        case 'create':
+            if (nameGroup) nameGroup.style.display = '';
+            if (imageGroup) imageGroup.style.display = '';
+            if (replicasGroup) replicasGroup.style.display = '';
+            if (portsGroup) portsGroup.style.display = '';
+            break;
+        case 'ps':
+        case 'rm':
+        case 'scale':
+        case 'update':
+            if (nameGroup) nameGroup.style.display = '';
+            break;
+        case 'logs':
+            if (nameGroup) nameGroup.style.display = '';
+            if (followGroup) followGroup.style.display = '';
+            break;
+    }
+    
+    // Additional specific fields logic
+    if (action === 'scale') {
+         if (replicasGroup) replicasGroup.style.display = '';
+    }
+    if (action === 'update') {
+         if (imageGroup) imageGroup.style.display = '';
+         if (replicasGroup) replicasGroup.style.display = '';
+    }
+}
+
+function updateDockerSwarmForm() {
+    const action = document.getElementById('docker-swarm-action')?.value;
+    
+    // Groups
+    const advGroup = document.getElementById('docker-swarm-advertise-group');
+    const listenGroup = document.getElementById('docker-swarm-listen-group');
+    const tokenGroup = document.getElementById('docker-swarm-token-group');
+    const remoteGroup = document.getElementById('docker-swarm-remote-group');
+    const forceGroup = document.getElementById('docker-swarm-force-group');
+    const stackNameGroup = document.getElementById('docker-stack-name-group');
+    const stackFileGroup = document.getElementById('docker-stack-file-group');
+
+    if (!action) return;
+
+    // Hide all
+    const allGroups = [advGroup, listenGroup, tokenGroup, remoteGroup, forceGroup, stackNameGroup, stackFileGroup];
+    allGroups.forEach(g => { if(g) g.style.display = 'none'; });
+
+    if (action === 'swarm-init') {
+        if (advGroup) advGroup.style.display = '';
+        if (listenGroup) listenGroup.style.display = '';
+        if (forceGroup) forceGroup.style.display = ''; 
+    } else if (action === 'swarm-join') {
+        if (tokenGroup) tokenGroup.style.display = '';
+        if (advGroup) advGroup.style.display = '';
+        if (listenGroup) listenGroup.style.display = '';
+        if (remoteGroup) remoteGroup.style.display = '';
+    } else if (action === 'swarm-leave') {
+        if (forceGroup) forceGroup.style.display = '';
+    } else if (action.startsWith('stack-')) {
+        if (action !== 'stack-ls') {
+            if (stackNameGroup) stackNameGroup.style.display = '';
+        }
+        if (action === 'stack-deploy') {
+            if (stackFileGroup) stackFileGroup.style.display = '';
+        }
+    }
+}
+
 function updateDockerCommand() {
     const outputEl = document.getElementById('docker-command-output');
     const descEl = document.getElementById('docker-command-desc');
@@ -729,6 +814,8 @@ function updateDockerCommand() {
             case 'ps': result = generatePsCmd(); break;
             case 'images': result = generateImagesCmd(); break;
             case 'container': result = generateContainerCmd(); break;
+            case 'service': result = generateServiceCmd(); break;
+            case 'swarm': result = generateSwarmCmd(); break;
         }
 
         if (result) {
@@ -902,6 +989,64 @@ function generateContainerCmd() {
     };
 
     return DogToolboxM27Utils.generateContainerCommand(action, containers, options);
+}
+
+function generateServiceCmd() {
+    const action = document.getElementById('docker-service-action')?.value;
+    const serviceName = document.getElementById('docker-service-name')?.value.trim();
+    
+    if (!action) return null;
+    if (action !== 'ls' && !serviceName && action !== 'create') {
+        return null;
+    }
+    
+    const options = {
+        image: document.getElementById('docker-service-image')?.value.trim(),
+        replicas: parseInt(document.getElementById('docker-service-replicas')?.value) || undefined,
+        follow: document.getElementById('docker-service-follow')?.checked || false
+    };
+
+    if (action === 'create') {
+        options.name = serviceName; // Use input as --name
+    }
+    
+    const portsStr = document.getElementById('docker-service-ports')?.value.trim();
+    if (portsStr) {
+        options.ports = portsStr.split(',').map(p => p.trim()).filter(p => p);
+    }
+    
+    return DogToolboxM27Utils.generateServiceCommand(action, serviceName, options);
+}
+
+function generateSwarmCmd() {
+    const actionFull = document.getElementById('docker-swarm-action')?.value;
+    if (!actionFull) return null;
+
+    if (actionFull.startsWith('swarm-')) {
+        const action = actionFull.replace('swarm-', '');
+        const options = {
+            advertiseAddr: document.getElementById('docker-swarm-advertise')?.value.trim(),
+            listenAddr: document.getElementById('docker-swarm-listen')?.value.trim(),
+            token: document.getElementById('docker-swarm-token')?.value.trim(),
+            remoteAddrs: document.getElementById('docker-swarm-remote')?.value.trim(),
+            force: document.getElementById('docker-swarm-force')?.checked || false,
+            forceNewCluster: (action === 'init' && document.getElementById('docker-swarm-force')?.checked) || false
+        };
+        return DogToolboxM27Utils.generateSwarmCommand(action, options);
+    } 
+    else if (actionFull.startsWith('stack-')) {
+        const action = actionFull.replace('stack-', '');
+        const stackName = document.getElementById('docker-stack-name')?.value.trim();
+        
+        if (action !== 'ls' && !stackName) return null;
+
+        const options = {
+            composeFile: document.getElementById('docker-stack-file')?.value.trim()
+        };
+        return DogToolboxM27Utils.generateStackCommand(action, stackName, options);
+    }
+    
+    return null;
 }
 
 function copyDockerCommand(btn) {
@@ -1789,10 +1934,48 @@ function initPanelFiltering(containerSelector) {
 
     const panels = container.querySelectorAll('.converter-panel');
     let activePanel = null;
+    let savedPanelOffset = 0; // 记录面板在滚动容器视口中的位置，便于还原
+    let savedScrollTop = 0;
+
+    const scrollContainer = container.closest('.content')
+        || document.getElementById('page-root')
+        || document.scrollingElement
+        || document.documentElement;
+    const isWindowScroll = scrollContainer === document.documentElement || scrollContainer === document.body;
+    const getScrollTop = () => (isWindowScroll
+        ? (window.scrollY || document.documentElement.scrollTop || 0)
+        : scrollContainer.scrollTop);
+    const setScrollTop = (top) => {
+        const targetTop = Math.max(top, 0);
+        if (isWindowScroll) {
+            window.scrollTo({ top: targetTop, behavior: 'auto' });
+        } else {
+            scrollContainer.scrollTo({ top: targetTop, behavior: 'auto' });
+        }
+    };
+    const getContainerTop = () => (isWindowScroll ? 0 : scrollContainer.getBoundingClientRect().top);
+    const getPanelTop = (panelEl) => panelEl.getBoundingClientRect().top - getContainerTop() + getScrollTop();
+    const scrollPanelToOffset = (panelEl, offset) => {
+        if (!panelEl) return;
+        const panelTop = getPanelTop(panelEl);
+        const targetTop = panelTop - offset;
+        setScrollTop(targetTop);
+    };
 
     panels.forEach(panel => {
         const header = panel.querySelector('.panel-header');
         if (!header) return;
+
+        // Add title hint
+        header.title = "点击聚焦/还原面板";
+        const titleEl = header.querySelector('h3');
+        if (titleEl && !titleEl.querySelector('.panel-return-indicator')) {
+            const indicator = document.createElement('span');
+            indicator.className = 'panel-return-indicator';
+            indicator.textContent = '❮ 返回';
+            indicator.setAttribute('aria-hidden', 'true');
+            titleEl.prepend(indicator);
+        }
 
         header.addEventListener('click', (e) => {
             // 如果点击的是按钮，不触发过滤
@@ -1800,14 +1983,23 @@ function initPanelFiltering(containerSelector) {
 
             // 如果点击的是当前激活的面板，显示所有面板
             if (activePanel === panel) {
+                // 还原所有面板
                 panels.forEach(p => {
                     p.classList.remove('panel-filtered');
                     const h = p.querySelector('.panel-header');
                     if (h) h.classList.remove('active-filter');
                 });
                 activePanel = null;
+
+                const restoreScrollTop = savedScrollTop;
+                requestAnimationFrame(() => {
+                    setScrollTop(restoreScrollTop);
+                });
             } else {
-                // 否则，只显示点击的面板
+                savedScrollTop = getScrollTop();
+                savedPanelOffset = panel.getBoundingClientRect().top - getContainerTop();
+
+                // 聚焦当前面板
                 panels.forEach(p => {
                     if (p === panel) {
                         p.classList.remove('panel-filtered');
@@ -1820,6 +2012,11 @@ function initPanelFiltering(containerSelector) {
                     }
                 });
                 activePanel = panel;
+
+                // 聚焦后保持面板在原视口位置
+                requestAnimationFrame(() => {
+                    scrollPanelToOffset(panel, savedPanelOffset);
+                });
             }
         });
     });
