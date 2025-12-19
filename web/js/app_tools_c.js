@@ -505,6 +505,21 @@ function updateGitCommand() {
             case 'stash':
                 result = generateStashCmd();
                 break;
+            case 'rebase':
+                result = generateRebaseCmd();
+                break;
+            case 'cherrypick':
+                result = generateCherryPickCmd();
+                break;
+            case 'tag':
+                result = generateTagCmd();
+                break;
+            case 'remote':
+                result = generateRemoteCmd();
+                break;
+            case 'revert':
+                result = generateRevertCmd();
+                break;
         }
 
         if (result) {
@@ -639,6 +654,159 @@ function generateStashCmd() {
     return DogToolboxM26Utils.generateStashCommand(action, options);
 }
 
+// 生成 Rebase 命令
+function generateRebaseCmd() {
+    const branch = document.getElementById('git-rebase-branch')?.value.trim();
+
+    if (!validateInput('git-rebase-branch', branch)) {
+        return null;
+    }
+
+    const options = {
+        interactive: document.getElementById('git-rebase-interactive')?.checked || false,
+        onto: document.getElementById('git-rebase-onto')?.value.trim() || undefined
+    };
+
+    return DogToolboxM26Utils.generateRebaseCommand(branch, options);
+}
+
+// 生成 Cherry-pick 命令
+function generateCherryPickCmd() {
+    const commits = document.getElementById('git-cherrypick-commits')?.value.trim();
+
+    if (!validateInput('git-cherrypick-commits', commits)) {
+        return null;
+    }
+
+    const mainline = parseInt(document.getElementById('git-cherrypick-mainline')?.value);
+    const options = {
+        noCommit: document.getElementById('git-cherrypick-nocommit')?.checked || false,
+        edit: document.getElementById('git-cherrypick-edit')?.checked || false,
+        signoff: document.getElementById('git-cherrypick-signoff')?.checked || false,
+        mainline: isNaN(mainline) ? undefined : mainline
+    };
+
+    return DogToolboxM26Utils.generateCherryPickCommand(commits, options);
+}
+
+// 生成 Tag 命令
+function generateTagCmd() {
+    const action = document.getElementById('git-tag-action')?.value;
+    const tagName = document.getElementById('git-tag-name')?.value.trim();
+
+    if (action === 'list') {
+        clearValidationErrors(['git-tag-name']);
+        return DogToolboxM26Utils.generateTagCommand(action, '');
+    }
+
+    if (!validateInput('git-tag-name', tagName)) {
+        return null;
+    }
+
+    const options = {
+        annotate: document.getElementById('git-tag-annotate')?.checked || false,
+        message: document.getElementById('git-tag-message')?.value.trim() || undefined,
+        remote: document.getElementById('git-tag-remote')?.value.trim() || 'origin',
+        force: document.getElementById('git-tag-force')?.checked || false
+    };
+
+    return DogToolboxM26Utils.generateTagCommand(action, tagName, options);
+}
+
+// 更新 Tag 表单显示
+function updateGitTagForm() {
+    const action = document.getElementById('git-tag-action')?.value;
+    const nameGroup = document.getElementById('git-tag-name-group');
+    const annotateGroup = document.getElementById('git-tag-annotate-group');
+    const messageGroup = document.getElementById('git-tag-message-group');
+    const remoteGroup = document.getElementById('git-tag-remote-group');
+    const forceGroup = document.getElementById('git-tag-force-group');
+
+    // 默认显示
+    if (nameGroup) nameGroup.style.display = '';
+    if (annotateGroup) annotateGroup.style.display = 'none';
+    if (messageGroup) messageGroup.style.display = 'none';
+    if (remoteGroup) remoteGroup.style.display = 'none';
+    if (forceGroup) forceGroup.style.display = 'none';
+
+    switch (action) {
+        case 'create':
+            if (annotateGroup) annotateGroup.style.display = '';
+            if (messageGroup) messageGroup.style.display = '';
+            break;
+        case 'push':
+            if (remoteGroup) remoteGroup.style.display = '';
+            if (forceGroup) forceGroup.style.display = '';
+            break;
+        case 'list':
+            if (nameGroup) nameGroup.style.display = 'none';
+            break;
+    }
+}
+
+// 生成 Remote 命令
+function generateRemoteCmd() {
+    const action = document.getElementById('git-remote-action')?.value;
+    const name = document.getElementById('git-remote-name')?.value.trim() || 'origin';
+    const url = document.getElementById('git-remote-url')?.value.trim();
+    const newName = document.getElementById('git-remote-newname')?.value.trim();
+
+    if (action === 'add' || action === 'set-url') {
+        if (!validateInput('git-remote-url', url)) {
+            return null;
+        }
+        return DogToolboxM26Utils.generateRemoteCommand(action, name, url);
+    }
+
+    if (action === 'rename') {
+        if (!validateInput('git-remote-newname', newName)) {
+            return null;
+        }
+        return DogToolboxM26Utils.generateRemoteCommand(action, name, newName);
+    }
+
+    clearValidationErrors(['git-remote-url', 'git-remote-newname']);
+    return DogToolboxM26Utils.generateRemoteCommand(action, name, '');
+}
+
+// 更新 Remote 表单显示
+function updateGitRemoteForm() {
+    const action = document.getElementById('git-remote-action')?.value;
+    const urlGroup = document.getElementById('git-remote-url-group');
+    const newNameGroup = document.getElementById('git-remote-newname-group');
+
+    if (urlGroup) urlGroup.style.display = 'none';
+    if (newNameGroup) newNameGroup.style.display = 'none';
+
+    switch (action) {
+        case 'add':
+        case 'set-url':
+            if (urlGroup) urlGroup.style.display = '';
+            break;
+        case 'rename':
+            if (newNameGroup) newNameGroup.style.display = '';
+            break;
+    }
+}
+
+// 生成 Revert 命令
+function generateRevertCmd() {
+    const commits = document.getElementById('git-revert-commits')?.value.trim();
+
+    if (!validateInput('git-revert-commits', commits)) {
+        return null;
+    }
+
+    const mainline = parseInt(document.getElementById('git-revert-mainline')?.value);
+    const options = {
+        noCommit: document.getElementById('git-revert-nocommit')?.checked || false,
+        noEdit: document.getElementById('git-revert-noedit')?.checked || false,
+        mainline: isNaN(mainline) ? undefined : mainline
+    };
+
+    return DogToolboxM26Utils.generateRevertCommand(commits, options);
+}
+
 function copyGitCommand(btn) {
     const output = document.getElementById('git-command-output').value;
     if (!output) return;
@@ -730,6 +898,10 @@ function updateDockerCommand() {
             case 'ps': result = generatePsCmd(); break;
             case 'images': result = generateImagesCmd(); break;
             case 'container': result = generateContainerCmd(); break;
+            case 'network': result = generateNetworkCmd(); break;
+            case 'volume': result = generateVolumeCmd(); break;
+            case 'prune': result = generatePruneCmd(); break;
+            case 'cp': result = generateCpCmd(); break;
         }
 
         if (result) {
@@ -910,6 +1082,161 @@ function copyDockerCommand(btn) {
     const output = document.getElementById('docker-command-output').value;
     if (!output) return;
     copyToolText(btn, output, { showTextFeedback: true });
+}
+
+// Network 命令生成
+function generateNetworkCmd() {
+    const action = document.getElementById('docker-network-action')?.value;
+    if (!action) return null;
+
+    const name = document.getElementById('docker-network-name')?.value.trim();
+    const container = document.getElementById('docker-network-container')?.value.trim();
+
+    // 根据操作类型验证必填字段
+    if (['create', 'rm', 'inspect'].includes(action)) {
+        if (!validateInput('docker-network-name', name)) return null;
+    }
+    if (['connect', 'disconnect'].includes(action)) {
+        if (!validateInput('docker-network-name', name)) return null;
+        if (!validateInput('docker-network-container', container)) return null;
+    }
+
+    const options = {
+        driver: document.getElementById('docker-network-driver')?.value || '',
+        subnet: document.getElementById('docker-network-subnet')?.value.trim() || '',
+        gateway: document.getElementById('docker-network-gateway')?.value.trim() || '',
+        ip: document.getElementById('docker-network-ip')?.value.trim() || '',
+        force: document.getElementById('docker-network-force')?.checked || false
+    };
+
+    clearValidationErrors();
+    return DogToolboxM27Utils.generateNetworkCommand(action, name, { ...options, container });
+}
+
+// Network 表单动态更新
+function updateDockerNetworkForm() {
+    const action = document.getElementById('docker-network-action')?.value;
+
+    const showName = ['create', 'rm', 'inspect', 'connect', 'disconnect'].includes(action);
+    const showDriver = action === 'create';
+    const showSubnet = action === 'create';
+    const showGateway = action === 'create';
+    const showContainer = ['connect', 'disconnect'].includes(action);
+    const showIp = action === 'connect';
+    const showForce = action === 'prune';
+
+    document.getElementById('docker-network-name-group').style.display = showName ? '' : 'none';
+    document.getElementById('docker-network-driver-group').style.display = showDriver ? '' : 'none';
+    document.getElementById('docker-network-subnet-group').style.display = showSubnet ? '' : 'none';
+    document.getElementById('docker-network-gateway-group').style.display = showGateway ? '' : 'none';
+    document.getElementById('docker-network-container-group').style.display = showContainer ? '' : 'none';
+    document.getElementById('docker-network-ip-group').style.display = showIp ? '' : 'none';
+    document.getElementById('docker-network-force-group').style.display = showForce ? '' : 'none';
+
+    clearValidationErrors();
+}
+
+// Volume 命令生成
+function generateVolumeCmd() {
+    const action = document.getElementById('docker-volume-action')?.value;
+    if (!action) return null;
+
+    const name = document.getElementById('docker-volume-name')?.value.trim();
+
+    // 根据操作类型验证必填字段
+    if (['create', 'rm', 'inspect'].includes(action)) {
+        if (!validateInput('docker-volume-name', name)) return null;
+    }
+
+    const optsStr = document.getElementById('docker-volume-opts')?.value.trim() || '';
+    const opts = optsStr ? optsStr.split(',').map(o => o.trim()).filter(o => o) : [];
+
+    const options = {
+        driver: document.getElementById('docker-volume-driver')?.value || '',
+        opt: opts,
+        filter: document.getElementById('docker-volume-filter')?.value.trim() || '',
+        force: document.getElementById('docker-volume-force')?.checked || false
+    };
+
+    clearValidationErrors();
+    return DogToolboxM27Utils.generateVolumeCommand(action, name, options);
+}
+
+// Volume 表单动态更新
+function updateDockerVolumeForm() {
+    const action = document.getElementById('docker-volume-action')?.value;
+
+    const showName = ['create', 'rm', 'inspect'].includes(action);
+    const showDriver = action === 'create';
+    const showOpts = action === 'create';
+    const showFilter = ['ls', 'prune'].includes(action);
+    const showForce = ['rm', 'prune'].includes(action);
+
+    document.getElementById('docker-volume-name-group').style.display = showName ? '' : 'none';
+    document.getElementById('docker-volume-driver-group').style.display = showDriver ? '' : 'none';
+    document.getElementById('docker-volume-opts-group').style.display = showOpts ? '' : 'none';
+    document.getElementById('docker-volume-filter-group').style.display = showFilter ? '' : 'none';
+    document.getElementById('docker-volume-force-group').style.display = showForce ? '' : 'none';
+
+    clearValidationErrors();
+}
+
+// Prune 命令生成
+function generatePruneCmd() {
+    const options = {
+        all: document.getElementById('docker-prune-all')?.checked || false,
+        volumes: document.getElementById('docker-prune-volumes')?.checked || false,
+        force: document.getElementById('docker-prune-force')?.checked || false,
+        filter: document.getElementById('docker-prune-filter')?.value.trim() || ''
+    };
+
+    return DogToolboxM27Utils.generateSystemPruneCommand(options);
+}
+
+// CP 命令生成
+function generateCpCmd() {
+    const direction = document.getElementById('docker-cp-direction')?.value;
+    const container = document.getElementById('docker-cp-container')?.value.trim();
+    const hostPath = document.getElementById('docker-cp-host-path')?.value.trim();
+    const containerPath = document.getElementById('docker-cp-container-path')?.value.trim();
+
+    if (!validateInput('docker-cp-container', container)) return null;
+    if (!validateInput('docker-cp-host-path', hostPath)) return null;
+    if (!validateInput('docker-cp-container-path', containerPath)) return null;
+
+    let source, dest;
+    if (direction === 'to-container') {
+        source = hostPath;
+        dest = `${container}:${containerPath}`;
+    } else {
+        source = `${container}:${containerPath}`;
+        dest = hostPath;
+    }
+
+    const options = {
+        archive: document.getElementById('docker-cp-archive')?.checked || false,
+        followLink: document.getElementById('docker-cp-follow-link')?.checked || false
+    };
+
+    clearValidationErrors();
+    return DogToolboxM27Utils.generateCpCommand(source, dest, options);
+}
+
+// CP 表单动态更新
+function updateDockerCpForm() {
+    const direction = document.getElementById('docker-cp-direction')?.value;
+    const hostLabel = document.getElementById('docker-cp-host-label');
+    const containerLabel = document.getElementById('docker-cp-container-label');
+
+    if (direction === 'to-container') {
+        if (hostLabel) hostLabel.textContent = '主机路径 (源) *';
+        if (containerLabel) containerLabel.textContent = '容器路径 (目标) *';
+    } else {
+        if (hostLabel) hostLabel.textContent = '主机路径 (目标) *';
+        if (containerLabel) containerLabel.textContent = '容器路径 (源) *';
+    }
+
+    clearValidationErrors();
 }
 
 // ==================== Docker Service 命令生成器 ====================

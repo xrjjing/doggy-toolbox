@@ -37,6 +37,26 @@
 		                                                <span class="tab-icon" aria-hidden="true">💾</span>
 		                                                <span class="tab-label">暂存</span>
 		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('rebase', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">🔄</span>
+		                                                <span class="tab-label">变基</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('cherrypick', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">🍒</span>
+		                                                <span class="tab-label">挑选</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('tag', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">🏷️</span>
+		                                                <span class="tab-label">标签</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('remote', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">🌐</span>
+		                                                <span class="tab-label">远程</span>
+		                                            </button>
+		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('revert', event)" role="tab" aria-selected="false">
+		                                                <span class="tab-icon" aria-hidden="true">↩️</span>
+		                                                <span class="tab-label">撤销</span>
+		                                            </button>
 		                                            <button type="button" class="tool-tab tool-tab-modern" onclick="switchGitScene('templates', event)" role="tab" aria-selected="false">
 		                                                <span class="tab-icon" aria-hidden="true">📋</span>
 		                                                <span class="tab-label">模板</span>
@@ -249,6 +269,166 @@
 		                                <div class="form-group" id="git-stash-index-group" style="display:none">
 		                                    <label>暂存索引</label>
 		                                    <input type="number" id="git-stash-index" min="0" placeholder="0" oninput="updateGitCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Rebase 场景 -->
+		                    <div id="git-scene-rebase" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>变基设置</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>目标分支 *</label>
+		                                    <input type="text" id="git-rebase-branch" placeholder="main" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-rebase-interactive" onchange="updateGitCommand()">
+		                                        交互式变基 (-i)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>新基底 (--onto)</label>
+		                                    <input type="text" id="git-rebase-onto" placeholder="可选，指定新的基底分支" oninput="updateGitCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Cherry-pick 场景 -->
+		                    <div id="git-scene-cherrypick" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>挑选提交</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>提交哈希 * (多个用空格分隔)</label>
+		                                    <input type="text" id="git-cherrypick-commits" placeholder="abc1234 def5678" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-cherrypick-nocommit" onchange="updateGitCommand()">
+		                                        不自动提交 (-n)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-cherrypick-edit" onchange="updateGitCommand()">
+		                                        编辑提交消息 (-e)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-cherrypick-signoff" onchange="updateGitCommand()">
+		                                        添加签名 (-s)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>主线编号 (合并提交时使用)</label>
+		                                    <input type="number" id="git-cherrypick-mainline" min="1" placeholder="1 或 2" oninput="updateGitCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Tag 场景 -->
+		                    <div id="git-scene-tag" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>标签操作</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>操作类型</label>
+		                                    <select id="git-tag-action" onchange="updateGitTagForm();updateGitCommand()">
+		                                        <option value="create">创建标签</option>
+		                                        <option value="delete">删除标签</option>
+		                                        <option value="push">推送标签</option>
+		                                        <option value="list">列出标签</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group" id="git-tag-name-group">
+		                                    <label>标签名称 *</label>
+		                                    <input type="text" id="git-tag-name" placeholder="v1.0.0" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group" id="git-tag-annotate-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-tag-annotate" onchange="updateGitCommand()">
+		                                        创建附注标签 (-a)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group" id="git-tag-message-group">
+		                                    <label>标签消息</label>
+		                                    <input type="text" id="git-tag-message" placeholder="Release version 1.0.0" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group" id="git-tag-remote-group" style="display:none">
+		                                    <label>远程仓库</label>
+		                                    <input type="text" id="git-tag-remote" placeholder="origin" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group" id="git-tag-force-group" style="display:none">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-tag-force" onchange="updateGitCommand()">
+		                                        强制推送 (-f)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Remote 场景 -->
+		                    <div id="git-scene-remote" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>远程仓库操作</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>操作类型</label>
+		                                    <select id="git-remote-action" onchange="updateGitRemoteForm();updateGitCommand()">
+		                                        <option value="add">添加远程仓库</option>
+		                                        <option value="remove">删除远程仓库</option>
+		                                        <option value="set-url">修改 URL</option>
+		                                        <option value="rename">重命名</option>
+		                                        <option value="show">查看详情</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group" id="git-remote-name-group">
+		                                    <label>远程名称</label>
+		                                    <input type="text" id="git-remote-name" placeholder="origin" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group" id="git-remote-url-group">
+		                                    <label>仓库 URL *</label>
+		                                    <input type="text" id="git-remote-url" placeholder="https://github.com/user/repo.git" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group" id="git-remote-newname-group" style="display:none">
+		                                    <label>新名称 *</label>
+		                                    <input type="text" id="git-remote-newname" placeholder="upstream" oninput="updateGitCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Revert 场景 -->
+		                    <div id="git-scene-revert" class="git-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>撤销提交</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>提交哈希 * (多个用空格分隔)</label>
+		                                    <input type="text" id="git-revert-commits" placeholder="abc1234" oninput="updateGitCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-revert-nocommit" onchange="updateGitCommand()">
+		                                        不自动提交 (-n)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="git-revert-noedit" onchange="updateGitCommand()">
+		                                        使用默认消息 (--no-edit)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>主线编号 (合并提交时使用)</label>
+		                                    <input type="number" id="git-revert-mainline" min="1" placeholder="1 或 2" oninput="updateGitCommand()">
 		                                </div>
 		                            </div>
 		                        </div>

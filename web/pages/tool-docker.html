@@ -41,6 +41,22 @@
 		                                                        <span class="tab-icon" aria-hidden="true">📦</span>
 		                                                        <span class="tab-label">Container</span>
 		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('network', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">🌐</span>
+		                                                        <span class="tab-label">Network</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('volume', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">💾</span>
+		                                                        <span class="tab-label">Volume</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('prune', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">🧹</span>
+		                                                        <span class="tab-label">Prune</span>
+		                                                    </button>
+		                                                    <button type="button" class="tool-tab tool-tab-modern" onclick="switchDockerScene('cp', event)" role="tab" aria-selected="false">
+		                                                        <span class="tab-icon" aria-hidden="true">📋</span>
+		                                                        <span class="tab-label">CP</span>
+		                                                    </button>
 		                                                </div>
 		                    <!-- Run 场景 -->
 		                    <div id="docker-scene-run" class="docker-scene active">
@@ -368,6 +384,179 @@
 		                                    <label class="checkbox-label">
 		                                        <input type="checkbox" id="docker-container-force" onchange="updateDockerCommand()">
 		                                        强制操作 (-f)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Network 场景 -->
+		                    <div id="docker-scene-network" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>网络管理</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>操作类型 *</label>
+		                                    <select id="docker-network-action" onchange="updateDockerNetworkForm(); updateDockerCommand()">
+		                                        <option value="create">create - 创建网络</option>
+		                                        <option value="ls">ls - 列出网络</option>
+		                                        <option value="rm">rm - 删除网络</option>
+		                                        <option value="inspect">inspect - 查看详情</option>
+		                                        <option value="connect">connect - 连接容器</option>
+		                                        <option value="disconnect">disconnect - 断开容器</option>
+		                                        <option value="prune">prune - 清理未使用</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group" id="docker-network-name-group">
+		                                    <label>网络名称 *</label>
+		                                    <input type="text" id="docker-network-name" placeholder="my-network" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group" id="docker-network-driver-group">
+		                                    <label>网络驱动</label>
+		                                    <select id="docker-network-driver" onchange="updateDockerCommand()">
+		                                        <option value="">默认 (bridge)</option>
+		                                        <option value="bridge">bridge</option>
+		                                        <option value="host">host</option>
+		                                        <option value="overlay">overlay</option>
+		                                        <option value="macvlan">macvlan</option>
+		                                        <option value="none">none</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group" id="docker-network-subnet-group">
+		                                    <label>子网 (如: 172.20.0.0/16)</label>
+		                                    <input type="text" id="docker-network-subnet" placeholder="172.20.0.0/16" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group" id="docker-network-gateway-group">
+		                                    <label>网关 (如: 172.20.0.1)</label>
+		                                    <input type="text" id="docker-network-gateway" placeholder="172.20.0.1" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group" id="docker-network-container-group">
+		                                    <label>容器名称 *</label>
+		                                    <input type="text" id="docker-network-container" placeholder="my-container" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group" id="docker-network-ip-group">
+		                                    <label>指定 IP (如: 172.20.0.10)</label>
+		                                    <input type="text" id="docker-network-ip" placeholder="172.20.0.10" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group" id="docker-network-force-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-network-force" onchange="updateDockerCommand()">
+		                                        强制操作 (-f)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Volume 场景 -->
+		                    <div id="docker-scene-volume" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>卷管理</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>操作类型 *</label>
+		                                    <select id="docker-volume-action" onchange="updateDockerVolumeForm(); updateDockerCommand()">
+		                                        <option value="create">create - 创建卷</option>
+		                                        <option value="ls">ls - 列出卷</option>
+		                                        <option value="rm">rm - 删除卷</option>
+		                                        <option value="inspect">inspect - 查看详情</option>
+		                                        <option value="prune">prune - 清理未使用</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group" id="docker-volume-name-group">
+		                                    <label>卷名称 *</label>
+		                                    <input type="text" id="docker-volume-name" placeholder="my-volume" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group" id="docker-volume-driver-group">
+		                                    <label>卷驱动</label>
+		                                    <select id="docker-volume-driver" onchange="updateDockerCommand()">
+		                                        <option value="">默认 (local)</option>
+		                                        <option value="local">local</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group" id="docker-volume-opts-group">
+		                                    <label>驱动选项 (格式: key=value，多个用逗号分隔)</label>
+		                                    <input type="text" id="docker-volume-opts" placeholder="type=nfs, o=addr=192.168.1.1" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group" id="docker-volume-filter-group">
+		                                    <label>过滤条件 (如: dangling=true)</label>
+		                                    <input type="text" id="docker-volume-filter" placeholder="dangling=true" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group" id="docker-volume-force-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-volume-force" onchange="updateDockerCommand()">
+		                                        强制操作 (-f)
+		                                    </label>
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- Prune 场景 -->
+		                    <div id="docker-scene-prune" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>系统清理</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-prune-all" onchange="updateDockerCommand()">
+		                                        清理所有未使用资源 (-a)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-prune-volumes" onchange="updateDockerCommand()">
+		                                        同时清理卷 (--volumes)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-prune-force" checked onchange="updateDockerCommand()">
+		                                        跳过确认 (-f)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>过滤条件 (如: until=24h)</label>
+		                                    <input type="text" id="docker-prune-filter" placeholder="until=24h" oninput="updateDockerCommand()">
+		                                </div>
+		                            </div>
+		                        </div>
+		                    </div>
+
+		                    <!-- CP 场景 -->
+		                    <div id="docker-scene-cp" class="docker-scene">
+		                        <div class="converter-panel">
+		                            <div class="panel-header"><h3>文件复制</h3></div>
+		                            <div class="panel-body">
+		                                <div class="form-group">
+		                                    <label>复制方向 *</label>
+		                                    <select id="docker-cp-direction" onchange="updateDockerCpForm(); updateDockerCommand()">
+		                                        <option value="to-container">主机 → 容器</option>
+		                                        <option value="from-container">容器 → 主机</option>
+		                                    </select>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label>容器名称 *</label>
+		                                    <input type="text" id="docker-cp-container" placeholder="my-container" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label id="docker-cp-host-label">主机路径 (源) *</label>
+		                                    <input type="text" id="docker-cp-host-path" placeholder="/local/path/file.txt" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label id="docker-cp-container-label">容器路径 (目标) *</label>
+		                                    <input type="text" id="docker-cp-container-path" placeholder="/container/path/" oninput="updateDockerCommand()">
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-cp-archive" onchange="updateDockerCommand()">
+		                                        归档模式 (-a)
+		                                    </label>
+		                                </div>
+		                                <div class="form-group">
+		                                    <label class="checkbox-label">
+		                                        <input type="checkbox" id="docker-cp-follow-link" onchange="updateDockerCommand()">
+		                                        跟随符号链接 (-L)
 		                                    </label>
 		                                </div>
 		                            </div>

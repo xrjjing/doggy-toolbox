@@ -774,6 +774,227 @@
         return buildResult(parts.join(' '), '删除 Stack');
     }
 
+    // ==================== docker network ====================
+
+    /**
+     * 生成 docker network 命令
+     * @param {string} action - 操作类型：create, ls, rm, inspect, connect, disconnect
+     * @param {string} name - 网络名称
+     * @param {object} options - 选项
+     * @returns {object} { command, description }
+     */
+    function generateNetworkCommand(action, name, options = {}) {
+        const parts = ['docker network'];
+        const act = (action || '').toLowerCase();
+
+        switch (act) {
+            case 'create':
+                if (!name) throw new Error('创建网络需要提供网络名称');
+                parts.push('create');
+                if (options.driver) {
+                    parts.push(`-d ${escapeArg(options.driver)}`);
+                }
+                if (options.subnet) {
+                    parts.push(`--subnet ${escapeArg(options.subnet)}`);
+                }
+                if (options.gateway) {
+                    parts.push(`--gateway ${escapeArg(options.gateway)}`);
+                }
+                if (options.ipRange) {
+                    parts.push(`--ip-range ${escapeArg(options.ipRange)}`);
+                }
+                if (options.internal) {
+                    parts.push('--internal');
+                }
+                if (options.attachable) {
+                    parts.push('--attachable');
+                }
+                parts.push(escapeArg(name));
+                return buildResult(parts.join(' '), `创建网络 ${name}`);
+
+            case 'ls':
+                parts.push('ls');
+                if (options.filter) {
+                    parts.push(`--filter ${escapeArg(options.filter)}`);
+                }
+                return buildResult(parts.join(' '), '列出网络');
+
+            case 'rm':
+                if (!name) throw new Error('删除网络需要提供网络名称');
+                parts.push('rm');
+                if (options.force) {
+                    parts.push('-f');
+                }
+                parts.push(escapeArg(name));
+                return buildResult(parts.join(' '), `删除网络 ${name}`);
+
+            case 'inspect':
+                if (!name) throw new Error('查看网络需要提供网络名称');
+                parts.push('inspect', escapeArg(name));
+                return buildResult(parts.join(' '), `查看网络 ${name} 详情`);
+
+            case 'connect':
+                if (!name) throw new Error('连接网络需要提供网络名称');
+                if (!options.container) throw new Error('连接网络需要提供容器名称');
+                parts.push('connect');
+                if (options.ip) {
+                    parts.push(`--ip ${escapeArg(options.ip)}`);
+                }
+                if (options.alias) {
+                    parts.push(`--alias ${escapeArg(options.alias)}`);
+                }
+                parts.push(escapeArg(name), escapeArg(options.container));
+                return buildResult(parts.join(' '), `将容器 ${options.container} 连接到网络 ${name}`);
+
+            case 'disconnect':
+                if (!name) throw new Error('断开网络需要提供网络名称');
+                if (!options.container) throw new Error('断开网络需要提供容器名称');
+                parts.push('disconnect');
+                if (options.force) {
+                    parts.push('-f');
+                }
+                parts.push(escapeArg(name), escapeArg(options.container));
+                return buildResult(parts.join(' '), `将容器 ${options.container} 从网络 ${name} 断开`);
+
+            case 'prune':
+                parts.push('prune', '-f');
+                return buildResult(parts.join(' '), '清理未使用的网络');
+
+            default:
+                throw new Error(`未知的网络操作: ${action}`);
+        }
+    }
+
+    // ==================== docker volume ====================
+
+    /**
+     * 生成 docker volume 命令
+     * @param {string} action - 操作类型：create, ls, rm, inspect, prune
+     * @param {string} name - 卷名称
+     * @param {object} options - 选项
+     * @returns {object} { command, description }
+     */
+    function generateVolumeCommand(action, name, options = {}) {
+        const parts = ['docker volume'];
+        const act = (action || '').toLowerCase();
+
+        switch (act) {
+            case 'create':
+                if (!name) throw new Error('创建卷需要提供卷名称');
+                parts.push('create');
+                if (options.driver) {
+                    parts.push(`-d ${escapeArg(options.driver)}`);
+                }
+                if (options.label) {
+                    const labels = Array.isArray(options.label) ? options.label : [options.label];
+                    labels.forEach(l => parts.push(`--label ${escapeArg(l)}`));
+                }
+                if (options.opt) {
+                    const opts = Array.isArray(options.opt) ? options.opt : [options.opt];
+                    opts.forEach(o => parts.push(`-o ${escapeArg(o)}`));
+                }
+                parts.push(escapeArg(name));
+                return buildResult(parts.join(' '), `创建卷 ${name}`);
+
+            case 'ls':
+                parts.push('ls');
+                if (options.filter) {
+                    parts.push(`--filter ${escapeArg(options.filter)}`);
+                }
+                if (options.quiet) {
+                    parts.push('-q');
+                }
+                return buildResult(parts.join(' '), '列出卷');
+
+            case 'rm':
+                if (!name) throw new Error('删除卷需要提供卷名称');
+                parts.push('rm');
+                if (options.force) {
+                    parts.push('-f');
+                }
+                parts.push(escapeArg(name));
+                return buildResult(parts.join(' '), `删除卷 ${name}`);
+
+            case 'inspect':
+                if (!name) throw new Error('查看卷需要提供卷名称');
+                parts.push('inspect', escapeArg(name));
+                return buildResult(parts.join(' '), `查看卷 ${name} 详情`);
+
+            case 'prune':
+                parts.push('prune', '-f');
+                if (options.all) {
+                    parts.push('-a');
+                }
+                return buildResult(parts.join(' '), '清理未使用的卷');
+
+            default:
+                throw new Error(`未知的卷操作: ${action}`);
+        }
+    }
+
+    // ==================== docker system prune ====================
+
+    /**
+     * 生成 docker system prune 命令
+     * @param {object} options - 选项
+     * @returns {object} { command, description }
+     */
+    function generateSystemPruneCommand(options = {}) {
+        const parts = ['docker system prune'];
+        const descriptions = ['清理未使用的资源'];
+
+        if (options.force) {
+            parts.push('-f');
+        }
+
+        if (options.all) {
+            parts.push('-a');
+            descriptions.push('包括未使用的镜像');
+        }
+
+        if (options.volumes) {
+            parts.push('--volumes');
+            descriptions.push('包括卷');
+        }
+
+        if (options.filter) {
+            parts.push(`--filter ${escapeArg(options.filter)}`);
+        }
+
+        return buildResult(parts.join(' '), descriptions.join('，'));
+    }
+
+    // ==================== docker cp ====================
+
+    /**
+     * 生成 docker cp 命令
+     * @param {string} source - 源路径
+     * @param {string} dest - 目标路径
+     * @param {object} options - 选项
+     * @returns {object} { command, description }
+     */
+    function generateCpCommand(source, dest, options = {}) {
+        if (!source) throw new Error('源路径不能为空');
+        if (!dest) throw new Error('目标路径不能为空');
+
+        const parts = ['docker cp'];
+
+        if (options.archive) {
+            parts.push('-a');
+        }
+
+        if (options.followLink) {
+            parts.push('-L');
+        }
+
+        parts.push(escapeArg(source), escapeArg(dest));
+
+        const isToContainer = dest.includes(':');
+        const description = isToContainer ? '复制文件到容器' : '从容器复制文件';
+
+        return buildResult(parts.join(' '), description);
+    }
+
     // 导出 API
     return {
         generateRunCommand,
@@ -802,6 +1023,10 @@
         generateStackPsCommand,
         generateStackServicesCommand,
         generateStackRmCommand,
+        generateNetworkCommand,
+        generateVolumeCommand,
+        generateSystemPruneCommand,
+        generateCpCommand,
         // 仅供测试
         _escapeArg: escapeArg
     };

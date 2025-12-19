@@ -671,6 +671,106 @@
         throw new Error(`未知的标签操作: ${action}`);
     }
 
+    /**
+     * 生成 cherry-pick 命令
+     * @param {string} commits - 提交哈希（多个用空格分隔）
+     * @param {object} options - 选项
+     *   - noCommit: 不自动提交 (-n)
+     *   - edit: 编辑提交消息 (-e)
+     *   - signoff: 添加签名 (-s)
+     *   - mainline: 指定主线（合并提交时使用）
+     * @returns {object} { command, description }
+     */
+    function generateCherryPickCommand(commits, options = {}) {
+        if (!commits || typeof commits !== 'string' || !commits.trim()) {
+            throw new Error('提交哈希不能为空');
+        }
+
+        const parts = ['git cherry-pick'];
+        const descriptions = [];
+
+        if (options.noCommit) {
+            parts.push('-n');
+            descriptions.push('不自动提交');
+        }
+
+        if (options.edit) {
+            parts.push('-e');
+            descriptions.push('编辑消息');
+        }
+
+        if (options.signoff) {
+            parts.push('-s');
+            descriptions.push('添加签名');
+        }
+
+        if (options.mainline) {
+            parts.push(`-m ${options.mainline}`);
+            descriptions.push(`主线 ${options.mainline}`);
+        }
+
+        parts.push(commits.trim());
+
+        const commitList = commits.trim().split(/\s+/);
+        const commitDesc = commitList.length > 1 ? `${commitList.length} 个提交` : commitList[0].substring(0, 7);
+
+        return {
+            command: parts.join(' '),
+            description: descriptions.length > 0
+                ? `挑选 ${commitDesc} (${descriptions.join('，')})`
+                : `挑选提交 ${commitDesc}`
+        };
+    }
+
+    /**
+     * 生成 revert 命令
+     * @param {string} commits - 提交哈希（多个用空格分隔）
+     * @param {object} options - 选项
+     *   - noCommit: 不自动提交 (-n)
+     *   - edit: 编辑提交消息 (-e)
+     *   - mainline: 指定主线（合并提交时使用）
+     *   - noEdit: 不编辑消息 (--no-edit)
+     * @returns {object} { command, description }
+     */
+    function generateRevertCommand(commits, options = {}) {
+        if (!commits || typeof commits !== 'string' || !commits.trim()) {
+            throw new Error('提交哈希不能为空');
+        }
+
+        const parts = ['git revert'];
+        const descriptions = [];
+
+        if (options.noCommit) {
+            parts.push('-n');
+            descriptions.push('不自动提交');
+        }
+
+        if (options.noEdit) {
+            parts.push('--no-edit');
+            descriptions.push('使用默认消息');
+        } else if (options.edit) {
+            parts.push('-e');
+            descriptions.push('编辑消息');
+        }
+
+        if (options.mainline) {
+            parts.push(`-m ${options.mainline}`);
+            descriptions.push(`主线 ${options.mainline}`);
+        }
+
+        parts.push(commits.trim());
+
+        const commitList = commits.trim().split(/\s+/);
+        const commitDesc = commitList.length > 1 ? `${commitList.length} 个提交` : commitList[0].substring(0, 7);
+
+        return {
+            command: parts.join(' '),
+            description: descriptions.length > 0
+                ? `撤销 ${commitDesc} (${descriptions.join('，')})`
+                : `撤销提交 ${commitDesc}`
+        };
+    }
+
     // 导出 API
     return {
         generateCloneCommand,
@@ -684,6 +784,8 @@
         getCommonTemplates,
         generateRemoteCommand,
         generateFetchCommand,
-        generateTagCommand
+        generateTagCommand,
+        generateCherryPickCommand,
+        generateRevertCommand
     };
 });
