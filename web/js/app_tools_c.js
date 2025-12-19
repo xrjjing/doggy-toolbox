@@ -1917,13 +1917,17 @@ function generateQrcode() {
 
     // 显示预览
     const preview = document.getElementById('qrcode-preview');
-    preview.innerHTML = '';
+    const frame = preview.querySelector('.qr-code-frame');
+    if (!frame) {
+        showToast('预览容器初始化失败', 'error');
+        return;
+    }
+    frame.innerHTML = '';
     const img = document.createElement('img');
     img.src = qrcodeDataUrl;
     img.alt = '二维码';
-    img.style.maxWidth = '100%';
-    img.style.borderRadius = '8px';
-    preview.appendChild(img);
+    img.className = 'qr-result-img';
+    frame.appendChild(img);
 
     // 显示操作按钮
     document.getElementById('qrcode-actions').style.display = 'flex';
@@ -1981,13 +1985,22 @@ async function copyQrcode() {
 function clearQrcodeTool() {
     document.getElementById('qrcode-input').value = '';
     document.getElementById('qrcode-byte-count').textContent = '0 字节';
-    document.getElementById('qrcode-preview').innerHTML = `
-        <div class="qrcode-placeholder">
-            <span class="placeholder-icon">📱</span>
-            <span class="placeholder-text">二维码将显示在这里</span>
-        </div>
-    `;
     document.getElementById('qrcode-actions').style.display = 'none';
     qrcodeCanvas = null;
     qrcodeDataUrl = null;
+
+    const preview = document.getElementById('qrcode-preview');
+    const frame = preview.querySelector('.qr-code-frame');
+    if (!frame) return;
+    frame.innerHTML = `
+        <div class="qr-preview-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <path d="M3 14h7v7H3z"></path>
+            </svg>
+            <span>输入内容并点击生成<br>预览将显示在这里</span>
+        </div>
+    `;
 }
