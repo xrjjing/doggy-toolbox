@@ -1,0 +1,60 @@
+<!-- nginx 配置生成工具 -->
+<section id="page-tool-nginx" class="page">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>nginx 配置生成</h1>
+            <p class="subtitle">可视化生成常用 nginx 配置片段</p>
+        </div>
+    </div>
+    <div class="tool-layout-dual">
+        <!-- 左侧：配置选项 -->
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>配置选项</h3>
+            </div>
+            <div class="panel-body">
+                <!-- 模板选择 -->
+                <div class="form-group">
+                    <label for="nginx-template">配置模板</label>
+                    <select id="nginx-template" onchange="updateNginxTemplate()">
+                        <option value="reverseProxy">反向代理</option>
+                        <option value="staticSite">静态站点</option>
+                        <option value="spa">SPA 单页应用</option>
+                        <option value="ssl">SSL/HTTPS</option>
+                        <option value="loadBalance">负载均衡</option>
+                        <option value="rateLimit">限流配置</option>
+                        <option value="cors">CORS 跨域</option>
+                        <option value="fileUpload">文件上传</option>
+                    </select>
+                </div>
+                <!-- 通用选项 -->
+                <div class="form-group">
+                    <label for="nginx-server-name">域名 (server_name)</label>
+                    <input type="text" id="nginx-server-name" placeholder="example.com" oninput="updateNginxConfig()">
+                </div>
+                <div class="form-group">
+                    <label for="nginx-listen-port">监听端口 (listen)</label>
+                    <input type="number" id="nginx-listen-port" placeholder="80" oninput="updateNginxConfig()">
+                </div>
+                <!-- 动态选项区 -->
+                <div id="nginx-dynamic-options"></div>
+            </div>
+        </div>
+        <!-- 右侧：配置输出 -->
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>生成结果</h3>
+                <div class="panel-actions">
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="copyNginxConfig(this)">复制</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div id="nginx-status" class="tool-stats" aria-live="polite"></div>
+                <div class="form-group flex-1">
+                    <label for="nginx-output" class="visually-hidden">nginx 配置</label>
+                    <textarea id="nginx-output" readonly placeholder="配置将显示在这里..." rows="20" class="code-output"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

@@ -2842,3 +2842,1158 @@ function clearQrcodeTool() {
         </div>
     `;
 }
+
+// ==================== HTML 实体编解码（M36） ====================
+let htmlEntityMode = 'encode';
+
+function initHtmlEntityTool() {
+    const input = document.getElementById('html-entity-input');
+    if (!input) return;
+    input.addEventListener('input', updateHtmlEntityTool);
+    setHtmlEntityMode('encode');
+    renderHtmlEntityRef();
+}
+
+function setHtmlEntityMode(mode) {
+    if (mode !== 'encode' && mode !== 'decode') return;
+    htmlEntityMode = mode;
+    document.getElementById('html-entity-encode-btn')?.classList.toggle('active', mode === 'encode');
+    document.getElementById('html-entity-decode-btn')?.classList.toggle('active', mode === 'decode');
+    // 解码模式下禁用编码选项
+    const formatEl = document.getElementById('html-entity-format');
+    const encodeAllEl = document.getElementById('html-entity-all');
+    const isDecodeMode = mode === 'decode';
+    if (formatEl) formatEl.disabled = isDecodeMode;
+    if (encodeAllEl) encodeAllEl.disabled = isDecodeMode;
+    updateHtmlEntityTool();
+}
+
+function updateHtmlEntityTool() {
+    const inputEl = document.getElementById('html-entity-input');
+    const outputEl = document.getElementById('html-entity-output');
+    const errorsEl = document.getElementById('html-entity-errors');
+    const formatEl = document.getElementById('html-entity-format');
+    const encodeAllEl = document.getElementById('html-entity-all');
+    if (!inputEl || !outputEl || !errorsEl) return;
+
+    const inputText = inputEl.value || '';
+    errorsEl.innerHTML = '';
+
+    if (!inputText.trim()) {
+        outputEl.value = '';
+        return;
+    }
+
+    try {
+        if (!window.DogToolboxM36Utils) {
+            throw new Error('工具模块未加载：tools_m36_utils.js');
+        }
+
+        if (htmlEntityMode === 'encode') {
+            const format = formatEl?.value || 'named';
+            const encodeAll = !!encodeAllEl?.checked;
+            outputEl.value = window.DogToolboxM36Utils.encodeHtmlEntities(inputText, {
+                mode: format,
+                encodeAll: encodeAll
+            });
+        } else {
+            outputEl.value = window.DogToolboxM36Utils.decodeHtmlEntities(inputText);
+        }
+    } catch (e) {
+        outputEl.value = '';
+        errorsEl.innerHTML = `<div>⚠ ${escapeHtml(e?.message || String(e))}</div>`;
+    }
+}
+
+function clearHtmlEntityTool() {
+    const inputEl = document.getElementById('html-entity-input');
+    const outputEl = document.getElementById('html-entity-output');
+    const errorsEl = document.getElementById('html-entity-errors');
+    if (inputEl) inputEl.value = '';
+    if (outputEl) outputEl.value = '';
+    if (errorsEl) errorsEl.innerHTML = '';
+}
+
+function copyHtmlEntityOutput(btn) {
+    const outputEl = document.getElementById('html-entity-output');
+    const text = outputEl?.value || '';
+    copyToolText(btn, text);
+}
+
+function toggleHtmlEntityRef() {
+    const refEl = document.getElementById('html-entity-ref');
+    if (!refEl) return;
+    refEl.style.display = refEl.style.display === 'none' ? '' : 'none';
+}
+
+function renderHtmlEntityRef() {
+    const gridEl = document.getElementById('html-entity-ref-grid');
+    if (!gridEl || !window.DogToolboxM36Utils) return;
+
+    const entities = window.DogToolboxM36Utils.getNamedEntities();
+    let html = '<table class="entity-ref-table"><thead><tr><th>字符</th><th>命名</th><th>十进制</th><th>十六进制</th></tr></thead><tbody>';
+    for (const e of entities) {
+        html += `<tr>
+            <td class="entity-char">${escapeHtml(e.char)}</td>
+            <td><code>&amp;${e.name};</code></td>
+            <td><code>&amp;#${e.decimal};</code></td>
+            <td><code>&amp;#x${e.hex};</code></td>
+        </tr>`;
+    }
+    html += '</tbody></table>';
+    gridEl.innerHTML = html;
+}
+
+// ==================== 图片 Base64 转换（M37） ====================
+
+let currentImgFile = null;
+let currentImgDataUri = null;
+
+function initImgBase64Tool() {
+    // 初始化完成，事件已通过 HTML 绑定
+    document.getElementById('copy-base64-btn').disabled = true;
+    document.getElementById('download-img-btn').disabled = true;
+}
+
+function triggerImgUpload() {
+    // 优先使用 pywebview 原生文件对话框（解决 macOS 上 HTML file input 无法选择图片的问题）
+    if (window.pywebview?.api?.open_image_file_dialog) {
+        window.pywebview.api.open_image_file_dialog().then(result => {
+            if (result.success) {
+                // 构造 Data URI
+                const dataUri = `data:${result.mimetype};base64,${result.data}`;
+                // 创建伪 File 对象用于显示信息
+                const pseudoFile = {
+                    name: result.filename,
+                    type: result.mimetype,
+                    size: result.size
+                };
+                processImgFromBackend(pseudoFile, dataUri);
+            } else if (result.error && result.error !== '用户取消了选择') {
+                showToast('选择文件失败: ' + result.error, 'error');
+            }
+        }).catch(err => {
+            // 回退到 HTML file input
+            document.getElementById('img-file-input')?.click();
+        });
+        return;
+    }
+    // 回退到 HTML file input
+    document.getElementById('img-file-input')?.click();
+}
+
+/**
+ * 处理从后端获取的图片数据
+ */
+function processImgFromBackend(fileInfo, dataUri) {
+    // 验证 MIME 类型
+    if (!window.DogToolboxM37Utils?.isSupportedType(fileInfo.type)) {
+        showToast('不支持的图片格式，请选择 PNG/JPG/GIF/WebP/BMP/ICO 文件', 'error');
+        return;
+    }
+
+    // 限制文件大小
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (fileInfo.size > MAX_SIZE) {
+        showToast(`图片过大（${window.DogToolboxM37Utils?.formatFileSize(fileInfo.size) || fileInfo.size + ' B'}），最大支持 5MB`, 'error');
+        return;
+    }
+
+    currentImgFile = fileInfo;
+    currentImgDataUri = dataUri;
+
+    // 显示预览
+    const previewImg = document.getElementById('img-preview');
+    const previewContainer = document.getElementById('img-preview-container');
+    const placeholder = document.getElementById('img-upload-placeholder');
+    const infoEl = document.getElementById('img-info');
+
+    previewImg.src = dataUri;
+    previewImg.onload = function() {
+        const info = [];
+        info.push(`${this.naturalWidth} × ${this.naturalHeight}`);
+        info.push(window.DogToolboxM37Utils?.formatFileSize(fileInfo.size) || `${fileInfo.size} B`);
+        info.push(fileInfo.type);
+        infoEl.textContent = info.join(' | ');
+    };
+
+    placeholder.style.display = 'none';
+    previewContainer.style.display = 'flex';
+
+    // 输出 Base64
+    updateImgBase64Output();
+    document.getElementById('copy-base64-btn').disabled = false;
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const target = e.currentTarget;
+    if (target) {
+        target.classList.add('drag-over');
+    }
+}
+
+function handleDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const target = e.currentTarget;
+    if (target) {
+        target.classList.remove('drag-over');
+    }
+}
+
+function handleImgDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.classList.remove('drag-over');
+
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+        processImgFile(files[0]);
+    }
+}
+
+function handleImgSelect(e) {
+    const file = e.target?.files?.[0];
+    if (file) {
+        processImgFile(file);
+    }
+    // 清空，以便可以再次选择相同文件
+    e.target.value = '';
+}
+
+function processImgFile(file) {
+    if (!file) return;
+
+    // 使用白名单校验文件类型
+    let mimeType = file.type;
+    if (!mimeType) {
+        // file.type 为空时尝试从文件名推断
+        mimeType = window.DogToolboxM37Utils?.getMimeFromFilename(file.name) || '';
+    }
+    if (!mimeType || !window.DogToolboxM37Utils?.isSupportedType(mimeType)) {
+        showToast('不支持的图片格式，请选择 PNG/JPG/GIF/WebP/BMP/ICO 文件', 'error');
+        return;
+    }
+
+    // 限制文件大小（5MB，Base64 编码后约 6.7MB，textarea 可承受）
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX_SIZE) {
+        showToast(`图片过大（${window.DogToolboxM37Utils?.formatFileSize(file.size) || file.size + ' B'}），最大支持 5MB`, 'error');
+        return;
+    }
+
+    currentImgFile = file;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        currentImgDataUri = e.target.result;
+
+        // 显示预览
+        const previewImg = document.getElementById('img-preview');
+        const previewContainer = document.getElementById('img-preview-container');
+        const placeholder = document.getElementById('img-upload-placeholder');
+        const infoEl = document.getElementById('img-info');
+
+        previewImg.src = currentImgDataUri;
+        previewImg.onload = function() {
+            // 显示图片信息
+            const info = [];
+            info.push(`${this.naturalWidth} × ${this.naturalHeight}`);
+            info.push(window.DogToolboxM37Utils?.formatFileSize(file.size) || `${file.size} B`);
+            info.push(file.type);
+            infoEl.textContent = info.join(' | ');
+        };
+
+        placeholder.style.display = 'none';
+        previewContainer.style.display = 'flex';
+
+        // 输出 Base64
+        updateImgBase64Output();
+        document.getElementById('copy-base64-btn').disabled = false;
+    };
+    reader.onerror = function() {
+        showToast('文件读取失败', 'error');
+        currentImgFile = null;
+    };
+    reader.onabort = function() {
+        currentImgFile = null;
+    };
+    reader.readAsDataURL(file);
+}
+
+function updateImgBase64Output() {
+    const outputEl = document.getElementById('img-base64-output');
+    const copyBtn = document.getElementById('copy-base64-btn');
+    const includePrefix = document.getElementById('img-include-prefix')?.checked ?? true;
+
+    if (!currentImgDataUri) {
+        outputEl.value = '';
+        copyBtn.disabled = true;
+        return;
+    }
+
+    let outputValue = '';
+    if (includePrefix) {
+        outputValue = currentImgDataUri;
+    } else {
+        // 去除 data:image/xxx;base64, 前缀
+        const base64 = currentImgDataUri.split(',')[1] || '';
+        outputValue = base64;
+    }
+    outputEl.value = outputValue;
+    copyBtn.disabled = !outputValue;
+}
+
+function clearImgToBase64() {
+    currentImgFile = null;
+    currentImgDataUri = null;
+
+    document.getElementById('img-file-input').value = '';
+    document.getElementById('img-base64-output').value = '';
+    document.getElementById('img-preview-container').style.display = 'none';
+    document.getElementById('img-upload-placeholder').style.display = 'flex';
+    document.getElementById('img-info').textContent = '';
+    document.getElementById('copy-base64-btn').disabled = true;
+}
+
+function copyImgBase64(btn) {
+    const output = document.getElementById('img-base64-output').value;
+    if (!output || btn.disabled) {
+        return;
+    }
+    copyToolText(btn, output);
+}
+
+// Base64 → 图片
+let base64PreviewDataUri = null;
+let _base64PreviewDebounceTimer = null;
+
+function updateBase64Preview() {
+    // 防抖处理，避免大量输入时卡顿
+    if (_base64PreviewDebounceTimer) {
+        clearTimeout(_base64PreviewDebounceTimer);
+    }
+    _base64PreviewDebounceTimer = setTimeout(_doUpdateBase64Preview, 200);
+}
+
+function _doUpdateBase64Preview() {
+    const inputEl = document.getElementById('base64-img-input');
+    const errorsEl = document.getElementById('base64-img-errors');
+    const previewImg = document.getElementById('base64-img-preview');
+    const previewContainer = document.getElementById('base64-img-preview-container');
+    const placeholder = document.getElementById('base64-preview-placeholder');
+    const infoEl = document.getElementById('base64-img-info');
+    const downloadBtn = document.getElementById('download-img-btn');
+    const previewZone = document.getElementById('base64-preview-zone');
+
+    errorsEl.textContent = '';
+    previewZone.classList.remove('preview-error');
+    // 去除空白字符（常见换行 Base64）
+    const input = (inputEl.value || '').replace(/\s+/g, '');
+
+    if (!input) {
+        placeholder.style.display = 'flex';
+        previewContainer.style.display = 'none';
+        base64PreviewDataUri = null;
+        downloadBtn.disabled = true;
+        return;
+    }
+
+    // 输入长度限制（约 5MB 对应 ~6.7M Base64 字符）
+    const MAX_BASE64_LEN = 7 * 1024 * 1024;
+    if (input.length > MAX_BASE64_LEN) {
+        errorsEl.textContent = '⚠ 输入过大，最大支持约 5MB 图片';
+        placeholder.style.display = 'flex';
+        previewContainer.style.display = 'none';
+        previewZone.classList.add('preview-error');
+        base64PreviewDataUri = null;
+        downloadBtn.disabled = true;
+        return;
+    }
+
+    // 判断是否已有 Data URI 前缀
+    let dataUri;
+    if (input.startsWith('data:image/')) {
+        dataUri = input;
+    } else {
+        // 尝试检测图片类型，默认使用 PNG
+        let mimeType = 'image/png';
+        if (input.startsWith('/9j/')) {
+            mimeType = 'image/jpeg';
+        } else if (input.startsWith('R0lG')) {
+            mimeType = 'image/gif';
+        } else if (input.startsWith('UklGR')) {
+            mimeType = 'image/webp';
+        } else if (input.startsWith('iVBOR')) {
+            mimeType = 'image/png';
+        }
+        // SVG 默认禁用（安全考虑）
+        dataUri = `data:${mimeType};base64,${input}`;
+    }
+
+    // 验证 Base64
+    const parsed = window.DogToolboxM37Utils?.parseDataUri(dataUri);
+    if (!parsed?.isValid) {
+        errorsEl.textContent = '⚠ 无效的 Base64 格式';
+        placeholder.style.display = 'flex';
+        previewContainer.style.display = 'none';
+        previewZone.classList.add('preview-error');
+        base64PreviewDataUri = null;
+        downloadBtn.disabled = true;
+        return;
+    }
+
+    // 尝试加载图片
+    previewImg.onload = function() {
+        const info = [];
+        info.push(`${this.naturalWidth} × ${this.naturalHeight}`);
+        const size = window.DogToolboxM37Utils?.getOriginalSizeFromBase64(parsed.base64) || 0;
+        info.push(window.DogToolboxM37Utils?.formatFileSize(size) || `${size} B`);
+        info.push(parsed.mimeType);
+        infoEl.textContent = info.join(' | ');
+
+        placeholder.style.display = 'none';
+        previewContainer.style.display = 'flex';
+        base64PreviewDataUri = dataUri;
+        downloadBtn.disabled = false;
+        previewZone.classList.remove('preview-error');
+    };
+
+    previewImg.onerror = function() {
+        errorsEl.textContent = '⚠ 无法解析为有效图片';
+        placeholder.style.display = 'flex';
+        previewContainer.style.display = 'none';
+        previewZone.classList.add('preview-error');
+        base64PreviewDataUri = null;
+        downloadBtn.disabled = true;
+    };
+
+    previewImg.src = dataUri;
+}
+
+function clearBase64ToImg() {
+    document.getElementById('base64-img-input').value = '';
+    document.getElementById('base64-img-errors').innerHTML = '';
+    document.getElementById('base64-img-preview-container').style.display = 'none';
+    document.getElementById('base64-preview-placeholder').style.display = 'flex';
+    document.getElementById('base64-img-info').textContent = '';
+    document.getElementById('base64-preview-zone').classList.remove('preview-error');
+    document.getElementById('download-img-btn').disabled = true;
+    base64PreviewDataUri = null;
+}
+
+async function downloadBase64Img() {
+    const downloadBtn = document.getElementById('download-img-btn');
+    if (!base64PreviewDataUri || downloadBtn?.disabled) {
+        return;
+    }
+
+    const parsed = window.DogToolboxM37Utils?.parseDataUri(base64PreviewDataUri);
+    if (!parsed?.isValid) {
+        showToast('无效的图片数据', 'error');
+        return;
+    }
+
+    const ext = window.DogToolboxM37Utils?.getExtensionFromMime(parsed?.mimeType) || 'png';
+    const filename = `image.${ext}`;
+
+    // 优先使用后端保存
+    if (window.pywebview?.api?.save_binary_file_dialog) {
+        try {
+            const result = await window.pywebview.api.save_binary_file_dialog(
+                parsed.base64,
+                filename
+            );
+            if (result.success) {
+                showToast('已保存到: ' + result.path, 'success');
+            } else if (result.error && result.error !== '用户取消了保存') {
+                showToast('保存失败: ' + result.error, 'error');
+            }
+        } catch (e) {
+            window.DogToolboxM37Utils?.downloadDataUri(base64PreviewDataUri, filename);
+            showToast('下载成功', 'success');
+        }
+        return;
+    }
+
+    // 前端下载
+    window.DogToolboxM37Utils?.downloadDataUri(base64PreviewDataUri, filename);
+    showToast('下载成功', 'success');
+}
+
+// ==================== 文本排序/去重（M38） ====================
+
+let _textSortDebounceTimer = null;
+
+function initTextSortTool() {
+    const uniqueCheckbox = document.getElementById('text-sort-unique');
+    if (uniqueCheckbox) {
+        // Setup the event listener to toggle the section and then update the tool
+        uniqueCheckbox.addEventListener('change', () => {
+            toggleCollapsibleSection('text-sort-unique', 'text-sort-unique-options');
+            updateTextSortTool(); // Manually trigger update after toggling
+        });
+    }
+
+    // Initial UI setup on load
+    toggleCollapsibleSection('text-sort-unique', 'text-sort-unique-options');
+    updateTextSortTool();
+}
+
+/**
+ * Reusable utility to toggle a collapsible section based on a checkbox control.
+ * @param {string} checkboxId The ID of the checkbox that controls the section.
+ * @param {string} sectionId The ID of the section to show/hide.
+ */
+function toggleCollapsibleSection(checkboxId, sectionId) {
+    const checkbox = document.getElementById(checkboxId);
+    const section = document.getElementById(sectionId);
+    if (!checkbox || !section) return;
+
+    const isChecked = checkbox.checked;
+    section.classList.toggle('hidden', !isChecked);
+    checkbox.setAttribute('aria-expanded', isChecked);
+}
+
+/**
+ * Triggers the debounced text processing.
+ * All form controls now call this function on change/input.
+ */
+function updateTextSortTool() {
+    if (_textSortDebounceTimer) {
+        clearTimeout(_textSortDebounceTimer);
+    }
+    _textSortDebounceTimer = setTimeout(_doUpdateTextSort, 150);
+}
+
+/**
+ * Core logic for processing the text based on selected options.
+ */
+function _doUpdateTextSort() {
+    const inputEl = document.getElementById('text-sort-input');
+    const outputEl = document.getElementById('text-sort-output');
+    const statsEl = document.getElementById('text-sort-stats');
+
+    const input = inputEl?.value || '';
+
+    // Check if the required utility module is loaded
+    if (!window.DogToolboxM38Utils) {
+        outputEl.value = '';
+        statsEl.textContent = '错误：工具核心模块 (M38) 未加载。';
+        return;
+    }
+
+    // Gather all options from the UI
+    const options = {
+        sort: document.getElementById('text-sort-mode')?.value || 'none',
+        reverse: document.getElementById('text-sort-reverse')?.checked || false,
+        trimLines: document.getElementById('text-sort-trim')?.checked || false,
+        removeEmpty: document.getElementById('text-sort-remove-empty')?.checked || false,
+        unique: document.getElementById('text-sort-unique')?.checked || false,
+        keepFirst: document.querySelector('input[name="text-sort-keep"]:checked')?.value === 'first',
+        caseSensitive: document.getElementById('text-sort-case-sensitive')?.checked ?? true
+    };
+    
+    try {
+        // Process the input text
+        const result = window.DogToolboxM38Utils.processLines(input, options);
+        let outputLines = result.lines;
+
+        // Add line numbers if requested (after all other processing)
+        if (document.getElementById('text-sort-add-line-num')?.checked) {
+            outputLines = outputLines.map((line, index) => `${index + 1}. ${line}`);
+        }
+
+        const outputText = outputLines.join('\n');
+        outputEl.value = outputText;
+
+        // Update statistics display
+        const { originalCount, finalCount, emptyRemoved, duplicateRemoved } = result.stats;
+        let statsParts = [`原 ${originalCount} 行`, `结果 ${finalCount} 行`];
+        if (duplicateRemoved > 0) {
+            statsParts.push(`去重 ${duplicateRemoved} 行`);
+        }
+        if (emptyRemoved > 0) {
+            statsParts.push(`去空 ${emptyRemoved} 行`);
+        }
+        statsEl.textContent = statsParts.join(' | ');
+
+    } catch (e) {
+        outputEl.value = '';
+        statsEl.textContent = `处理出错：${e.message || String(e)}`;
+    }
+}
+
+/**
+ * Clears the input, output, and stats for the tool.
+ */
+function clearTextSortTool() {
+    const inputEl = document.getElementById('text-sort-input');
+    const outputEl = document.getElementById('text-sort-output');
+    const statsEl = document.getElementById('text-sort-stats');
+
+    if (inputEl) inputEl.value = '';
+    if (outputEl) outputEl.value = '';
+    if (statsEl) statsEl.textContent = '';
+    
+    // Also reset all options to their default state
+    document.getElementById('text-sort-mode').value = 'none';
+    document.getElementById('text-sort-reverse').checked = false;
+    document.getElementById('text-sort-trim').checked = false;
+    document.getElementById('text-sort-remove-empty').checked = false;
+    document.getElementById('text-sort-unique').checked = false;
+    document.querySelector('input[name="text-sort-keep"][value="first"]').checked = true;
+    document.getElementById('text-sort-case-sensitive').checked = true;
+    document.getElementById('text-sort-add-line-num').checked = false;
+    
+    // Trigger a UI update to hide the unique options panel
+    toggleCollapsibleSection('text-sort-unique', 'text-sort-unique-options');
+}
+
+/**
+ * Copies the content of the output textarea to the clipboard.
+ */
+function copyTextSortOutput(btn) {
+    const output = document.getElementById('text-sort-output').value;
+    copyToolText(btn, output);
+}
+
+// ==================== TOML 格式化（M39） ====================
+
+let _tomlDebounceTimer = null;
+
+function initTomlTool() {
+    updateTomlInputPlaceholder();
+}
+
+function updateTomlInputPlaceholder() {
+    const inputEl = document.getElementById('toml-input');
+    const inputType = document.getElementById('toml-input-type')?.value || 'toml';
+    if (inputEl) {
+        inputEl.placeholder = inputType === 'toml' ? '输入 TOML 内容...' : '输入 JSON 内容...';
+    }
+    updateTomlTool();
+}
+
+function updateTomlTool() {
+    if (_tomlDebounceTimer) clearTimeout(_tomlDebounceTimer);
+    _tomlDebounceTimer = setTimeout(_doUpdateToml, 150);
+}
+
+function _doUpdateToml() {
+    const inputEl = document.getElementById('toml-input');
+    const outputEl = document.getElementById('toml-output');
+    const statusEl = document.getElementById('toml-status');
+    const inputType = document.getElementById('toml-input-type')?.value || 'toml';
+    const outputType = document.getElementById('toml-output-type')?.value || 'toml';
+
+    const input = inputEl?.value || '';
+
+    if (!input.trim()) {
+        outputEl.value = '';
+        statusEl.textContent = '';
+        return;
+    }
+
+    if (!window.DogToolboxM39Utils) {
+        outputEl.value = '';
+        statusEl.textContent = '错误：工具核心模块 (M39) 未加载';
+        return;
+    }
+
+    try {
+        let obj;
+        if (inputType === 'toml') {
+            obj = window.DogToolboxM39Utils.parse(input);
+        } else {
+            obj = JSON.parse(input);
+        }
+
+        let result;
+        if (outputType === 'toml') {
+            result = window.DogToolboxM39Utils.stringify(obj);
+        } else if (outputType === 'json') {
+            result = JSON.stringify(obj, null, 2);
+        } else {
+            result = JSON.stringify(obj);
+        }
+
+        outputEl.value = result;
+        statusEl.textContent = '✓ 解析成功';
+        statusEl.style.color = 'var(--success)';
+    } catch (e) {
+        outputEl.value = '';
+        statusEl.textContent = '✗ ' + (e.message || String(e));
+        statusEl.style.color = 'var(--error)';
+    }
+}
+
+function clearTomlInput() {
+    const inputEl = document.getElementById('toml-input');
+    const outputEl = document.getElementById('toml-output');
+    const statusEl = document.getElementById('toml-status');
+    if (inputEl) inputEl.value = '';
+    if (outputEl) outputEl.value = '';
+    if (statusEl) statusEl.textContent = '';
+}
+
+function loadTomlSample() {
+    const inputType = document.getElementById('toml-input-type')?.value || 'toml';
+    const inputEl = document.getElementById('toml-input');
+    if (!inputEl) return;
+
+    if (inputType === 'toml') {
+        inputEl.value = `# TOML 示例配置文件
+title = "狗狗百宝箱配置"
+
+[owner]
+name = "Dog Toolbox"
+dob = 2024-01-15
+
+[database]
+enabled = true
+ports = [8000, 8001, 8002]
+connection_max = 5000
+server = "192.168.1.1"
+
+[servers]
+
+[servers.alpha]
+ip = "10.0.0.1"
+role = "frontend"
+
+[servers.beta]
+ip = "10.0.0.2"
+role = "backend"
+
+[[products]]
+name = "Hammer"
+sku = 738594937
+
+[[products]]
+name = "Nail"
+sku = 284758393
+color = "gray"`;
+    } else {
+        inputEl.value = JSON.stringify({
+            title: "狗狗百宝箱配置",
+            owner: { name: "Dog Toolbox", dob: "2024-01-15" },
+            database: {
+                enabled: true,
+                ports: [8000, 8001, 8002],
+                connection_max: 5000,
+                server: "192.168.1.1"
+            },
+            servers: {
+                alpha: { ip: "10.0.0.1", role: "frontend" },
+                beta: { ip: "10.0.0.2", role: "backend" }
+            },
+            products: [
+                { name: "Hammer", sku: 738594937 },
+                { name: "Nail", sku: 284758393, color: "gray" }
+            ]
+        }, null, 2);
+    }
+    updateTomlTool();
+}
+
+function copyTomlOutput(btn) {
+    const output = document.getElementById('toml-output')?.value || '';
+    if (!output) {
+        showToast('无内容可复制', 'warning');
+        return;
+    }
+    copyToolText(btn, output);
+}
+
+// ==================== User-Agent 解析（M40） ====================
+
+let _uaDebounceTimer = null;
+
+function initUATool() {
+    // 渲染示例按钮
+    const samplesEl = document.getElementById('ua-samples');
+    if (samplesEl && window.DogToolboxM40Utils) {
+        const samples = window.DogToolboxM40Utils.getSamples();
+        samplesEl.innerHTML = samples.map((s, i) =>
+            `<button type="button" class="btn btn-xs btn-ghost" onclick="loadUASample(${i})">${s.name}</button>`
+        ).join('');
+    }
+}
+
+function useCurrentUA() {
+    const inputEl = document.getElementById('ua-input');
+    if (inputEl) {
+        inputEl.value = navigator.userAgent;
+        updateUATool();
+    }
+}
+
+function loadUASample(index) {
+    if (!window.DogToolboxM40Utils) return;
+    const samples = window.DogToolboxM40Utils.getSamples();
+    const sample = samples[index];
+    if (!sample) return;
+    const inputEl = document.getElementById('ua-input');
+    if (inputEl) {
+        inputEl.value = sample.ua;
+        updateUATool();
+    }
+}
+
+function updateUATool() {
+    if (_uaDebounceTimer) clearTimeout(_uaDebounceTimer);
+    _uaDebounceTimer = setTimeout(_doUpdateUA, 100);
+}
+
+function _doUpdateUA() {
+    const inputEl = document.getElementById('ua-input');
+    const resultEl = document.getElementById('ua-result');
+    const jsonOutputEl = document.getElementById('ua-json-output');
+
+    const ua = inputEl?.value || '';
+
+    if (!ua.trim()) {
+        resultEl.style.display = 'none';
+        jsonOutputEl.value = '';
+        return;
+    }
+
+    if (!window.DogToolboxM40Utils) {
+        jsonOutputEl.value = '错误：工具核心模块 (M40) 未加载';
+        return;
+    }
+
+    const result = window.DogToolboxM40Utils.parse(ua);
+    resultEl.style.display = 'block';
+
+    // 更新浏览器
+    const browserEl = document.getElementById('ua-browser');
+    if (result.browser) {
+        browserEl.textContent = `${result.browser.name}${result.browser.version ? ' ' + result.browser.version : ''}`;
+    } else {
+        browserEl.textContent = '未识别';
+    }
+
+    // 更新操作系统
+    const osEl = document.getElementById('ua-os');
+    if (result.os) {
+        osEl.textContent = `${result.os.name}${result.os.version ? ' ' + result.os.version : ''}`;
+    } else {
+        osEl.textContent = '未识别';
+    }
+
+    // 更新设备类型
+    const deviceEl = document.getElementById('ua-device');
+    const deviceIconEl = document.getElementById('ua-device-icon');
+    const deviceNames = { mobile: '移动设备', tablet: '平板设备', desktop: '桌面设备', unknown: '未知' };
+    const deviceIcons = { mobile: '📱', tablet: '📲', desktop: '🖥️', unknown: '❓' };
+    const deviceType = result.device?.type || 'unknown';
+    deviceEl.textContent = deviceNames[deviceType] || deviceType;
+    deviceIconEl.textContent = deviceIcons[deviceType] || '❓';
+
+    // 更新渲染引擎
+    const engineEl = document.getElementById('ua-engine');
+    engineEl.textContent = result.engine?.name || '未识别';
+
+    // 更新机器人检测
+    const botEl = document.getElementById('ua-result-bot');
+    const botNameEl = document.getElementById('ua-bot-name');
+    if (result.isBot && result.bot) {
+        botEl.style.display = 'flex';
+        botNameEl.textContent = result.bot.name;
+    } else {
+        botEl.style.display = 'none';
+    }
+
+    // JSON 输出
+    jsonOutputEl.value = JSON.stringify(result, null, 2);
+}
+
+function clearUATool() {
+    document.getElementById('ua-input').value = '';
+    document.getElementById('ua-result').style.display = 'none';
+    document.getElementById('ua-json-output').value = '';
+}
+
+function copyUAOutput(btn) {
+    const output = document.getElementById('ua-json-output')?.value || '';
+    if (!output) {
+        showToast('无内容可复制', 'warning');
+        return;
+    }
+    copyToolText(btn, output);
+}
+
+// ==================== JSON Path 查询（M41） ====================
+
+let _jsonpathDebounceTimer = null;
+
+function initJsonPathTool() {
+    // 渲染示例表达式
+    const examplesEl = document.getElementById('jsonpath-examples');
+    if (examplesEl && window.DogToolboxM41Utils) {
+        const examples = window.DogToolboxM41Utils.getExamples();
+        examplesEl.innerHTML = examples.map((ex, i) =>
+            `<button type="button" class="btn btn-xs btn-ghost" onclick="loadJsonPathExample(${i})" title="${ex.desc}">${ex.path}</button>`
+        ).join('');
+    }
+}
+
+function loadJsonPathSample() {
+    if (!window.DogToolboxM41Utils) return;
+    const inputEl = document.getElementById('jsonpath-input');
+    if (inputEl) {
+        inputEl.value = JSON.stringify(window.DogToolboxM41Utils.getSampleData(), null, 2);
+        updateJsonPathTool();
+    }
+}
+
+function loadJsonPathExample(index) {
+    if (!window.DogToolboxM41Utils) return;
+    const examples = window.DogToolboxM41Utils.getExamples();
+    const example = examples[index];
+    if (!example) return;
+    const exprEl = document.getElementById('jsonpath-expr');
+    if (exprEl) {
+        exprEl.value = example.path;
+        updateJsonPathTool();
+    }
+}
+
+function updateJsonPathTool() {
+    if (_jsonpathDebounceTimer) clearTimeout(_jsonpathDebounceTimer);
+    _jsonpathDebounceTimer = setTimeout(_doUpdateJsonPath, 150);
+}
+
+function _doUpdateJsonPath() {
+    const inputEl = document.getElementById('jsonpath-input');
+    const exprEl = document.getElementById('jsonpath-expr');
+    const outputEl = document.getElementById('jsonpath-output');
+    const statusEl = document.getElementById('jsonpath-status');
+    const pathsEl = document.getElementById('jsonpath-paths');
+    const pathsGroupEl = document.getElementById('jsonpath-paths-group');
+
+    const jsonStr = inputEl?.value || '';
+    const expr = exprEl?.value || '$';
+
+    if (!jsonStr.trim()) {
+        outputEl.value = '';
+        statusEl.textContent = '';
+        pathsGroupEl.style.display = 'none';
+        return;
+    }
+
+    if (!window.DogToolboxM41Utils) {
+        statusEl.textContent = '错误：工具核心模块 (M41) 未加载';
+        statusEl.style.color = 'var(--error)';
+        return;
+    }
+
+    // 解析 JSON
+    let data;
+    try {
+        data = JSON.parse(jsonStr);
+    } catch (e) {
+        outputEl.value = '';
+        statusEl.textContent = '✗ JSON 解析错误: ' + (e.message || String(e));
+        statusEl.style.color = 'var(--error)';
+        pathsGroupEl.style.display = 'none';
+        return;
+    }
+
+    // 执行查询
+    const result = window.DogToolboxM41Utils.query(data, expr);
+
+    if (result.error) {
+        outputEl.value = '';
+        statusEl.textContent = '✗ ' + result.error;
+        statusEl.style.color = 'var(--error)';
+        pathsGroupEl.style.display = 'none';
+        return;
+    }
+
+    // 显示结果
+    statusEl.textContent = `✓ 找到 ${result.results.length} 个匹配`;
+    statusEl.style.color = 'var(--success)';
+
+    // 显示匹配路径
+    if (result.paths.length > 0) {
+        pathsGroupEl.style.display = 'block';
+        pathsEl.innerHTML = result.paths.map(p =>
+            `<code class="jsonpath-path">${escapeHtml(p)}</code>`
+        ).join('');
+    } else {
+        pathsGroupEl.style.display = 'none';
+    }
+
+    // 格式化结果
+    if (result.results.length === 1) {
+        outputEl.value = JSON.stringify(result.results[0], null, 2);
+    } else {
+        outputEl.value = JSON.stringify(result.results, null, 2);
+    }
+}
+
+function clearJsonPathInput() {
+    document.getElementById('jsonpath-input').value = '';
+    document.getElementById('jsonpath-expr').value = '$';
+    document.getElementById('jsonpath-output').value = '';
+    document.getElementById('jsonpath-status').textContent = '';
+    document.getElementById('jsonpath-paths-group').style.display = 'none';
+}
+
+function copyJsonPathOutput(btn) {
+    const output = document.getElementById('jsonpath-output')?.value || '';
+    if (!output) {
+        showToast('无内容可复制', 'warning');
+        return;
+    }
+    copyToolText(btn, output);
+}
+
+// ==================== nginx 配置生成（M42） ====================
+
+const NGINX_TEMPLATE_OPTIONS = {
+    reverseProxy: [
+        { id: 'proxyPass', label: '后端地址 (proxy_pass)', type: 'text', placeholder: 'http://127.0.0.1:8080' },
+        { id: 'proxyTimeout', label: '超时时间 (秒)', type: 'number', placeholder: '60' },
+        { id: 'websocket', label: '启用 WebSocket 支持', type: 'checkbox' }
+    ],
+    staticSite: [
+        { id: 'rootPath', label: '根目录 (root)', type: 'text', placeholder: '/var/www/html' },
+        { id: 'indexFile', label: '默认文件 (index)', type: 'text', placeholder: 'index.html' },
+        { id: 'gzip', label: '启用 Gzip 压缩', type: 'checkbox', default: true },
+        { id: 'cacheControl', label: '启用静态资源缓存', type: 'checkbox', default: true }
+    ],
+    spa: [
+        { id: 'rootPath', label: '根目录 (root)', type: 'text', placeholder: '/var/www/html' }
+    ],
+    ssl: [
+        { id: 'sslCert', label: 'SSL 证书路径', type: 'text', placeholder: '/etc/nginx/ssl/cert.pem' },
+        { id: 'sslKey', label: 'SSL 密钥路径', type: 'text', placeholder: '/etc/nginx/ssl/key.pem' },
+        { id: 'rootPath', label: '根目录 (root)', type: 'text', placeholder: '/var/www/html' },
+        { id: 'hsts', label: '启用 HSTS', type: 'checkbox', default: true }
+    ],
+    loadBalance: [
+        { id: 'upstreamName', label: 'upstream 名称', type: 'text', placeholder: 'backend' },
+        { id: 'servers', label: '后端服务器 (逗号分隔)', type: 'text', placeholder: '127.0.0.1:8001,127.0.0.1:8002' },
+        { id: 'algorithm', label: '负载均衡算法', type: 'select', options: [
+            { value: 'round_robin', label: '轮询 (默认)' },
+            { value: 'ip_hash', label: 'IP Hash' },
+            { value: 'least_conn', label: '最少连接' }
+        ]}
+    ],
+    rateLimit: [
+        { id: 'zoneName', label: '限流区域名', type: 'text', placeholder: 'api_limit' },
+        { id: 'rateLimit', label: '请求频率 (r/s)', type: 'number', placeholder: '10' },
+        { id: 'burstLimit', label: '突发限制', type: 'number', placeholder: '20' }
+    ],
+    cors: [
+        { id: 'allowOrigin', label: 'Allow-Origin', type: 'text', placeholder: '*' },
+        { id: 'allowMethods', label: 'Allow-Methods', type: 'text', placeholder: 'GET, POST, PUT, DELETE, OPTIONS' }
+    ],
+    fileUpload: [
+        { id: 'maxBodySize', label: '最大上传大小 (MB)', type: 'number', placeholder: '100' },
+        { id: 'uploadPath', label: '上传路径', type: 'text', placeholder: '/upload' }
+    ]
+};
+
+function initNginxTool() {
+    updateNginxTemplate();
+}
+
+function updateNginxTemplate() {
+    const template = document.getElementById('nginx-template')?.value || 'reverseProxy';
+    const dynamicEl = document.getElementById('nginx-dynamic-options');
+    const options = NGINX_TEMPLATE_OPTIONS[template] || [];
+
+    dynamicEl.innerHTML = options.map(opt => {
+        if (opt.type === 'checkbox') {
+            return `<label class="tool-check">
+                <input type="checkbox" id="nginx-${opt.id}" ${opt.default ? 'checked' : ''} onchange="updateNginxConfig()">
+                ${opt.label}
+            </label>`;
+        } else if (opt.type === 'select') {
+            const optionsHtml = opt.options.map(o =>
+                `<option value="${o.value}">${o.label}</option>`
+            ).join('');
+            return `<div class="form-group">
+                <label for="nginx-${opt.id}">${opt.label}</label>
+                <select id="nginx-${opt.id}" onchange="updateNginxConfig()">${optionsHtml}</select>
+            </div>`;
+        } else {
+            return `<div class="form-group">
+                <label for="nginx-${opt.id}">${opt.label}</label>
+                <input type="${opt.type}" id="nginx-${opt.id}" placeholder="${opt.placeholder || ''}" oninput="updateNginxConfig()">
+            </div>`;
+        }
+    }).join('');
+
+    updateNginxConfig();
+}
+
+function updateNginxConfig() {
+    const template = document.getElementById('nginx-template')?.value || 'reverseProxy';
+    const outputEl = document.getElementById('nginx-output');
+    const statusEl = document.getElementById('nginx-status');
+
+    if (!window.DogToolboxM42Utils) {
+        outputEl.value = '';
+        statusEl.textContent = '错误：工具核心模块 (M42) 未加载';
+        statusEl.style.color = 'var(--error)';
+        return;
+    }
+
+    // 收集选项
+    const opts = {
+        serverName: document.getElementById('nginx-server-name')?.value || '',
+        listenPort: document.getElementById('nginx-listen-port')?.value || ''
+    };
+
+    const templateOptions = NGINX_TEMPLATE_OPTIONS[template] || [];
+    templateOptions.forEach(opt => {
+        const el = document.getElementById(`nginx-${opt.id}`);
+        if (!el) return;
+        if (opt.type === 'checkbox') {
+            opts[opt.id] = el.checked;
+        } else {
+            opts[opt.id] = el.value;
+        }
+    });
+
+    // 生成配置
+    const result = window.DogToolboxM42Utils.generate(template, opts);
+
+    if (result.error) {
+        outputEl.value = '';
+        statusEl.textContent = '✗ ' + result.error;
+        statusEl.style.color = 'var(--error)';
+        return;
+    }
+
+    outputEl.value = result.config;
+
+    // 验证
+    const validation = window.DogToolboxM42Utils.validate(result.config);
+    if (validation.valid) {
+        statusEl.textContent = '✓ 配置生成成功';
+        statusEl.style.color = 'var(--success)';
+    } else {
+        statusEl.textContent = '⚠ ' + validation.errors.join('; ');
+        statusEl.style.color = 'var(--warning)';
+    }
+}
+
+function copyNginxConfig(btn) {
+    const output = document.getElementById('nginx-output')?.value || '';
+    if (!output) {
+        showToast('无内容可复制', 'warning');
+        return;
+    }
+    copyToolText(btn, output);
+}
+
+

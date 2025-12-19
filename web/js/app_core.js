@@ -279,6 +279,13 @@ const PAGE_INIT_MAP = Object.freeze({
     'tool-mock': 'initMockTool',
     'tool-mask': 'initMaskTool',
     'tool-qrcode': 'initQrcodeTool',
+    'tool-html-entity': 'initHtmlEntityTool',
+    'tool-img-base64': 'initImgBase64Tool',
+    'tool-text-sort': 'initTextSortTool',
+    'tool-toml': 'initTomlTool',
+    'tool-ua': 'initUATool',
+    'tool-jsonpath': 'initJsonPathTool',
+    'tool-nginx': 'initNginxTool',
 });
 
 async function ensurePageInitialized(page) {

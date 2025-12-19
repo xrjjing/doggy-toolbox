@@ -1,0 +1,195 @@
+<!-- HTML 实体编解码工具 -->
+<style>
+/* M36 HTML 实体编解码专用样式 */
+#page-tool-html-entity .converter-layout {
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+@media (max-width: 768px) {
+    #page-tool-html-entity .converter-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+#page-tool-html-entity .options-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: var(--bg-hover);
+    border-radius: var(--radius);
+}
+
+#page-tool-html-entity .options-row label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text);
+}
+
+#page-tool-html-entity .options-row select {
+    padding: 4px 8px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-card);
+    color: var(--text);
+}
+
+#page-tool-html-entity .panel-body textarea {
+    min-height: 180px;
+    font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+    font-size: 13px;
+}
+
+/* 实体参考表样式 */
+#page-tool-html-entity .ref-card {
+    margin-top: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+#page-tool-html-entity .ref-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--bg-hover);
+    border-bottom: 1px solid var(--border);
+}
+
+#page-tool-html-entity .ref-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text);
+}
+
+#page-tool-html-entity .ref-body {
+    padding: 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+#page-tool-html-entity .entity-ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+#page-tool-html-entity .entity-ref-table thead {
+    position: sticky;
+    top: 0;
+    background: var(--bg-hover);
+    z-index: 1;
+}
+
+#page-tool-html-entity .entity-ref-table th {
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+}
+
+#page-tool-html-entity .entity-ref-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+}
+
+#page-tool-html-entity .entity-ref-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+#page-tool-html-entity .entity-ref-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+#page-tool-html-entity .entity-ref-table .entity-char {
+    font-size: 18px;
+    font-weight: 500;
+    text-align: center;
+    width: 60px;
+    color: var(--accent);
+}
+
+#page-tool-html-entity .entity-ref-table code {
+    font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+    font-size: 12px;
+    padding: 2px 6px;
+    background: var(--bg-hover);
+    border-radius: 3px;
+    color: var(--text);
+}
+</style>
+<section id="page-tool-html-entity" class="page">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>HTML 实体编解码</h1>
+            <p class="subtitle">HTML Entity encode / decode，支持命名实体、十进制、十六进制</p>
+        </div>
+    </div>
+    <div class="converter-layout">
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>输入</h3>
+                <div class="panel-actions">
+                    <div class="format-toggle" title="选择模式">
+                        <button class="btn btn-sm btn-ghost format-btn active" id="html-entity-encode-btn" onclick="setHtmlEntityMode('encode')">编码</button>
+                        <button class="btn btn-sm btn-ghost format-btn" id="html-entity-decode-btn" onclick="setHtmlEntityMode('decode')">解码</button>
+                    </div>
+                    <button class="btn btn-sm btn-ghost" onclick="clearHtmlEntityTool()">清空</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <textarea id="html-entity-input" placeholder="输入内容...&#10;例如：<script>alert(&quot;XSS&quot;)</script>" oninput="updateHtmlEntityTool()"></textarea>
+                <div class="options-row">
+                    <label>
+                        <span>编码格式：</span>
+                        <select id="html-entity-format" onchange="updateHtmlEntityTool()">
+                            <option value="named">命名实体 (&amp;lt;)</option>
+                            <option value="decimal">十进制 (&amp;#60;)</option>
+                            <option value="hex">十六进制 (&amp;#x3C;)</option>
+                        </select>
+                    </label>
+                    <label>
+                        <input type="checkbox" id="html-entity-all" onchange="updateHtmlEntityTool()">
+                        <span>编码全部非 ASCII</span>
+                    </label>
+                </div>
+                <div id="html-entity-errors" class="error-list"></div>
+            </div>
+        </div>
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>输出</h3>
+                <div class="panel-actions">
+                    <button class="btn btn-sm btn-ghost" onclick="copyHtmlEntityOutput(this)">复制</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <textarea id="html-entity-output" readonly placeholder="输出结果..."></textarea>
+            </div>
+        </div>
+    </div>
+    <!-- 常用实体参考表 -->
+    <div class="ref-card">
+        <div class="ref-header">
+            <h3>常用 HTML 实体参考</h3>
+            <button class="btn btn-sm btn-ghost" onclick="toggleHtmlEntityRef()">展开/收起</button>
+        </div>
+        <div id="html-entity-ref" class="ref-body" style="display: none;">
+            <div id="html-entity-ref-grid"></div>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,52 @@
+<!-- TOML 格式化工具 -->
+<section id="page-tool-toml" class="page">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>TOML 格式化</h1>
+            <p class="subtitle">TOML 格式化、验证与 JSON 互转</p>
+        </div>
+    </div>
+    <div class="tool-layout-dual">
+        <!-- 左侧：输入区 -->
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>输入</h3>
+                <div class="panel-actions">
+                    <select id="toml-input-type" onchange="updateTomlInputPlaceholder()">
+                        <option value="toml">TOML</option>
+                        <option value="json">JSON</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="clearTomlInput()">清空</button>
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="loadTomlSample()">示例</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="form-group flex-1">
+                    <label for="toml-input" class="visually-hidden">输入内容</label>
+                    <textarea id="toml-input" placeholder="输入 TOML 内容..." oninput="updateTomlTool()" rows="16"></textarea>
+                </div>
+            </div>
+        </div>
+        <!-- 右侧：输出区 -->
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>输出</h3>
+                <div class="panel-actions">
+                    <select id="toml-output-type" onchange="updateTomlTool()">
+                        <option value="toml">TOML (格式化)</option>
+                        <option value="json">JSON</option>
+                        <option value="json-compact">JSON (紧凑)</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="copyTomlOutput(this)">复制</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="form-group flex-1">
+                    <label for="toml-output" class="visually-hidden">输出结果</label>
+                    <textarea id="toml-output" readonly placeholder="处理结果将显示在这里..." rows="16"></textarea>
+                </div>
+                <div id="toml-status" class="tool-stats" aria-live="polite"></div>
+            </div>
+        </div>
+    </div>
+</section>

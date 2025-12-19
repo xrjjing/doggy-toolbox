@@ -883,3 +883,69 @@ class Api:
 
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+    def open_image_file_dialog(self):
+        """
+        打开图片文件选择对话框。
+
+        Returns:
+            dict: {success: bool, data: str|None, filename: str|None, mimetype: str|None, error: str|None}
+                  data 为 Base64 编码的图片内容
+        """
+        import webview
+        import base64
+        import mimetypes
+
+        if not self._window:
+            return {"success": False, "error": "窗口未初始化"}
+
+        try:
+            file_types = ("图片文件 (*.png;*.jpg;*.jpeg;*.gif;*.webp;*.bmp;*.ico;*.svg)",)
+
+            result = self._window.create_file_dialog(
+                webview.OPEN_DIALOG,
+                file_types=file_types,
+            )
+
+            if result and len(result) > 0:
+                file_path = result[0] if isinstance(result, (tuple, list)) else result
+                file_path_str = str(file_path)
+
+                # 读取文件内容
+                with open(file_path_str, "rb") as f:
+                    binary_data = f.read()
+
+                # Base64 编码
+                base64_data = base64.b64encode(binary_data).decode("utf-8")
+
+                # 获取 MIME 类型
+                mimetype, _ = mimetypes.guess_type(file_path_str)
+                if not mimetype:
+                    ext = file_path_str.rsplit(".", 1)[-1].lower()
+                    mime_map = {
+                        "png": "image/png",
+                        "jpg": "image/jpeg",
+                        "jpeg": "image/jpeg",
+                        "gif": "image/gif",
+                        "webp": "image/webp",
+                        "bmp": "image/bmp",
+                        "ico": "image/x-icon",
+                        "svg": "image/svg+xml",
+                    }
+                    mimetype = mime_map.get(ext, "application/octet-stream")
+
+                # 获取文件名
+                filename = Path(file_path_str).name
+
+                return {
+                    "success": True,
+                    "data": base64_data,
+                    "filename": filename,
+                    "mimetype": mimetype,
+                    "size": len(binary_data),
+                }
+            else:
+                return {"success": False, "error": "用户取消了选择"}
+
+        except Exception as e:
+            return {"success": False, "error": str(e)}

@@ -1,0 +1,240 @@
+<!-- 图片 Base64 转换工具 -->
+<style>
+/* M37 图片 Base64 专用样式 */
+#page-tool-img-base64 .converter-layout {
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+@media (max-width: 768px) {
+    #page-tool-img-base64 .converter-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 上传区域 */
+.img-upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--bg-hover);
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.img-upload-zone:hover,
+.img-upload-zone:focus {
+    border-color: var(--accent);
+    background: var(--bg-card);
+}
+
+.img-upload-zone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+}
+
+.upload-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-muted);
+}
+
+.upload-placeholder svg {
+    opacity: 0.5;
+}
+
+.upload-placeholder span {
+    font-size: 14px;
+}
+
+.upload-hint {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+/* 图片预览容器 */
+.img-preview-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.img-preview-container img {
+    max-width: 100%;
+    max-height: 150px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.img-info {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* Base64 预览区域 */
+.base64-preview-zone {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-hover);
+    overflow: hidden;
+}
+
+.base64-preview-zone.preview-error {
+    border-color: var(--color-red-500);
+}
+
+.preview-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-muted);
+    padding: 24px;
+}
+
+.preview-placeholder svg {
+    opacity: 0.5;
+}
+
+.preview-placeholder span {
+    font-size: 14px;
+}
+
+/* Base64 图片预览容器 */
+.base64-img-preview-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    width: 100%;
+}
+
+.base64-img-preview-container img {
+    max-width: 100%;
+    max-height: 180px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+/* 输出 textarea 限制高度 */
+#page-tool-img-base64 #img-base64-output {
+    min-height: 100px;
+    max-height: 150px;
+    flex: none;
+    resize: vertical;
+}
+
+/* Base64 输入 textarea */
+#page-tool-img-base64 #base64-img-input {
+    min-height: 100px;
+    max-height: 120px;
+    flex: none;
+    resize: vertical;
+}
+</style>
+<section id="page-tool-img-base64" class="page">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>图片 Base64 转换</h1>
+            <p class="subtitle">图片与 Base64 Data URI 互转，支持 PNG/JPG/GIF/WebP/SVG</p>
+        </div>
+    </div>
+    <div class="converter-layout">
+        <!-- 图片转 Base64 -->
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>图片 → Base64</h3>
+                <div class="panel-actions">
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="clearImgToBase64()">清空</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="img-upload-zone" id="img-upload-zone"
+                     tabindex="0"
+                     role="button"
+                     aria-label="选择或拖拽图片进行 Base64 编码"
+                     onclick="triggerImgUpload()"
+                     onkeydown="if(event.key==='Enter'||event.key===' ') { triggerImgUpload(); event.preventDefault(); }"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)"
+                     ondrop="handleImgDrop(event)">
+                    <input type="file" id="img-file-input" accept="image/*" onchange="handleImgSelect(event)" style="display: none;" aria-hidden="true">
+                    <div class="upload-placeholder" id="img-upload-placeholder">
+                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        <span>拖拽图片到此处或点击选择</span>
+                        <span class="upload-hint">支持 PNG/JPG/GIF/WebP/SVG/BMP/ICO</span>
+                    </div>
+                    <div class="img-preview-container" id="img-preview-container" style="display: none;">
+                        <img id="img-preview" alt="图片预览">
+                        <div class="img-info" id="img-info" aria-live="polite"></div>
+                    </div>
+                </div>
+                <div class="tool-options-row" style="margin-top: 12px;">
+                    <label class="tool-check" for="img-include-prefix">
+                        <input type="checkbox" id="img-include-prefix" onchange="updateImgBase64Output()" checked>
+                        包含 Data URI 前缀
+                    </label>
+                </div>
+                <div class="form-group" style="margin-top: 12px;">
+                    <label for="img-base64-output">Base64 输出</label>
+                    <textarea id="img-base64-output" readonly placeholder="Base64 输出将显示在这里..." aria-label="Base64 输出结果"></textarea>
+                </div>
+                <div class="panel-actions" style="justify-content: flex-end;">
+                    <button type="button" id="copy-base64-btn" class="btn btn-sm btn-ghost" onclick="copyImgBase64(this)" disabled>复制</button>
+                </div>
+            </div>
+        </div>
+        <!-- Base64 转图片 -->
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>Base64 → 图片</h3>
+                <div class="panel-actions">
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="clearBase64ToImg()">清空</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="form-group">
+                    <label for="base64-img-input">Base64 输入</label>
+                    <textarea id="base64-img-input" placeholder="粘贴 Base64 字符串或 Data URI..." oninput="updateBase64Preview()"></textarea>
+                </div>
+                <div id="base64-img-errors" class="error-list" aria-live="assertive"></div>
+                <div class="base64-preview-zone" id="base64-preview-zone">
+                    <div class="preview-placeholder" id="base64-preview-placeholder">
+                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        <span>输入内容并点击生成<br>预览将显示在这里</span>
+                    </div>
+                    <div class="base64-img-preview-container" id="base64-img-preview-container" style="display: none;">
+                        <img id="base64-img-preview" alt="Base64解码后的图片预览">
+                        <div class="img-info" id="base64-img-info" aria-live="polite"></div>
+                    </div>
+                </div>
+                <div class="panel-actions" style="justify-content: flex-end; margin-top: 12px;">
+                    <button type="button" id="download-img-btn" class="btn btn-sm btn-ghost" onclick="downloadBase64Img()" disabled>下载图片</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

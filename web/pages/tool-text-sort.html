@@ -1,0 +1,252 @@
+<!-- 文本排序/去重工具 -->
+<style>
+/* M38 文本排序/去重专用样式 */
+#page-tool-text-sort .tool-options-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 900px) {
+    #page-tool-text-sort .tool-options-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    #page-tool-text-sort .tool-options-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+#page-tool-text-sort .options-card {
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+}
+
+#page-tool-text-sort .options-card-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+#page-tool-text-sort .options-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#page-tool-text-sort .options-card select {
+    width: 100%;
+    padding: 6px 10px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-card);
+    color: var(--text);
+}
+
+#page-tool-text-sort .option-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+}
+
+#page-tool-text-sort .option-item input[type="checkbox"],
+#page-tool-text-sort .option-item input[type="radio"] {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+#page-tool-text-sort .sub-options {
+    margin-left: 22px;
+    padding: 8px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-top: 1px dashed var(--border);
+    margin-top: 8px;
+}
+
+#page-tool-text-sort .sub-options.hidden {
+    display: none;
+}
+
+/* 输入输出区域 */
+#page-tool-text-sort .io-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    #page-tool-text-sort .io-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+#page-tool-text-sort .io-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#page-tool-text-sort .io-panel label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+#page-tool-text-sort .io-panel textarea {
+    min-height: 200px;
+    max-height: 400px;
+    resize: vertical;
+    font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+    color: var(--text);
+}
+
+#page-tool-text-sort .io-panel textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+/* 统计信息 */
+#page-tool-text-sort .stats-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    margin-top: 16px;
+}
+
+#page-tool-text-sort .stats-info {
+    display: flex;
+    gap: 16px;
+}
+
+#page-tool-text-sort .action-buttons {
+    display: flex;
+    gap: 8px;
+}
+</style>
+<section id="page-tool-text-sort" class="page">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>文本排序/去重</h1>
+            <p class="subtitle">按行排序、去重、去空行、添加行号等文本处理</p>
+        </div>
+        <div class="page-actions">
+            <button type="button" class="btn btn-sm btn-ghost" onclick="clearTextSortTool()">清空</button>
+        </div>
+    </div>
+
+    <!-- 选项区 -->
+    <div class="tool-options-container">
+        <!-- 排序选项 -->
+        <div class="options-card">
+            <div class="options-card-title">排序方式</div>
+            <div class="options-card-body">
+                <select id="text-sort-mode" onchange="updateTextSortTool()" aria-label="排序方式">
+                    <option value="none">不排序</option>
+                    <option value="asc">升序 (A→Z)</option>
+                    <option value="desc">降序 (Z→A)</option>
+                    <option value="natural">自然排序 (数字感知)</option>
+                    <option value="random">随机打乱</option>
+                </select>
+                <label class="option-item">
+                    <input type="checkbox" id="text-sort-reverse" onchange="updateTextSortTool()">
+                    <span>反转最终顺序</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 过滤选项 -->
+        <div class="options-card">
+            <div class="options-card-title">过滤与清理</div>
+            <div class="options-card-body">
+                <label class="option-item">
+                    <input type="checkbox" id="text-sort-trim" onchange="updateTextSortTool()">
+                    <span>去除首尾空白</span>
+                </label>
+                <label class="option-item">
+                    <input type="checkbox" id="text-sort-remove-empty" onchange="updateTextSortTool()">
+                    <span>去除空行</span>
+                </label>
+                <label class="option-item">
+                    <input type="checkbox" id="text-sort-unique" aria-controls="text-sort-unique-options" aria-expanded="false">
+                    <span>去除重复行</span>
+                </label>
+                <div id="text-sort-unique-options" class="sub-options hidden">
+                    <label class="option-item">
+                        <input type="radio" name="text-sort-keep" value="first" checked onchange="updateTextSortTool()">
+                        <span>保留首次出现</span>
+                    </label>
+                    <label class="option-item">
+                        <input type="radio" name="text-sort-keep" value="last" onchange="updateTextSortTool()">
+                        <span>保留末次出现</span>
+                    </label>
+                    <label class="option-item">
+                        <input type="checkbox" id="text-sort-case-sensitive" checked onchange="updateTextSortTool()">
+                        <span>区分大小写</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 输出选项 -->
+        <div class="options-card">
+            <div class="options-card-title">输出格式</div>
+            <div class="options-card-body">
+                <label class="option-item">
+                    <input type="checkbox" id="text-sort-add-line-num" onchange="updateTextSortTool()">
+                    <span>添加行号前缀</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- 输入输出区 -->
+    <div class="io-container">
+        <div class="io-panel">
+            <label for="text-sort-input">输入文本</label>
+            <textarea id="text-sort-input" placeholder="每行一条数据..." oninput="updateTextSortTool()"></textarea>
+        </div>
+        <div class="io-panel">
+            <label for="text-sort-output">处理结果</label>
+            <textarea id="text-sort-output" readonly placeholder="处理结果将显示在这里..."></textarea>
+        </div>
+    </div>
+
+    <!-- 统计与操作 -->
+    <div class="stats-bar">
+        <div class="stats-info">
+            <span id="text-sort-stats" aria-live="polite"></span>
+        </div>
+        <div class="action-buttons">
+            <button type="button" class="btn btn-sm btn-ghost" onclick="copyTextSortOutput(this)">复制结果</button>
+        </div>
+    </div>
+</section>

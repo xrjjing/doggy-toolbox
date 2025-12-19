@@ -1,0 +1,79 @@
+<!-- User-Agent 解析工具 -->
+<section id="page-tool-ua" class="page">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>User-Agent 解析</h1>
+            <p class="subtitle">解析浏览器、操作系统、设备类型及机器人检测</p>
+        </div>
+    </div>
+    <div class="tool-layout-single">
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>User-Agent 分析</h3>
+                <div class="panel-actions">
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="useCurrentUA()">使用当前 UA</button>
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="clearUATool()">清空</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="form-group">
+                    <label for="ua-input">User-Agent 字符串</label>
+                    <textarea id="ua-input" placeholder="输入 User-Agent 字符串，或点击「使用当前 UA」获取浏览器信息..." oninput="updateUATool()" rows="3"></textarea>
+                </div>
+                <!-- 快捷示例 -->
+                <div class="form-group">
+                    <label>快捷示例</label>
+                    <div class="tool-options-row" id="ua-samples" style="flex-wrap: wrap; gap: 6px;"></div>
+                </div>
+                <!-- 解析结果 -->
+                <div id="ua-result" class="ua-result-panel" style="display: none;">
+                    <dl class="ua-result-grid">
+                        <div class="ua-result-item" id="ua-result-bot" style="display: none;">
+                            <dt class="ua-result-label-group">
+                                <span class="ua-result-icon">🤖</span>
+                                <span class="ua-result-label">机器人/爬虫</span>
+                            </dt>
+                            <dd class="ua-result-value" id="ua-bot-name">-</dd>
+                        </div>
+                        <div class="ua-result-item">
+                             <dt class="ua-result-label-group">
+                                <span class="ua-result-icon">🌐</span>
+                                <span class="ua-result-label">浏览器</span>
+                            </dt>
+                            <dd class="ua-result-value" id="ua-browser">-</dd>
+                        </div>
+                        <div class="ua-result-item">
+                            <dt class="ua-result-label-group">
+                                <span class="ua-result-icon">💻</span>
+                                <span class="ua-result-label">操作系统</span>
+                            </dt>
+                            <dd class="ua-result-value" id="ua-os">-</dd>
+                        </div>
+                        <div class="ua-result-item">
+                            <dt class="ua-result-label-group">
+                                <span class="ua-result-icon" id="ua-device-icon">🖥️</span>
+                                <span class="ua-result-label">设备类型</span>
+                            </dt>
+                            <dd class="ua-result-value" id="ua-device">-</dd>
+                        </div>
+                        <div class="ua-result-item">
+                            <dt class="ua-result-label-group">
+                                <span class="ua-result-icon">⚙️</span>
+                                <span class="ua-result-label">渲染引擎</span>
+                            </dt>
+                            <dd class="ua-result-value" id="ua-engine">-</dd>
+                        </div>
+                    </dl>
+                </div>
+                <!-- JSON 输出 -->
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="ua-json-output">JSON 格式</label>
+                    <textarea id="ua-json-output" readonly placeholder="解析结果的 JSON 格式..." rows="6"></textarea>
+                </div>
+                <div class="panel-actions" style="justify-content: flex-end; gap: 8px;">
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="copyUAOutput(this)">复制 JSON</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

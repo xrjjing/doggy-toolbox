@@ -1,0 +1,60 @@
+<!-- JSON Path 查询工具 -->
+<section id="page-tool-jsonpath" class="page">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>JSON Path 查询</h1>
+            <p class="subtitle">使用 JSONPath 表达式查询 JSON 数据</p>
+        </div>
+    </div>
+    <div class="tool-layout-dual">
+        <!-- 左侧：JSON 输入 -->
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>JSON 数据</h3>
+                <div class="panel-actions">
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="loadJsonPathSample()">示例数据</button>
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="clearJsonPathInput()">清空</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="form-group flex-1">
+                    <label for="jsonpath-input" class="visually-hidden">JSON 数据</label>
+                    <textarea id="jsonpath-input" placeholder='{"key": "value"}' oninput="updateJsonPathTool()" rows="16"></textarea>
+                </div>
+            </div>
+        </div>
+        <!-- 右侧：查询与结果 -->
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>查询结果</h3>
+                <div class="panel-actions">
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="copyJsonPathOutput(this)">复制</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <!-- JSONPath 表达式 -->
+                <div class="form-group">
+                    <label for="jsonpath-expr">JSONPath 表达式</label>
+                    <input type="text" id="jsonpath-expr" placeholder="$..." oninput="updateJsonPathTool()" value="$">
+                </div>
+                <!-- 快捷示例 -->
+                <div class="form-group">
+                    <label>常用表达式</label>
+                    <div class="tool-options-row" id="jsonpath-examples" style="flex-wrap: wrap; gap: 6px;"></div>
+                </div>
+                <!-- 状态 -->
+                <div id="jsonpath-status" class="tool-stats" aria-live="polite"></div>
+                <!-- 匹配路径 -->
+                <div class="form-group" id="jsonpath-paths-group" style="display: none;">
+                    <label>匹配路径</label>
+                    <div id="jsonpath-paths" class="jsonpath-paths"></div>
+                </div>
+                <!-- 结果输出 -->
+                <div class="form-group flex-1">
+                    <label for="jsonpath-output">查询结果</label>
+                    <textarea id="jsonpath-output" readonly placeholder="查询结果将显示在这里..." rows="10"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
