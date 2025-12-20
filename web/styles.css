@@ -5734,61 +5734,71 @@ select option {
     overflow: hidden;
 }
 
-/* 毛玻璃兼容 - 集合侧边栏 */
-[data-glass="true"] .collections-sidebar {
-    background: rgba(30, 41, 59, 0.6) !important;
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-}
-
-[data-theme="light"][data-glass="true"] .collections-sidebar,
-[data-theme="cute"][data-glass="true"] .collections-sidebar,
-[data-theme="office"][data-glass="true"] .collections-sidebar {
-    background: rgba(255, 255, 255, 0.6) !important;
-}
-
-/* 毛玻璃兼容 - 集合项 */
-[data-glass="true"] .collection-item,
-[data-glass="true"] .collection-header,
-[data-glass="true"] .folder-header,
-[data-glass="true"] .request-item-wrapper,
-[data-glass="true"] .request-item {
+/* 毛玻璃兼容 - 整体容器透明 */
+[data-glass="true"] .http-collections-container,
+[data-glass="true"] .collections-sidebar,
+[data-glass="true"] .collections-sidebar-header,
+[data-glass="true"] .collections-list,
+[data-glass="true"] .request-detail,
+[data-glass="true"] .request-editor,
+[data-glass="true"] .http-tool-horizontal,
+[data-glass="true"] .http-request-panel,
+[data-glass="true"] .http-response-panel,
+[data-glass="true"] .http-response-content,
+[data-glass="true"] .http-tab-content,
+[data-glass="true"] .http-kv-editor,
+[data-glass="true"] .http-body-type,
+[data-glass="true"] .http-tabs,
+[data-glass="true"] .http-response-tabs,
+[data-glass="true"] .http-response-header,
+[data-glass="true"] #http-body-editor {
     background: transparent !important;
 }
 
+/* 毛玻璃兼容 - 集合项透明 */
+[data-glass="true"] .collection-item,
+[data-glass="true"] .collection-header,
+[data-glass="true"] .collection-content,
+[data-glass="true"] .folder-item,
+[data-glass="true"] .folder-header,
+[data-glass="true"] .folder-content,
+[data-glass="true"] .request-item-wrapper,
+[data-glass="true"] .request-item,
+[data-glass="true"] .empty-state,
+[data-glass="true"] .request-header,
+[data-glass="true"] .http-url-bar {
+    background: transparent !important;
+}
+
+/* 毛玻璃兼容 - 悬停效果 */
 [data-glass="true"] .collection-header:hover,
 [data-glass="true"] .folder-header:hover,
 [data-glass="true"] .request-item:hover {
     background: rgba(99, 102, 241, 0.15) !important;
 }
 
-/* 毛玻璃兼容 - 请求编辑器 */
-[data-glass="true"] .request-editor,
-[data-glass="true"] .http-tool-horizontal,
-[data-glass="true"] .http-request-panel,
-[data-glass="true"] .http-response-panel {
-    background: transparent !important;
-}
-
-/* 毛玻璃兼容 - 输入框和文本区域 */
+/* 毛玻璃兼容 - 输入框统一半透明 */
 [data-glass="true"] .http-collections-container input,
 [data-glass="true"] .http-collections-container textarea,
 [data-glass="true"] .http-collections-container select {
-    background: rgba(30, 41, 59, 0.4) !important;
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.1) !important;
+    border-color: rgba(99, 102, 241, 0.3) !important;
 }
 
-[data-theme="light"][data-glass="true"] .http-collections-container input,
-[data-theme="light"][data-glass="true"] .http-collections-container textarea,
-[data-theme="light"][data-glass="true"] .http-collections-container select,
-[data-theme="cute"][data-glass="true"] .http-collections-container input,
-[data-theme="cute"][data-glass="true"] .http-collections-container textarea,
-[data-theme="cute"][data-glass="true"] .http-collections-container select,
-[data-theme="office"][data-glass="true"] .http-collections-container input,
-[data-theme="office"][data-glass="true"] .http-collections-container textarea,
-[data-theme="office"][data-glass="true"] .http-collections-container select {
-    background: rgba(255, 255, 255, 0.4) !important;
+[data-glass="true"] .http-collections-container input:focus,
+[data-glass="true"] .http-collections-container textarea:focus,
+[data-glass="true"] .http-collections-container select:focus {
+    background: rgba(0, 0, 0, 0.15) !important;
+    border-color: rgba(99, 102, 241, 0.5) !important;
+}
+
+/* 毛玻璃兼容 - 标签页透明 */
+[data-glass="true"] .http-tab {
+    background: transparent !important;
+}
+
+[data-glass="true"] .http-tab.active {
+    background: rgba(99, 102, 241, 0.1) !important;
 }
 
 .zoom-controls {
