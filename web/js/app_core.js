@@ -691,6 +691,9 @@ async function handlePageEnter(page) {
             await loadTabs();
             await loadCommands();
         }
+        if (page === 'http-collections') {
+            await loadHttpCollections();
+        }
         if (page === 'nodes') {
             await loadNodes();
         }

@@ -1,0 +1,240 @@
+<!-- 自动拆分自 web/index.html：http-collections -->
+<section id="page-http-collections" class="page">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>HTTP 请求集合</h1>
+            <p class="subtitle">管理和测试 API 请求集合</p>
+        </div>
+        <div class="page-actions">
+            <div class="zoom-controls">
+                <button class="btn btn-ghost btn-sm" onclick="adjustHttpCollectionsZoom(-10)" title="缩小">-</button>
+                <span id="http-collections-zoom-level">100%</span>
+                <button class="btn btn-ghost btn-sm" onclick="adjustHttpCollectionsZoom(10)" title="放大">+</button>
+                <button class="btn btn-ghost btn-sm" onclick="resetHttpCollectionsZoom()" title="重置">重置</button>
+            </div>
+            <button class="btn btn-primary" onclick="showImportCollectionModal()">导入</button>
+            <button class="btn btn-primary" onclick="showNewCollectionModal()">新建集合</button>
+        </div>
+    </div>
+
+    <div class="http-collections-container">
+        <!-- 左侧：集合树 -->
+        <div class="collections-sidebar" id="collections-sidebar">
+            <div class="collections-sidebar-header">
+                <h3>集合</h3>
+                <button class="btn-icon" onclick="toggleCollectionsSidebar()" title="收起/展开">◀</button>
+            </div>
+            <div class="collections-list" id="collections-list">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+
+        <!-- 右侧：请求详情 + 测试工具 -->
+        <div class="request-detail">
+            <div class="empty-state" id="empty-state">
+                <p>选择一个请求或创建新请求</p>
+            </div>
+            <div class="request-editor" id="request-editor" style="display: none;">
+                <div class="request-header">
+                    <input type="text" id="request-name" placeholder="请求名称" class="request-name-input">
+                    <div class="request-actions">
+                        <button class="btn btn-ghost" onclick="saveCurrentRequest()">保存</button>
+                        <button class="btn btn-ghost" onclick="deleteCurrentRequest()">删除</button>
+                    </div>
+                </div>
+
+                <div class="http-tool-horizontal">
+                    <!-- 左侧：请求配置 -->
+                    <div class="http-request-panel">
+                        <div class="http-url-bar">
+                            <select id="http-method" class="http-method-select">
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="DELETE">DELETE</option>
+                                <option value="PATCH">PATCH</option>
+                                <option value="HEAD">HEAD</option>
+                                <option value="OPTIONS">OPTIONS</option>
+                            </select>
+                            <input type="text" id="http-url" placeholder="请求 URL" class="http-url-input">
+                            <button class="btn btn-primary" onclick="sendHttpRequestFromCollection()">发送</button>
+                        </div>
+
+                        <div class="http-tabs">
+                            <button class="http-tab active" data-tab="params" onclick="switchHttpTab('params')">Query 参数</button>
+                            <button class="http-tab" data-tab="headers" onclick="switchHttpTab('headers')">请求头</button>
+                            <button class="http-tab" data-tab="body" onclick="switchHttpTab('body')">请求体</button>
+                            <button class="http-tab" data-tab="curl" onclick="switchHttpTab('curl')">cURL</button>
+                        </div>
+
+                        <div class="http-tab-content active" id="http-tab-params">
+                            <div class="http-kv-editor" id="http-params-editor">
+                                <div class="http-kv-row">
+                                    <input type="text" placeholder="Key" class="http-kv-key">
+                                    <input type="text" placeholder="Value" class="http-kv-value">
+                                    <label class="http-kv-enable"><input type="checkbox" checked> 启用</label>
+                                    <button class="btn btn-sm btn-ghost" onclick="addHttpParam()">+</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="http-tab-content" id="http-tab-headers">
+                            <div class="http-kv-editor" id="http-headers-editor">
+                                <div class="http-kv-row">
+                                    <input type="text" placeholder="Header Name" class="http-kv-key">
+                                    <input type="text" placeholder="Header Value" class="http-kv-value">
+                                    <label class="http-kv-enable"><input type="checkbox" checked> 启用</label>
+                                    <button class="btn btn-sm btn-ghost" onclick="addHttpHeader()">+</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="http-tab-content" id="http-tab-body">
+                            <div class="http-body-type">
+                                <label>
+                                    <input type="radio" name="http-body-type" value="none" checked onchange="switchHttpBodyType('none')">
+                                    <span>None</span>
+                                </label>
+                                <label>
+                                    <input type="radio" name="http-body-type" value="json" onchange="switchHttpBodyType('json')">
+                                    <span>JSON</span>
+                                </label>
+                                <label>
+                                    <input type="radio" name="http-body-type" value="form" onchange="switchHttpBodyType('form')">
+                                    <span>Form</span>
+                                </label>
+                                <label>
+                                    <input type="radio" name="http-body-type" value="raw" onchange="switchHttpBodyType('raw')">
+                                    <span>Raw</span>
+                                </label>
+                            </div>
+                            <div id="http-body-editor" style="display: none;">
+                                <textarea id="http-body-text" placeholder="请求体内容..." spellcheck="false"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="http-tab-content" id="http-tab-curl">
+                            <textarea id="http-curl-input" placeholder="粘贴 cURL 命令..." spellcheck="false"></textarea>
+                            <div class="http-curl-actions">
+                                <button class="btn btn-sm btn-ghost" onclick="importCurl()">导入</button>
+                                <button class="btn btn-sm btn-ghost" onclick="exportCurl()">导出</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右侧：响应 -->
+                    <div class="http-response-panel">
+                        <div class="http-response-header">
+                            <h3>响应</h3>
+                            <div class="http-response-meta" id="http-response-meta"></div>
+                        </div>
+                        <div class="http-response-tabs">
+                            <button class="http-tab active" data-tab="response-body" onclick="switchHttpResponseTab('response-body')">Body</button>
+                            <button class="http-tab" data-tab="response-headers" onclick="switchHttpResponseTab('response-headers')">Headers</button>
+                        </div>
+                        <div class="http-response-content">
+                            <div class="http-tab-content active" id="http-tab-response-body">
+                                <textarea id="http-response-body" readonly placeholder="响应内容将显示在这里..." spellcheck="false"></textarea>
+                            </div>
+                            <div class="http-tab-content" id="http-tab-response-headers">
+                                <textarea id="http-response-headers-text" readonly placeholder="响应头将显示在这里..." spellcheck="false"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 新建集合弹窗 -->
+<div id="new-collection-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>新建集合</h2>
+            <button class="modal-close" onclick="closeModal('new-collection-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>集合名称</label>
+                <input type="text" id="new-collection-name" placeholder="输入集合名称">
+            </div>
+            <div class="form-group">
+                <label>描述</label>
+                <textarea id="new-collection-description" placeholder="输入描述（可选）"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('new-collection-modal')">取消</button>
+            <button class="btn btn-primary" onclick="createNewCollection()">创建</button>
+        </div>
+    </div>
+</div>
+
+<!-- 导入集合弹窗 -->
+<div id="import-collection-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>导入集合</h2>
+            <button class="modal-close" onclick="closeModal('import-collection-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>选择格式</label>
+                <select id="import-format">
+                    <option value="postman">Postman Collection v2.1</option>
+                    <option value="apifox">Apifox</option>
+                    <option value="openapi">OpenAPI 3.x</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>选择文件</label>
+                <div class="file-picker-row">
+                    <input type="text" id="import-file-name" class="file-picker-input" placeholder="未选择文件" readonly>
+                    <button class="btn btn-ghost" onclick="pickImportCollectionFile()">选择文件</button>
+                </div>
+                <div class="form-hint">支持 JSON 文件（.json）</div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('import-collection-modal')">取消</button>
+            <button class="btn btn-primary" onclick="importCollection()">导入</button>
+        </div>
+    </div>
+</div>
+
+<!-- 新建请求弹窗 -->
+<div id="new-request-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>新建请求</h2>
+            <button class="modal-close" onclick="closeModal('new-request-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>请求名称</label>
+                <input type="text" id="new-request-name" placeholder="输入请求名称">
+            </div>
+            <div class="form-group">
+                <label>请求方法</label>
+                <select id="new-request-method">
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                    <option value="PATCH">PATCH</option>
+                    <option value="HEAD">HEAD</option>
+                    <option value="OPTIONS">OPTIONS</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>请求 URL</label>
+                <input type="text" id="new-request-url" placeholder="https://api.example.com/endpoint">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('new-request-modal')">取消</button>
+            <button class="btn btn-primary" onclick="createNewRequest()">创建</button>
+        </div>
+    </div>
+</div>

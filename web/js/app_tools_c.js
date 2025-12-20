@@ -1824,9 +1824,13 @@ function switchHttpTab(tab) {
         btn.classList.toggle('active', btn.dataset.tab === tab);
     });
 
-    // 切换内容显示
-    document.querySelectorAll('.http-request .http-tab-content').forEach(content => {
-        content.classList.toggle('active', content.id === `http-tab-${tab}`);
+    // 切换内容显示（兼容两种结构）
+    document.querySelectorAll('.http-tab-content').forEach(content => {
+        if (content.id === `http-tab-${tab}`) {
+            content.classList.add('active');
+        } else if (content.id && content.id.startsWith('http-tab-')) {
+            content.classList.remove('active');
+        }
     });
 }
 
@@ -1845,10 +1849,46 @@ function switchHttpResponseTab(tab) {
 function switchHttpBodyType(type) {
     httpBodyType = type;
     const editor = document.getElementById('http-body-editor');
+    if (!editor) return;
+
     if (type === 'none') {
         editor.style.display = 'none';
     } else {
         editor.style.display = 'block';
+    }
+
+    // 如果是 form 类型，显示 form 编辑器
+    if (type === 'form') {
+        const bodyText = document.getElementById('http-body-text');
+        const formEditor = document.getElementById('http-form-editor');
+
+        if (bodyText) bodyText.style.display = 'none';
+        if (formEditor) {
+            formEditor.style.display = 'block';
+        } else {
+            // 如果没有 form 编辑器，创建一个
+            const bodyEditor = document.getElementById('http-body-editor');
+            if (bodyEditor && !bodyEditor.querySelector('#http-form-editor')) {
+                const formEditorDiv = document.createElement('div');
+                formEditorDiv.id = 'http-form-editor';
+                formEditorDiv.className = 'http-kv-editor';
+                formEditorDiv.innerHTML = `
+                    <div class="http-kv-row">
+                        <input type="text" placeholder="Key" class="http-kv-key">
+                        <input type="text" placeholder="Value" class="http-kv-value">
+                        <label class="http-kv-enable"><input type="checkbox" checked> 启用</label>
+                        <button class="btn btn-sm btn-ghost" onclick="addHttpFormRow()">+</button>
+                    </div>
+                `;
+                bodyEditor.appendChild(formEditorDiv);
+            }
+        }
+    } else {
+        const bodyText = document.getElementById('http-body-text');
+        const formEditor = document.getElementById('http-form-editor');
+
+        if (bodyText) bodyText.style.display = 'block';
+        if (formEditor) formEditor.style.display = 'none';
     }
 }
 
@@ -1879,7 +1919,30 @@ function addHttpHeader() {
     newRow.innerHTML = `
         <input type="text" placeholder="Header Name" class="http-kv-key">
         <input type="text" placeholder="Header Value" class="http-kv-value">
+        <label class="http-kv-enable"><input type="checkbox" checked> 启用</label>
         <button class="btn btn-sm btn-ghost" onclick="addHttpHeader()">+</button>
+    `;
+
+    // 将最后一行的 + 按钮改为 - 按钮
+    const lastBtn = lastRow.querySelector('button');
+    lastBtn.textContent = '-';
+    lastBtn.onclick = function() { removeHttpKvRow(this); };
+
+    editor.appendChild(newRow);
+}
+
+function addHttpFormRow() {
+    const editor = document.getElementById('http-form-editor');
+    if (!editor) return;
+
+    const lastRow = editor.querySelector('.http-kv-row:last-child');
+    const newRow = document.createElement('div');
+    newRow.className = 'http-kv-row';
+    newRow.innerHTML = `
+        <input type="text" placeholder="Key" class="http-kv-key">
+        <input type="text" placeholder="Value" class="http-kv-value">
+        <label class="http-kv-enable"><input type="checkbox" checked> 启用</label>
+        <button class="btn btn-sm btn-ghost" onclick="addHttpFormRow()">+</button>
     `;
 
     // 将最后一行的 + 按钮改为 - 按钮
@@ -2043,9 +2106,34 @@ function importCurl() {
         return;
     }
 
-    // 设置 URL 和方法
-    document.getElementById('http-url').value = config.url;
+    // 设置 URL（使用 baseUrl，不带 Query 参数）
+    document.getElementById('http-url').value = config.baseUrl || config.url;
     document.getElementById('http-method').value = config.method;
+
+    // 设置 Query 参数
+    const paramsEditor = document.getElementById('http-params-editor');
+    paramsEditor.innerHTML = '';
+    if (config.params && Object.keys(config.params).length > 0) {
+        Object.keys(config.params).forEach(key => {
+            const row = document.createElement('div');
+            row.className = 'http-kv-row';
+            row.innerHTML = `
+                <input type="text" placeholder="Key" class="http-kv-key" value="${escapeHtml(key)}">
+                <input type="text" placeholder="Value" class="http-kv-value" value="${escapeHtml(config.params[key])}">
+                <button class="btn btn-sm btn-ghost" onclick="removeHttpKvRow(this)">-</button>
+            `;
+            paramsEditor.appendChild(row);
+        });
+    }
+    // 添加空行
+    const emptyParamRow = document.createElement('div');
+    emptyParamRow.className = 'http-kv-row';
+    emptyParamRow.innerHTML = `
+        <input type="text" placeholder="Key" class="http-kv-key">
+        <input type="text" placeholder="Value" class="http-kv-value">
+        <button class="btn btn-sm btn-ghost" onclick="addHttpParam()">+</button>
+    `;
+    paramsEditor.appendChild(emptyParamRow);
 
     // 设置请求头
     const headersEditor = document.getElementById('http-headers-editor');
@@ -2073,12 +2161,57 @@ function importCurl() {
 
     // 设置请求体
     if (config.body) {
+        // 根据 Content-Type 自动切换 body 类型
+        const contentType = config.headers['Content-Type'] || config.headers['content-type'] || '';
+        let bodyType = 'raw';
+
+        if (contentType.includes('application/json')) {
+            bodyType = 'json';
+        } else if (contentType.includes('application/x-www-form-urlencoded')) {
+            bodyType = 'form';
+        }
+
+        document.querySelector(`input[name="http-body-type"][value="${bodyType}"]`).checked = true;
+        switchHttpBodyType(bodyType);
+
+        if (bodyType === 'json' || bodyType === 'raw') {
+            document.getElementById('http-body-text').value = config.body;
+        } else if (bodyType === 'form') {
+            // 解析 form 数据
+            const formEditor = document.getElementById('http-body-form-editor');
+            formEditor.innerHTML = '';
+            const pairs = config.body.split('&');
+            pairs.forEach(pair => {
+                const [key, value] = pair.split('=').map(decodeURIComponent);
+                if (key) {
+                    const row = document.createElement('div');
+                    row.className = 'http-kv-row';
+                    row.innerHTML = `
+                        <input type="text" placeholder="Key" class="http-kv-key" value="${escapeHtml(key)}">
+                        <input type="text" placeholder="Value" class="http-kv-value" value="${escapeHtml(value || '')}">
+                        <button class="btn btn-sm btn-ghost" onclick="removeHttpKvRow(this)">-</button>
+                    `;
+                    formEditor.appendChild(row);
+                }
+            });
+            // 添加空行
+            const emptyFormRow = document.createElement('div');
+            emptyFormRow.className = 'http-kv-row';
+            emptyFormRow.innerHTML = `
+                <input type="text" placeholder="Key" class="http-kv-key">
+                <input type="text" placeholder="Value" class="http-kv-value">
+                <button class="btn btn-sm btn-ghost" onclick="addHttpFormField()">+</button>
+            `;
+            formEditor.appendChild(emptyFormRow);
+        }
+    } else {
+        // 无 body 时清空请求体
         document.querySelector('input[name="http-body-type"][value="raw"]').checked = true;
         switchHttpBodyType('raw');
-        document.getElementById('http-body-text').value = config.body;
+        document.getElementById('http-body-text').value = '';
     }
 
-    alert('cURL 命令已导入');
+    alert('cURL 命令已成功导入');
 }
 
 function exportCurl() {

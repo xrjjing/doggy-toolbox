@@ -4867,16 +4867,19 @@ select option {
     flex: 1;
     display: flex;
     flex-direction: column;
+    width: 100%;
 }
 
 #http-body-text,
 #http-curl-input {
     flex: 1;
+    width: 100%;
     min-height: 300px !important;
     font-size: 14px;
     line-height: 1.6;
     padding: 16px;
     font-family: "SF Mono", Monaco, monospace;
+    box-sizing: border-box;
 }
 
 .http-curl-actions {
@@ -5704,4 +5707,500 @@ select option {
 [data-theme="light"] .help-code {
     background: #f5f5f5;
     border-color: #e0e0e0;
+}
+
+/* ========== HTTP 工具文本区域优化 ========== */
+.http-tool textarea {
+    min-height: 250px;
+    max-height: 60vh;
+    resize: vertical;
+}
+
+/* ========== WebSocket 工具 UI 优化 ========== */
+#ws-message-input {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.websocket-messages-list {
+    min-height: 250px;
+}
+
+/* ========== HTTP 请求集合管理 ========== */
+.http-collections-container {
+    display: flex;
+    gap: 24px;
+    height: calc(100vh - 200px);
+    overflow: hidden;
+}
+
+/* 毛玻璃兼容 - 集合侧边栏 */
+[data-glass="true"] .collections-sidebar {
+    background: rgba(30, 41, 59, 0.6) !important;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+}
+
+[data-theme="light"][data-glass="true"] .collections-sidebar,
+[data-theme="cute"][data-glass="true"] .collections-sidebar,
+[data-theme="office"][data-glass="true"] .collections-sidebar {
+    background: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* 毛玻璃兼容 - 集合项 */
+[data-glass="true"] .collection-item,
+[data-glass="true"] .collection-header,
+[data-glass="true"] .folder-header,
+[data-glass="true"] .request-item-wrapper,
+[data-glass="true"] .request-item {
+    background: transparent !important;
+}
+
+[data-glass="true"] .collection-header:hover,
+[data-glass="true"] .folder-header:hover,
+[data-glass="true"] .request-item:hover {
+    background: rgba(99, 102, 241, 0.15) !important;
+}
+
+/* 毛玻璃兼容 - 请求编辑器 */
+[data-glass="true"] .request-editor,
+[data-glass="true"] .http-tool-horizontal,
+[data-glass="true"] .http-request-panel,
+[data-glass="true"] .http-response-panel {
+    background: transparent !important;
+}
+
+/* 毛玻璃兼容 - 输入框和文本区域 */
+[data-glass="true"] .http-collections-container input,
+[data-glass="true"] .http-collections-container textarea,
+[data-glass="true"] .http-collections-container select {
+    background: rgba(30, 41, 59, 0.4) !important;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+}
+
+[data-theme="light"][data-glass="true"] .http-collections-container input,
+[data-theme="light"][data-glass="true"] .http-collections-container textarea,
+[data-theme="light"][data-glass="true"] .http-collections-container select,
+[data-theme="cute"][data-glass="true"] .http-collections-container input,
+[data-theme="cute"][data-glass="true"] .http-collections-container textarea,
+[data-theme="cute"][data-glass="true"] .http-collections-container select,
+[data-theme="office"][data-glass="true"] .http-collections-container input,
+[data-theme="office"][data-glass="true"] .http-collections-container textarea,
+[data-theme="office"][data-glass="true"] .http-collections-container select {
+    background: rgba(255, 255, 255, 0.4) !important;
+}
+
+.zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    font-size: 14px;
+}
+
+.zoom-controls span {
+    min-width: 45px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.zoom-controls .btn {
+    padding: 4px 8px;
+    min-width: 32px;
+}
+
+.collections-sidebar {
+    width: 300px;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding-right: 16px;
+    transition: width 0.3s, min-width 0.3s;
+}
+
+.collections-sidebar.collapsed {
+    width: 50px;
+    min-width: 50px;
+    padding-right: 0;
+}
+
+.collections-sidebar.collapsed .collections-list {
+    display: none;
+}
+
+.collections-sidebar.collapsed .collections-sidebar-header h3 {
+    display: none;
+}
+
+.collections-sidebar.collapsed .btn-icon {
+    transform: rotate(180deg);
+}
+
+.collections-sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 8px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.collections-sidebar-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.collections-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.collection-item {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.collection-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: var(--bg-card);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.collection-header:hover {
+    background: var(--bg-hover);
+}
+
+.collection-name {
+    flex: 1;
+    font-weight: 600;
+}
+
+.collection-content {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.folder-item {
+    padding: 4px 0;
+}
+
+.folder-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background 0.2s;
+}
+
+.folder-header:hover {
+    background: var(--bg-hover);
+}
+
+.request-item-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.request-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background 0.2s;
+}
+
+.request-item:hover {
+    background: var(--bg-hover);
+}
+
+.request-item-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.request-item-wrapper:hover .request-item-actions {
+    opacity: 1;
+}
+
+.btn-icon-sm {
+    padding: 4px 6px;
+    font-size: 14px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background 0.2s;
+}
+
+.btn-icon-sm:hover {
+    background: var(--bg-hover);
+}
+
+.request-method {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.method-get { background: #10b981; }
+.method-post { background: #3b82f6; }
+.method-put { background: #f59e0b; }
+.method-delete { background: #ef4444; }
+.method-patch { background: #8b5cf6; }
+.method-head { background: #6b7280; }
+.method-options { background: #6b7280; }
+
+.request-detail {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-secondary);
+}
+
+.request-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.request-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.request-name-input {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.request-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.request-url-bar {
+    display: flex;
+    gap: 12px;
+}
+
+.request-method-select {
+    min-width: 120px;
+}
+
+.http-collections-tool {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.http-tool-horizontal {
+    flex: 1;
+    display: flex;
+    gap: 16px;
+    overflow: hidden;
+}
+
+.http-request-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.http-response-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+}
+
+.http-response-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.http-response-content textarea {
+    flex: 1;
+    min-height: 300px;
+    resize: vertical;
+}
+
+.http-tab-content textarea {
+    min-height: 250px;
+    resize: vertical;
+}
+
+.file-picker-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.file-picker-input {
+    flex: 1;
+    background: var(--bg-secondary);
+    cursor: default;
+}
+
+.form-hint {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.request-url-input {
+    flex: 1;
+}
+
+.request-tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+}
+
+.request-tab {
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+}
+
+.request-tab.active {
+    background: var(--accent);
+    color: #fff;
+}
+
+.request-tab-content {
+    display: none;
+    padding: 16px 0;
+}
+
+.request-tab-content.active {
+    display: block;
+}
+
+.kv-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.kv-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.kv-row input[type="text"] {
+    flex: 1;
+}
+
+.body-type-selector,
+.auth-type-selector {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+#request-body {
+    min-height: 200px;
+    resize: vertical;
+}
+
+.response-section {
+    margin-top: 24px;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+}
+
+.response-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.response-tab {
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+}
+
+.response-tab.active {
+    background: var(--accent);
+    color: #fff;
+}
+
+.response-tab-content {
+    display: none;
+}
+
+.response-tab-content.active {
+    display: block;
+}
+
+#response-body,
+#response-headers {
+    min-height: 200px;
+    resize: vertical;
+}
+
+.btn-icon {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    font-size: 16px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.btn-icon:hover {
+    opacity: 1;
 }

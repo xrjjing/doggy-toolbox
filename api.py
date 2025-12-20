@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 
 from services import ComputerUsageService, NodeConverterService
+from services.http_collections import HttpCollectionsService
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,9 @@ class Api:
         self.node_converter = NodeConverterService(
             data_dir=self.data_dir,
             nodes_file=paths["nodes_file"],
+        )
+        self.http_collections = HttpCollectionsService(
+            data_dir=self.data_dir / "HTTP请求"
         )
         self._window = None
 
@@ -236,6 +240,70 @@ class Api:
 
     def delete_node(self, id: str):
         return self.node_converter.delete_node(id)
+
+    # ========== HTTP 请求集合管理 ==========
+    def get_http_collections(self):
+        return self.http_collections.get_collections()
+
+    def add_http_collection(self, name: str, description: str = ""):
+        return self.http_collections.add_collection(name, description)
+
+    def delete_http_collection(self, collection_id: str):
+        return self.http_collections.delete_collection(collection_id)
+
+    def add_http_folder(self, collection_id: str, name: str, parent_path: List[str] = None, level: int = 1):
+        return self.http_collections.add_folder(collection_id, name, parent_path, level)
+
+    def add_http_request(self, collection_id: str, request_data: dict, folder_path: List[str] = None):
+        return self.http_collections.add_request(collection_id, request_data, folder_path)
+
+    def update_http_request(self, collection_id: str, request_id: str, request_data: dict):
+        return self.http_collections.update_request(collection_id, request_id, request_data)
+
+    def delete_http_request(self, collection_id: str, request_id: str):
+        return self.http_collections.delete_request(collection_id, request_id)
+
+    def import_postman_collection(self, postman_data: dict):
+        return self.http_collections.import_postman(postman_data)
+
+    def import_apifox_collection(self, apifox_data: dict):
+        return self.http_collections.import_apifox(apifox_data)
+
+    def import_openapi_collection(self, openapi_data: dict):
+        return self.http_collections.import_openapi(openapi_data)
+
+    def open_collection_file_dialog(self):
+        """打开文件选择对话框，选择集合 JSON 文件"""
+        import webview
+
+        if not self._window:
+            return {"success": False, "error": "窗口未初始化"}
+
+        try:
+            file_types = ['JSON 文件 (*.json)', '所有文件 (*.*)']
+            result = self._window.create_file_dialog(
+                webview.OPEN_DIALOG,
+                file_types=file_types,
+            )
+
+            if result and len(result) > 0:
+                file_path = Path(result[0])
+                if not file_path.exists():
+                    return {"success": False, "error": "文件不存在"}
+
+                # 读取文件内容
+                content = file_path.read_text(encoding="utf-8")
+                return {
+                    "success": True,
+                    "fileName": file_path.name,
+                    "content": content
+                }
+            else:
+                return {"success": False, "error": "未选择文件"}
+
+        except Exception as e:
+            logger.error(f"打开文件对话框失败: {e}")
+            return {"success": False, "error": str(e)}
 
     # ========== 系统配置 ==========
     def get_theme(self):
