@@ -5801,6 +5801,17 @@ select option {
     background: rgba(99, 102, 241, 0.1) !important;
 }
 
+/* 毛玻璃兼容 - 按钮透明 */
+[data-glass="true"] .collections-sidebar .btn-icon,
+[data-glass="true"] .collections-sidebar-header .btn-icon {
+    background: transparent !important;
+}
+
+[data-glass="true"] .collections-sidebar .btn-icon:hover,
+[data-glass="true"] .collections-sidebar-header .btn-icon:hover {
+    background: rgba(99, 102, 241, 0.15) !important;
+}
+
 .zoom-controls {
     display: flex;
     align-items: center;
