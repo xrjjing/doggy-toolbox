@@ -56,7 +56,7 @@
                             <input type="radio" name="provider-type" value="openai" checked>
                             <span class="option-content">
                                 <span class="option-title">官方 API</span>
-                                <span class="option-desc">支持 API Key 或 auth.json</span>
+                                <span class="option-desc">使用 OpenAI API Key</span>
                             </span>
                         </label>
                         <label class="subtype-option" data-type="openai-compatible">
@@ -84,30 +84,9 @@
                     <input type="text" id="provider-name" class="form-input" placeholder="例如：OpenAI 官方">
                 </div>
 
-                <!-- OpenAI 官方专用：auth.json -->
-                <div class="form-group" id="field-auth-json" style="display:none">
-                    <label>auth.json <span class="optional">(与 API Key 二选一)</span></label>
-                    <div class="auth-json-wrapper">
-                        <textarea id="auth-json" class="auth-json-input" spellcheck="false" placeholder='{
-  "OPENAI_API_KEY": null,
-  "last_refresh": "2025-12-14T03:14:12.865609Z",
-  "tokens": {
-    "access_token": "eyJ...",
-    "account_id": "...",
-    "refresh_token": "rt_...",
-    "id_token": "eyJ..."
-  }
-}'></textarea>
-                        <div class="auth-json-hint">
-                            <span class="hint-icon">💡</span>
-                            <span>从 <code>~/.codex/auth.json</code> 文件复制完整内容</span>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Claude 和第三方：API Key -->
                 <div class="form-group" id="field-api-key">
-                    <label>API Key <span class="optional" id="api-key-optional-hint" style="display:none">(与 auth.json 二选一)</span><span class="required" id="api-key-required-hint">*</span></label>
+                    <label>API Key <span class="required">*</span></label>
                     <div class="api-key-input-wrapper">
                         <input type="password" id="api-key" class="form-input" placeholder="sk-xxx 或 anthropic-key">
                         <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility()" title="显示/隐藏密码">

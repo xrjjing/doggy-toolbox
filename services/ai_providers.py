@@ -41,67 +41,18 @@ class AIProvider:
 
 
 class OpenAIProvider(AIProvider):
-    """OpenAI 官方 API Provider（支持 API Key 或 auth.json OAuth 令牌）"""
+    """OpenAI 官方 API Provider（仅支持 API Key）"""
 
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
 
-        auth_data = config.get('config', {}).get('auth_data')
-        api_key: Optional[str] = None
-        access_token: Optional[str] = None
-        account_id: Optional[str] = None
-
-        # 从 auth_data 提取认证信息
-        if isinstance(auth_data, dict):
-            # 优先检查 OPENAI_API_KEY
-            maybe_key = auth_data.get("OPENAI_API_KEY")
-            if isinstance(maybe_key, str) and maybe_key.strip():
-                api_key = maybe_key.strip()
-
-            # 检查 tokens.access_token（OAuth 令牌）
-            tokens = auth_data.get("tokens", {})
-            if isinstance(tokens, dict):
-                maybe_token = tokens.get("access_token")
-                if isinstance(maybe_token, str) and maybe_token.strip():
-                    access_token = maybe_token.strip()
-                maybe_account = tokens.get("account_id")
-                if isinstance(maybe_account, str) and maybe_account.strip():
-                    account_id = maybe_account.strip()
-
-        # 回退到 config 中的 api_key
+        # 获取 API Key
+        api_key = config.get('config', {}).get('api_key')
         if not api_key:
-            maybe_key = config.get('config', {}).get('api_key')
-            if isinstance(maybe_key, str) and maybe_key.strip():
-                api_key = maybe_key.strip()
+            api_key = os.environ.get("OPENAI_API_KEY")
 
-        # 最后回退到环境变量
-        if not api_key:
-            maybe_key = os.environ.get("OPENAI_API_KEY")
-            if isinstance(maybe_key, str) and maybe_key.strip():
-                api_key = maybe_key.strip()
-
-        # 决定使用哪种认证方式
-        # 优先使用 API Key（访问 api.openai.com）
-        # 如果没有 API Key 但有 access_token，使用 OAuth（访问 chatgpt.com）
-        if api_key:
-            self.auth_mode = 'api_key'
-            self.api_key = api_key
-            self.access_token = None
-            self.account_id = None
-            self.base_url = config.get('config', {}).get('base_url', 'https://api.openai.com/v1')
-        elif access_token:
-            self.auth_mode = 'oauth'
-            self.api_key = None
-            self.access_token = access_token
-            self.account_id = account_id
-            self.base_url = 'https://chatgpt.com/backend-api/codex'
-        else:
-            self.auth_mode = None
-            self.api_key = None
-            self.access_token = None
-            self.account_id = None
-            self.base_url = config.get('config', {}).get('base_url', 'https://api.openai.com/v1')
-
+        self.api_key = api_key
+        self.base_url = config.get('config', {}).get('base_url', 'https://api.openai.com/v1')
         self.organization = config.get('config', {}).get('organization')
         self.project = config.get('config', {}).get('project')
         self.default_model = config.get('config', {}).get('default_model', 'gpt-4.1')
@@ -109,40 +60,21 @@ class OpenAIProvider(AIProvider):
 
     def _build_headers(self) -> Dict[str, str]:
         """构建请求头"""
-        if self.auth_mode == 'api_key':
-            if not self.api_key:
-                raise ValueError("未配置 OpenAI API Key：请提供 sk-... 格式的 API Key")
-            headers = {
-                'Authorization': f'Bearer {self.api_key}',
-                'Content-Type': 'application/json'
-            }
-            if self.organization:
-                headers['OpenAI-Organization'] = self.organization
-            if self.project:
-                headers['OpenAI-Project'] = self.project
-        elif self.auth_mode == 'oauth':
-            if not self.access_token:
-                raise ValueError("未配置 access_token")
-            headers = {
-                'Authorization': f'Bearer {self.access_token}',
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
-            if self.account_id:
-                headers['ChatGPT-Account-Id'] = self.account_id
-        else:
-            raise ValueError("未配置认证信息：请提供 API Key 或 auth.json")
+        if not self.api_key:
+            raise ValueError("未配置 OpenAI API Key")
+
+        headers = {
+            'Authorization': f'Bearer {self.api_key}',
+            'Content-Type': 'application/json'
+        }
+        if self.organization:
+            headers['OpenAI-Organization'] = self.organization
+        if self.project:
+            headers['OpenAI-Project'] = self.project
         return headers
 
     async def chat(self, messages: List[Dict], model: Optional[str] = None, **kwargs) -> str:
-        """对话接口（自动选择端点）"""
-        if self.auth_mode == 'oauth':
-            return await self._chat_oauth(messages, model, **kwargs)
-        else:
-            return await self._chat_api_key(messages, model, **kwargs)
-
-    async def _chat_api_key(self, messages: List[Dict], model: Optional[str] = None, **kwargs) -> str:
-        """使用 API Key 访问 OpenAI 平台 API"""
+        """对话接口"""
         url = f"{self.base_url.rstrip('/')}/chat/completions"
         headers = self._build_headers()
 
@@ -158,50 +90,8 @@ class OpenAIProvider(AIProvider):
             data = response.json()
             return data['choices'][0]['message']['content']
 
-    async def _chat_oauth(self, messages: List[Dict], model: Optional[str] = None, **kwargs) -> str:
-        """使用 OAuth 令牌访问 ChatGPT 后端 API"""
-        url = f"{self.base_url}/responses"
-        headers = self._build_headers()
-
-        # 提取用户输入
-        user_input = ""
-        for msg in messages:
-            if msg.get('role') == 'user':
-                user_input = msg.get('content', '')
-
-        payload = {
-            'model': model or self.default_model,
-            'input': user_input,
-        }
-
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(url, headers=headers, json=payload)
-            response.raise_for_status()
-            data = response.json()
-            return self._extract_output_text(data)
-
-    def _extract_output_text(self, response_json: Dict[str, Any]) -> str:
-        """从 ChatGPT 后端响应中提取输出文本"""
-        output_parts = []
-        for item in response_json.get("output", []) or []:
-            if item.get("type") != "message":
-                continue
-            for part in item.get("content", []) or []:
-                if part.get("type") == "output_text" and isinstance(part.get("text"), str):
-                    output_parts.append(part["text"])
-        return "".join(output_parts).strip()
-
     async def chat_stream(self, messages: List[Dict], model: Optional[str] = None, **kwargs) -> AsyncIterator[str]:
         """流式响应"""
-        if self.auth_mode == 'oauth':
-            async for chunk in self._chat_stream_oauth(messages, model, **kwargs):
-                yield chunk
-        else:
-            async for chunk in self._chat_stream_api_key(messages, model, **kwargs):
-                yield chunk
-
-    async def _chat_stream_api_key(self, messages: List[Dict], model: Optional[str] = None, **kwargs) -> AsyncIterator[str]:
-        """使用 API Key 的流式响应"""
         url = f"{self.base_url.rstrip('/')}/chat/completions"
         headers = self._build_headers()
 
@@ -226,48 +116,6 @@ class OpenAIProvider(AIProvider):
                             delta = data['choices'][0]['delta']
                             if 'content' in delta:
                                 yield delta['content']
-                        except Exception as e:
-                            logger.warning(f"解析流式数据失败: {e}")
-
-    async def _chat_stream_oauth(self, messages: List[Dict], model: Optional[str] = None, **kwargs) -> AsyncIterator[str]:
-        """使用 OAuth 的流式响应"""
-        url = f"{self.base_url}/responses"
-        headers = self._build_headers()
-        headers['Accept'] = 'text/event-stream'
-
-        user_input = ""
-        for msg in messages:
-            if msg.get('role') == 'user':
-                user_input = msg.get('content', '')
-
-        payload = {
-            'model': model or self.default_model,
-            'input': user_input,
-            'stream': True,
-        }
-
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            async with client.stream('POST', url, headers=headers, json=payload) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    if line.startswith('data: '):
-                        data_str = line[6:]
-                        if data_str == '[DONE]':
-                            break
-                        try:
-                            import json
-                            data = json.loads(data_str)
-                            event_type = data.get('type', '')
-                            if event_type == 'response.output_text.delta':
-                                delta = data.get('delta', '')
-                                if delta:
-                                    yield delta
-                            elif 'delta' in data:
-                                delta = data.get('delta', {})
-                                if isinstance(delta, dict) and 'text' in delta:
-                                    yield delta['text']
-                                elif isinstance(delta, str):
-                                    yield delta
                         except Exception as e:
                             logger.warning(f"解析流式数据失败: {e}")
 

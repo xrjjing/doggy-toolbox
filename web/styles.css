@@ -242,6 +242,7 @@ body {
 [data-glass="true"] .command-card,
 [data-glass="true"] .node-card,
 [data-glass="true"] .tab-card,
+[data-glass="true"] .provider-card,
 [data-glass="true"] .card {
     background: rgba(30, 41, 59, 0.35) !important;
     -webkit-backdrop-filter: blur(12px);
@@ -252,18 +253,23 @@ body {
 [data-theme="light"][data-glass="true"] .credential-card,
 [data-theme="light"][data-glass="true"] .command-card,
 [data-theme="light"][data-glass="true"] .node-card,
+[data-theme="light"][data-glass="true"] .provider-card,
 [data-theme="light"][data-glass="true"] .card,
 [data-theme="cute"][data-glass="true"] .credential-card,
 [data-theme="cute"][data-glass="true"] .command-card,
+[data-theme="cute"][data-glass="true"] .provider-card,
 [data-theme="cute"][data-glass="true"] .card,
 [data-theme="office"][data-glass="true"] .credential-card,
 [data-theme="office"][data-glass="true"] .command-card,
+[data-theme="office"][data-glass="true"] .provider-card,
 [data-theme="office"][data-glass="true"] .card,
 [data-theme="neon-light"][data-glass="true"] .credential-card,
 [data-theme="neon-light"][data-glass="true"] .command-card,
+[data-theme="neon-light"][data-glass="true"] .provider-card,
 [data-theme="neon-light"][data-glass="true"] .card,
 [data-theme="cyberpunk-light"][data-glass="true"] .credential-card,
 [data-theme="cyberpunk-light"][data-glass="true"] .command-card,
+[data-theme="cyberpunk-light"][data-glass="true"] .provider-card,
 [data-theme="cyberpunk-light"][data-glass="true"] .card {
     background: rgba(255, 255, 255, 0.35) !important;
 }

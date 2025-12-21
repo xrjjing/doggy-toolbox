@@ -223,7 +223,6 @@ function resetForm() {
 
     document.getElementById('provider-name').value = '';
     document.getElementById('api-key').value = '';
-    document.getElementById('auth-json').value = '';
     document.getElementById('base-url').value = 'https://api.openai.com/v1';
     document.getElementById('organization').value = '';
     document.getElementById('default-model').innerHTML = '<option value="">⏳ 请先获取模型列表</option>';
@@ -258,7 +257,6 @@ function updateFormFields() {
     currentProviderConfig.type = type;
 
     // 隐藏所有专用字段
-    document.getElementById('field-auth-json').style.display = 'none';
     document.getElementById('field-api-key').style.display = 'none';
     document.getElementById('field-base-url').style.display = 'none';
     document.getElementById('field-organization').style.display = 'none';
@@ -267,17 +265,11 @@ function updateFormFields() {
 
     // 根据类型显示对应字段
     if (type === 'openai') {
-        // OpenAI 官方：支持 API Key 或 auth.json
-        document.getElementById('field-auth-json').style.display = 'block';
+        // OpenAI 官方：使用 API Key
         document.getElementById('field-api-key').style.display = 'block';
         document.getElementById('field-organization').style.display = 'block';
-        // 显示"二选一"提示
-        document.getElementById('api-key-optional-hint').style.display = 'inline';
-        document.getElementById('api-key-required-hint').style.display = 'none';
         // 自动设置默认 Base URL（隐藏但有值）
         document.getElementById('base-url').value = 'https://api.openai.com/v1';
-        // 设置互斥监听
-        setupAuthMutualExclusion();
     } else if (type === 'claude') {
         // Claude：使用 API Key + Base URL
         document.getElementById('field-api-key').style.display = 'block';
@@ -285,9 +277,6 @@ function updateFormFields() {
         document.getElementById('field-api-version').style.display = 'block';
         document.getElementById('base-url').value = 'https://api.anthropic.com';
         document.getElementById('url-hint').textContent = 'Anthropic 官方地址';
-        // 显示必填提示
-        document.getElementById('api-key-optional-hint').style.display = 'none';
-        document.getElementById('api-key-required-hint').style.display = 'inline';
     } else if (type === 'openai-compatible') {
         // 第三方兼容：使用 API Key + Base URL
         document.getElementById('field-api-key').style.display = 'block';
@@ -295,9 +284,6 @@ function updateFormFields() {
         document.getElementById('third-party-fields').style.display = 'block';
         document.getElementById('base-url').value = '';
         document.getElementById('url-hint').innerHTML = '⚠️ 请输入第三方 API 地址';
-        // 显示必填提示
-        document.getElementById('api-key-optional-hint').style.display = 'none';
-        document.getElementById('api-key-required-hint').style.display = 'inline';
     }
 
     // 清空模型列表
@@ -309,38 +295,17 @@ function updateFormFields() {
 async function fetchModels() {
     const type = currentProviderConfig.type;
     const baseUrl = document.getElementById('base-url').value.trim();
+    const apiKey = document.getElementById('api-key').value.trim();
 
-    // OpenAI 官方和 ChatGPT 不需要用户输入 Base URL
-    if (type !== 'openai' && type !== 'chatgpt' && !baseUrl) {
+    // OpenAI 官方不需要用户输入 Base URL
+    if (type !== 'openai' && !baseUrl) {
         showToast('请先输入 Base URL', 'warning');
         return;
     }
 
-    // 获取认证信息
-    const authJsonStr = document.getElementById('auth-json').value.trim();
-    const apiKey = document.getElementById('api-key').value.trim();
-
-    // OpenAI 官方支持 auth.json 或 API Key
-    if (type === 'openai') {
-        // 优先使用 auth.json，其次使用 API Key
-        if (!authJsonStr && !apiKey) {
-            showToast('请输入 auth.json 或 API Key', 'warning');
-            return;
-        }
-        if (authJsonStr) {
-            try {
-                JSON.parse(authJsonStr);
-            } catch (e) {
-                showToast('auth.json 格式错误，请检查 JSON 语法', 'error');
-                return;
-            }
-        }
-    } else {
-        // 其他类型使用 API Key
-        if (!apiKey) {
-            showToast('请先输入 API Key', 'warning');
-            return;
-        }
+    if (!apiKey) {
+        showToast('请先输入 API Key', 'warning');
+        return;
     }
 
     const modelSelect = document.getElementById('default-model');
@@ -354,15 +319,8 @@ async function fetchModels() {
         const tempConfig = {
             type: type,
             base_url: type === 'openai' ? 'https://api.openai.com/v1' : baseUrl,
+            api_key: apiKey
         };
-
-        // OpenAI 官方支持 auth.json
-        if (type === 'openai' && authJsonStr) {
-            tempConfig.auth_data = JSON.parse(authJsonStr);
-        }
-        if (apiKey) {
-            tempConfig.api_key = apiKey;
-        }
 
         if (type === 'openai-compatible') {
             tempConfig.compatibility = {
@@ -435,6 +393,7 @@ function enableManualModelInput() {
 async function testConnection() {
     const type = currentProviderConfig.type;
     const baseUrl = document.getElementById('base-url').value.trim();
+    const apiKey = document.getElementById('api-key').value.trim();
     const model = getSelectedModel();
 
     // OpenAI 官方不需要用户输入 Base URL
@@ -443,35 +402,9 @@ async function testConnection() {
         return;
     }
 
-    // 获取认证信息
-    const authJsonStr = document.getElementById('auth-json').value.trim();
-    const apiKeyStr = document.getElementById('api-key').value.trim();
-    let authData = null;
-    let apiKey = null;
-
-    // OpenAI 官方支持 auth.json 或 API Key
-    if (type === 'openai') {
-        if (!authJsonStr && !apiKeyStr) {
-            showToast('请输入 auth.json 或 API Key', 'warning');
-            return;
-        }
-        if (authJsonStr) {
-            try {
-                authData = JSON.parse(authJsonStr);
-            } catch (e) {
-                showToast('auth.json 格式错误', 'error');
-                return;
-            }
-        }
-        if (apiKeyStr) {
-            apiKey = apiKeyStr;
-        }
-    } else {
-        apiKey = apiKeyStr;
-        if (!apiKey) {
-            showToast('请先填写 API Key', 'warning');
-            return;
-        }
+    if (!apiKey) {
+        showToast('请先填写 API Key', 'warning');
+        return;
     }
 
     showToast('🔌 正在测试连接...', 'info');
@@ -480,18 +413,11 @@ async function testConnection() {
         const tempConfig = {
             type: type,
             config: {
+                api_key: apiKey,
                 base_url: type === 'openai' ? 'https://api.openai.com/v1' : baseUrl,
                 default_model: model || (type === 'claude' ? 'claude-sonnet-4-5-20250514' : 'gpt-4.1')
             }
         };
-
-        // OpenAI 官方支持 auth.json
-        if (type === 'openai' && authData) {
-            tempConfig.config.auth_data = authData;
-        }
-        if (apiKey) {
-            tempConfig.config.api_key = apiKey;
-        }
 
         if (type === 'openai') {
             tempConfig.config.organization = document.getElementById('organization')?.value;
@@ -524,6 +450,7 @@ async function saveProvider() {
     const type = currentProviderConfig.type;
     const name = document.getElementById('provider-name').value.trim();
     const baseUrl = document.getElementById('base-url').value.trim();
+    const apiKey = document.getElementById('api-key').value.trim();
     const model = getSelectedModel();
 
     // 基础验证
@@ -531,45 +458,18 @@ async function saveProvider() {
         showToast('请填写显示名称', 'warning');
         return;
     }
-    // OpenAI 官方和 ChatGPT 不需要用户输入 Base URL
-    if (type !== 'openai' && type !== 'chatgpt' && !baseUrl) {
+    // OpenAI 官方不需要用户输入 Base URL
+    if (type !== 'openai' && !baseUrl) {
         showToast('请填写 Base URL', 'warning');
+        return;
+    }
+    if (!apiKey) {
+        showToast('请填写 API Key', 'warning');
         return;
     }
     if (!model) {
         showToast('请选择或输入默认模型', 'warning');
         return;
-    }
-
-    // 获取认证信息
-    const authJsonStr = document.getElementById('auth-json').value.trim();
-    const apiKeyStr = document.getElementById('api-key').value.trim();
-    let authData = null;
-    let apiKey = null;
-
-    // OpenAI 官方支持 auth.json 或 API Key
-    if (type === 'openai') {
-        if (!authJsonStr && !apiKeyStr) {
-            showToast('请输入 auth.json 或 API Key', 'warning');
-            return;
-        }
-        if (authJsonStr) {
-            try {
-                authData = JSON.parse(authJsonStr);
-            } catch (e) {
-                showToast('auth.json 格式错误，请检查 JSON 语法', 'error');
-                return;
-            }
-        }
-        if (apiKeyStr) {
-            apiKey = apiKeyStr;
-        }
-    } else {
-        apiKey = apiKeyStr;
-        if (!apiKey) {
-            showToast('请填写 API Key', 'warning');
-            return;
-        }
     }
 
     const config = {
@@ -578,6 +478,7 @@ async function saveProvider() {
         name: name,
         enabled: true,
         config: {
+            api_key: apiKey,
             base_url: type === 'openai' ? 'https://api.openai.com/v1' : baseUrl,
             default_model: model,
             temperature: parseFloat(document.getElementById('temperature').value),
@@ -605,14 +506,6 @@ async function saveProvider() {
     };
 
     // 根据类型添加专用配置
-    // OpenAI 官方支持 auth.json
-    if (type === 'openai' && authData) {
-        config.config.auth_data = authData;
-    }
-    if (apiKey) {
-        config.config.api_key = apiKey;
-    }
-
     if (type === 'openai') {
         config.config.organization = document.getElementById('organization')?.value.trim();
     } else if (type === 'claude') {
@@ -720,45 +613,5 @@ function togglePasswordVisibility() {
         input.type = 'password';
         if (eyeOpen) eyeOpen.style.display = 'block';
         if (eyeClosed) eyeClosed.style.display = 'none';
-    }
-}
-
-// 设置 auth.json 和 API Key 互斥
-function setupAuthMutualExclusion() {
-    const authJsonInput = document.getElementById('auth-json');
-    const apiKeyInput = document.getElementById('api-key');
-
-    // 移除旧的监听器（避免重复绑定）
-    authJsonInput.removeEventListener('input', handleAuthJsonInput);
-    apiKeyInput.removeEventListener('input', handleApiKeyInput);
-
-    // 添加新的监听器
-    authJsonInput.addEventListener('input', handleAuthJsonInput);
-    apiKeyInput.addEventListener('input', handleApiKeyInput);
-}
-
-// 处理 auth.json 输入
-function handleAuthJsonInput(e) {
-    const apiKeyInput = document.getElementById('api-key');
-    if (e.target.value.trim()) {
-        apiKeyInput.disabled = true;
-        apiKeyInput.placeholder = '已使用 auth.json，无需填写';
-        apiKeyInput.value = '';
-    } else {
-        apiKeyInput.disabled = false;
-        apiKeyInput.placeholder = 'sk-xxx 或 anthropic-key';
-    }
-}
-
-// 处理 API Key 输入
-function handleApiKeyInput(e) {
-    const authJsonInput = document.getElementById('auth-json');
-    if (e.target.value.trim()) {
-        authJsonInput.disabled = true;
-        authJsonInput.placeholder = '已使用 API Key，无需填写';
-        authJsonInput.value = '';
-    } else {
-        authJsonInput.disabled = false;
-        authJsonInput.placeholder = '{\n  "OPENAI_API_KEY": null,\n  ...';
     }
 }

@@ -18,26 +18,6 @@ from services.ai_providers import create_provider
 logger = logging.getLogger(__name__)
 
 
-def _extract_openai_api_key(auth_data: Any, api_key: Optional[str] = None) -> Optional[str]:
-    """从配置中提取 OpenAI 平台 API Key"""
-    # 优先使用显式提供的 api_key
-    if isinstance(api_key, str) and api_key.strip():
-        return api_key.strip()
-
-    # 从 auth_data 的 OPENAI_API_KEY 字段读取
-    if isinstance(auth_data, dict):
-        maybe_key = auth_data.get("OPENAI_API_KEY")
-        if isinstance(maybe_key, str) and maybe_key.strip():
-            return maybe_key.strip()
-
-    # 回退到环境变量
-    env_key = os.environ.get("OPENAI_API_KEY")
-    if isinstance(env_key, str) and env_key.strip():
-        return env_key.strip()
-
-    return None
-
-
 class AIManager:
     """统一的 AI 管理器"""
 
@@ -196,32 +176,15 @@ class AIManager:
 
         try:
             if provider_type == 'openai':
-                # 检查是否使用 OAuth（auth.json 中的 tokens.access_token）
-                auth_data = temp_config.get('auth_data')
                 api_key = temp_config.get('api_key')
+                if not api_key:
+                    api_key = os.environ.get("OPENAI_API_KEY")
 
-                # 检查是否有 API Key
-                has_api_key = bool(api_key and api_key.strip())
-                if not has_api_key and isinstance(auth_data, dict):
-                    maybe_key = auth_data.get("OPENAI_API_KEY")
-                    has_api_key = bool(maybe_key and isinstance(maybe_key, str) and maybe_key.strip())
-
-                # 检查是否有 OAuth 令牌
-                has_oauth = False
-                if isinstance(auth_data, dict):
-                    tokens = auth_data.get("tokens", {})
-                    if isinstance(tokens, dict):
-                        access_token = tokens.get("access_token")
-                        has_oauth = bool(access_token and isinstance(access_token, str) and access_token.strip())
-
-                if has_api_key:
-                    # 使用 API Key 获取模型列表
+                if api_key:
                     return await self._fetch_openai_models(temp_config)
-                elif has_oauth:
-                    # 使用 OAuth 令牌，返回 ChatGPT 后端模型列表
-                    return self._get_openai_oauth_models()
                 else:
-                    raise ValueError("未找到认证信息：请提供 API Key 或 auth.json")
+                    # 没有 API Key，返回固定模型列表
+                    return self._get_openai_models()
             elif provider_type == 'openai-compatible':
                 return await self._fetch_openai_models(temp_config)
             elif provider_type == 'claude':
@@ -238,46 +201,25 @@ class AIManager:
         base_url = config.get('base_url', 'https://api.openai.com/v1')
         url = f"{base_url.rstrip('/')}/models"
 
-        # 根据类型构建认证头
-        if config.get('type') == 'openai':
-            # OpenAI 官方：平台 API 使用 API Key（Authorization: Bearer sk-...）
-            # 注意：Codex CLI 的 tokens.access_token/refresh_token 是 OAuth 凭证，不能直接用于平台 API
-            auth_data = config.get('auth_data')
-            api_key = _extract_openai_api_key(auth_data, config.get('api_key'))
+        api_key = config.get('api_key')
+        if not api_key:
+            api_key = os.environ.get("OPENAI_API_KEY")
 
-            if not api_key:
-                raise ValueError("未找到 OpenAI API Key：请提供 sk-... 格式的 API Key，或设置环境变量 OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("未找到 OpenAI API Key")
 
-            headers = {
-                'Authorization': f'Bearer {api_key}',
-                'Content-Type': 'application/json'
-            }
-            # 多组织/多项目场景可显式指定归属
-            organization = config.get('organization')
-            project = config.get('project')
-            if organization:
-                headers['OpenAI-Organization'] = organization
-            if project:
-                headers['OpenAI-Project'] = project
-        elif config.get('type') == 'openai-compatible':
-            # 第三方兼容：使用自定义认证头
-            api_key = config.get('api_key')
-            compat = config.get('compatibility', {})
-            auth_header = compat.get('auth_header', 'Authorization')
-            auth_prefix = compat.get('auth_prefix', 'Bearer ')
-            headers = {
-                auth_header: f"{auth_prefix}{api_key}",
-                'Content-Type': 'application/json'
-            }
-            custom_headers = compat.get('custom_headers', {})
-            headers.update(custom_headers)
-        else:
-            # 默认：使用 api_key
-            api_key = config.get('api_key')
-            headers = {
-                'Authorization': f"Bearer {api_key}",
-                'Content-Type': 'application/json'
-            }
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json'
+        }
+
+        # 多组织/多项目场景
+        organization = config.get('organization')
+        project = config.get('project')
+        if organization:
+            headers['OpenAI-Organization'] = organization
+        if project:
+            headers['OpenAI-Project'] = project
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(url, headers=headers)
@@ -302,6 +244,26 @@ class AIManager:
 
             return chat_models + other_models
 
+    def _get_openai_models(self) -> List[Dict[str, Any]]:
+        """返回 OpenAI 固定的模型列表（无 API Key 时使用）"""
+        return [
+            {
+                'id': 'gpt-5.2',
+                'name': 'GPT-5.2',
+                'description': '最新旗舰模型'
+            },
+            {
+                'id': 'gpt-5.1',
+                'name': 'GPT-5.1',
+                'description': '稳定旗舰模型'
+            },
+            {
+                'id': 'gpt-5.1-codex',
+                'name': 'GPT-5.1 Codex',
+                'description': 'Codex 专用模型'
+            }
+        ]
+
     def _get_claude_models(self) -> List[Dict[str, Any]]:
         """返回 Claude 固定的模型列表"""
         return [
@@ -319,31 +281,6 @@ class AIManager:
                 'id': 'claude-haiku-4-5-20250514',
                 'name': 'Claude Haiku 4.5',
                 'description': '最快响应速度'
-            }
-        ]
-
-    def _get_openai_oauth_models(self) -> List[Dict[str, Any]]:
-        """返回使用 OAuth 令牌时可用的模型列表（ChatGPT 后端）"""
-        return [
-            {
-                'id': 'gpt-4.1',
-                'name': 'GPT-4.1',
-                'description': '最新旗舰模型'
-            },
-            {
-                'id': 'gpt-4.1-mini',
-                'name': 'GPT-4.1 Mini',
-                'description': '快速响应'
-            },
-            {
-                'id': 'o3',
-                'name': 'o3',
-                'description': '推理模型'
-            },
-            {
-                'id': 'o4-mini',
-                'name': 'o4-mini',
-                'description': '轻量推理模型'
             }
         ]
 
