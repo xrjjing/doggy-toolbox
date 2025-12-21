@@ -1,0 +1,952 @@
+<div id="page-ai-settings" class="page">
+    <div class="page-header">
+        <h2>🤖 AI 配置</h2>
+        <p class="page-description">配置和管理 AI Provider，支持 OpenAI、Claude 和第三方兼容 API</p>
+    </div>
+
+    <div class="ai-settings-container">
+        <!-- Provider 列表 -->
+        <div class="providers-section">
+            <div class="section-header">
+                <h3>AI Provider 列表</h3>
+                <button class="ai-btn ai-btn-primary" onclick="openAddProviderModal()">
+                    <span class="btn-text">+ 添加 Provider</span>
+                </button>
+            </div>
+
+            <!-- 列表分类 Tab -->
+            <div class="list-category-tabs">
+                <button class="list-category-tab active" data-category="openai" onclick="switchListCategory('openai')">
+                    OpenAI
+                </button>
+                <button class="list-category-tab" data-category="claude" onclick="switchListCategory('claude')">
+                    Claude
+                </button>
+            </div>
+
+            <div id="providers-list" class="providers-list">
+                <!-- 动态加载 Provider 卡片 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑 Provider 弹窗 -->
+    <div id="provider-modal" class="modal" style="display:none">
+        <div class="modal-content modal-large ai-modal">
+            <div class="modal-header">
+                <h3 id="modal-title">添加 AI Provider</h3>
+                <button class="ai-btn-close" onclick="closeProviderModal()">×</button>
+            </div>
+
+            <div class="modal-body ai-modal-body">
+                <!-- Provider 类型 Tab 选择 -->
+                <div class="provider-type-tabs">
+                    <button class="type-tab active" data-category="openai" onclick="switchProviderCategory('openai')">
+                        OpenAI 系列
+                    </button>
+                    <button class="type-tab" data-category="claude" onclick="switchProviderCategory('claude')">
+                        Claude
+                    </button>
+                </div>
+
+                <!-- OpenAI 系列子选项 -->
+                <div class="provider-subtype" id="openai-subtype">
+                    <div class="subtype-options">
+                        <label class="subtype-option active" data-type="openai">
+                            <input type="radio" name="provider-type" value="openai" checked>
+                            <span class="option-content">
+                                <span class="option-title">官方 API</span>
+                                <span class="option-desc">支持 API Key 或 auth.json</span>
+                            </span>
+                        </label>
+                        <label class="subtype-option" data-type="openai-compatible">
+                            <input type="radio" name="provider-type" value="openai-compatible">
+                            <span class="option-content">
+                                <span class="option-title">兼容 API</span>
+                                <span class="option-desc">第三方 OpenAI 兼容服务</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Claude 子选项（隐藏，因为只有一个选项） -->
+                <div class="provider-subtype" id="claude-subtype" style="display:none">
+                    <input type="hidden" name="provider-type-claude" value="claude">
+                    <div class="subtype-info">
+                        <span class="info-icon">ℹ️</span>
+                        <span>使用 Anthropic API Key 认证</span>
+                    </div>
+                </div>
+
+                <!-- 显示名称 -->
+                <div class="form-group">
+                    <label>显示名称 <span class="required">*</span></label>
+                    <input type="text" id="provider-name" class="form-input" placeholder="例如：OpenAI 官方">
+                </div>
+
+                <!-- OpenAI 官方专用：auth.json -->
+                <div class="form-group" id="field-auth-json" style="display:none">
+                    <label>auth.json <span class="optional">(与 API Key 二选一)</span></label>
+                    <div class="auth-json-wrapper">
+                        <textarea id="auth-json" class="auth-json-input" spellcheck="false" placeholder='{
+  "OPENAI_API_KEY": null,
+  "last_refresh": "2025-12-14T03:14:12.865609Z",
+  "tokens": {
+    "access_token": "eyJ...",
+    "account_id": "...",
+    "refresh_token": "rt_...",
+    "id_token": "eyJ..."
+  }
+}'></textarea>
+                        <div class="auth-json-hint">
+                            <span class="hint-icon">💡</span>
+                            <span>从 <code>~/.codex/auth.json</code> 文件复制完整内容</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Claude 和第三方：API Key -->
+                <div class="form-group" id="field-api-key">
+                    <label>API Key <span class="optional" id="api-key-optional-hint" style="display:none">(与 auth.json 二选一)</span><span class="required" id="api-key-required-hint">*</span></label>
+                    <div class="api-key-input-wrapper">
+                        <input type="password" id="api-key" class="form-input" placeholder="sk-xxx 或 anthropic-key">
+                        <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility()" title="显示/隐藏密码">
+                            <svg class="eye-icon eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="eye-icon eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <small class="form-hint">密钥将安全存储在本地</small>
+                </div>
+
+                <!-- Base URL（仅 Claude 和第三方显示） -->
+                <div class="form-group" id="field-base-url">
+                    <label>Base URL <span class="required">*</span></label>
+                    <input type="text" id="base-url" class="form-input" placeholder="https://api.openai.com/v1">
+                    <small class="form-hint" id="url-hint">API 服务地址</small>
+                </div>
+
+                <!-- 组织 ID（仅 OpenAI） -->
+                <div class="form-group" id="field-organization" style="display:none">
+                    <label>组织 ID <span class="optional">(可选)</span></label>
+                    <input type="text" id="organization" class="form-input" placeholder="org-xxx">
+                </div>
+
+                <!-- API 版本（仅 Claude） -->
+                <div class="form-group" id="field-api-version" style="display:none">
+                    <label>API 版本</label>
+                    <select id="api-version" class="form-select">
+                        <option value="2023-06-01">2023-06-01</option>
+                        <option value="2024-01-01">2024-01-01</option>
+                    </select>
+                </div>
+
+                <!-- 模型选择 -->
+                <div class="form-group">
+                    <label>默认模型 <span class="required">*</span></label>
+                    <div class="model-select-group">
+                        <select id="default-model" class="form-select" disabled>
+                            <option value="">⏳ 请先获取模型列表</option>
+                        </select>
+                        <button class="ai-btn ai-btn-outline" id="fetch-models-btn" onclick="fetchModels()">
+                            获取模型
+                        </button>
+                    </div>
+                    <small class="form-hint" id="model-hint">输入认证信息后点击"获取模型"</small>
+                </div>
+
+                <!-- 手动输入模型 -->
+                <div class="form-group" id="manual-model-group" style="display:none">
+                    <label>手动输入模型名</label>
+                    <input type="text" id="manual-model-input" class="form-input" placeholder="例如：gpt-4-turbo-preview">
+                </div>
+
+                <!-- 高级选项 -->
+                <details class="advanced-options">
+                    <summary>⚙️ 高级选项</summary>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>温度 (Temperature)</label>
+                            <div class="range-group">
+                                <input type="range" min="0" max="2" step="0.1" value="0.7" id="temperature" oninput="updateRangeValue('temperature', 'temp-value')">
+                                <span class="range-value" id="temp-value">0.7</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Top P</label>
+                            <div class="range-group">
+                                <input type="range" min="0" max="1" step="0.05" value="1" id="top-p" oninput="updateRangeValue('top-p', 'top-p-value')">
+                                <span class="range-value" id="top-p-value">1.0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>最大 Tokens</label>
+                            <input type="number" min="1" max="32000" value="2000" id="max-tokens" class="form-input">
+                        </div>
+
+                        <div class="form-group">
+                            <label>超时时间（秒）</label>
+                            <input type="number" min="10" max="300" value="60" id="timeout" class="form-input">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>频率惩罚</label>
+                            <div class="range-group">
+                                <input type="range" min="0" max="2" step="0.1" value="0" id="freq-penalty" oninput="updateRangeValue('freq-penalty', 'freq-value')">
+                                <span class="range-value" id="freq-value">0.0</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>存在惩罚</label>
+                            <div class="range-group">
+                                <input type="range" min="0" max="2" step="0.1" value="0" id="pres-penalty" oninput="updateRangeValue('pres-penalty', 'pres-value')">
+                                <span class="range-value" id="pres-value">0.0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>最大重试次数</label>
+                        <input type="number" min="0" max="10" value="3" id="max-retries" class="form-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="stream-enabled" checked>
+                            <span>启用流式输出</span>
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label>代理地址 <span class="optional">(可选)</span></label>
+                        <input type="text" id="proxy" class="form-input" placeholder="http://proxy.example.com:8080">
+                    </div>
+
+                    <!-- 第三方兼容专用 -->
+                    <div id="third-party-fields" style="display:none">
+                        <h4 class="section-title">🔧 兼容性配置</h4>
+
+                        <div class="form-group">
+                            <label>端点路径</label>
+                            <input type="text" id="endpoint" class="form-input" value="/chat/completions">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>认证头名称</label>
+                                <input type="text" id="auth-header" class="form-input" value="Authorization">
+                            </div>
+
+                            <div class="form-group">
+                                <label>认证前缀</label>
+                                <input type="text" id="auth-prefix" class="form-input" value="Bearer ">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="verify-ssl" checked>
+                                <span>验证 SSL 证书</span>
+                            </label>
+                            <small class="form-hint warning">⚠️ 关闭 SSL 验证可能存在安全风险</small>
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            <div class="modal-footer ai-modal-footer">
+                <button class="ai-btn ai-btn-outline" onclick="testConnection()">
+                    测试连接
+                </button>
+                <div class="footer-right">
+                    <button class="ai-btn ai-btn-ghost" onclick="closeProviderModal()">
+                        取消
+                    </button>
+                    <button class="ai-btn ai-btn-primary" onclick="saveProvider()">
+                        保存配置
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* AI 配置页面专用样式 */
+.ai-settings-container {
+    padding: 0 20px;
+}
+
+.providers-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.providers-section .section-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* AI 按钮样式 - 图标和文字融为一体 */
+.ai-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    outline: none;
+    white-space: nowrap;
+}
+
+.ai-btn .btn-text {
+    display: inline;
+}
+
+.ai-btn-primary {
+    background: linear-gradient(135deg, var(--accent-color, #6366f1) 0%, var(--accent-color-dark, #4f46e5) 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.ai-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+.ai-btn-primary:active {
+    transform: translateY(0);
+}
+
+.ai-btn-outline {
+    background: transparent;
+    color: var(--text-color, #333);
+    border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.ai-btn-outline:hover {
+    background: var(--hover-bg, rgba(0, 0, 0, 0.05));
+    border-color: var(--accent-color, #6366f1);
+    color: var(--accent-color, #6366f1);
+}
+
+.ai-btn-ghost {
+    background: transparent;
+    color: var(--text-secondary, #666);
+    border: none;
+    padding: 8px 12px;
+}
+
+.ai-btn-ghost:hover {
+    background: var(--hover-bg, rgba(0, 0, 0, 0.05));
+    color: var(--text-color, #333);
+}
+
+/* 按钮小尺寸 */
+.ai-btn.btn-sm {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+.ai-btn-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary, #666);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.ai-btn-close:hover {
+    background: var(--hover-bg, rgba(0, 0, 0, 0.08));
+    color: var(--text-color, #333);
+}
+
+/* 列表分类 Tab 样式 */
+.list-category-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.list-category-tab {
+    padding: 12px 24px;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary, #666);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.list-category-tab:hover {
+    color: var(--text-color, #333);
+}
+
+.list-category-tab.active {
+    color: var(--accent-color, #6366f1);
+}
+
+.list-category-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--accent-color, #6366f1);
+    border-radius: 2px 2px 0 0;
+}
+
+/* Provider 类型 Tab 样式 */
+.provider-type-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--bg-tertiary, #f3f4f6);
+    border-radius: 10px;
+    margin-bottom: 16px;
+}
+
+.type-tab {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary, #666);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.type-tab:hover {
+    color: var(--text-color, #333);
+}
+
+.type-tab.active {
+    background: var(--bg-card, #fff);
+    color: var(--accent-color, #6366f1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 子类型选项 */
+.provider-subtype {
+    margin-bottom: 20px;
+}
+
+.subtype-options {
+    display: flex;
+    gap: 12px;
+}
+
+.subtype-option {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.subtype-option:hover {
+    border-color: var(--accent-color, #6366f1);
+    background: var(--bg-accent-light, rgba(99, 102, 241, 0.04));
+}
+
+.subtype-option.active {
+    border-color: var(--accent-color, #6366f1);
+    background: var(--bg-accent-light, rgba(99, 102, 241, 0.06));
+}
+
+.subtype-option input[type="radio"] {
+    margin-top: 2px;
+    accent-color: var(--accent-color, #6366f1);
+}
+
+.option-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.option-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-color, #333);
+}
+
+.option-desc {
+    font-size: 12px;
+    color: var(--text-secondary, #666);
+}
+
+.subtype-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: var(--bg-hint, rgba(99, 102, 241, 0.08));
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-secondary, #666);
+}
+
+.subtype-info .info-icon {
+    font-size: 14px;
+}
+
+/* Modal 样式优化 */
+.ai-modal {
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.ai-modal-body {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 20px 24px;
+}
+
+.ai-modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color, #e0e0e0);
+    background: var(--bg-secondary, #f9fafb);
+}
+
+.footer-right {
+    display: flex;
+    gap: 8px;
+}
+
+/* auth.json 输入框样式 */
+.auth-json-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.auth-json-input {
+    width: 100%;
+    min-height: 160px;
+    padding: 14px;
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 10px;
+    background: var(--bg-code, #1e1e2e);
+    color: var(--text-code, #cdd6f4);
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    resize: vertical;
+    transition: all 0.2s ease;
+}
+
+.auth-json-input::placeholder {
+    color: var(--text-placeholder, #6c7086);
+    opacity: 0.6;
+}
+
+.auth-json-input:focus {
+    outline: none;
+    border-color: var(--accent-color, #6366f1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.auth-json-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--bg-hint, rgba(99, 102, 241, 0.08));
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-secondary, #666);
+}
+
+.auth-json-hint .hint-icon {
+    font-size: 12px;
+}
+
+.auth-json-hint code {
+    background: var(--bg-code-inline, rgba(0, 0, 0, 0.08));
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: 'SF Mono', 'Monaco', monospace;
+    font-size: 11px;
+}
+
+/* 必填/可选标记 */
+.required {
+    color: var(--error-color, #ef4444);
+    font-weight: 500;
+}
+
+.optional {
+    color: var(--text-tertiary, #999);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+/* 模型选择组 */
+.model-select-group {
+    display: flex;
+    gap: 10px;
+}
+
+.model-select-group .form-select {
+    flex: 1;
+}
+
+/* API Key 输入组 */
+.api-key-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.api-key-input-wrapper .form-input {
+    width: 100%;
+    padding-right: 44px;
+}
+
+.toggle-password-btn {
+    position: absolute;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-secondary, #666);
+    transition: all 0.2s ease;
+}
+
+.toggle-password-btn:hover {
+    background: var(--hover-bg, rgba(0, 0, 0, 0.05));
+    color: var(--accent-color, #6366f1);
+}
+
+.toggle-password-btn .eye-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.input-with-btn {
+    display: flex;
+    gap: 8px;
+}
+
+.input-with-btn .form-input {
+    flex: 1;
+}
+
+.ai-btn-icon {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #e0e0e0);
+    background: var(--bg-secondary, #f9fafb);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 12px;
+    line-height: 1;
+}
+
+.ai-btn-icon:hover {
+    background: var(--hover-bg, rgba(0, 0, 0, 0.05));
+    border-color: var(--accent-color, #6366f1);
+}
+
+/* Provider 卡片样式 */
+.providers-list {
+    display: grid;
+    gap: 16px;
+}
+
+.provider-card {
+    padding: 20px;
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 12px;
+    background: var(--bg-card, #fff);
+    transition: all 0.2s ease;
+}
+
+.provider-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.provider-card.active {
+    border-color: var(--accent-color, #6366f1);
+    background: var(--bg-accent-light, rgba(99, 102, 241, 0.04));
+}
+
+.provider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.provider-info h4 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-color, #333);
+}
+
+.provider-type {
+    font-size: 12px;
+    color: var(--text-secondary, #666);
+    background: var(--bg-tertiary, #f3f4f6);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.badge-active {
+    font-size: 12px;
+    color: var(--accent-color, #6366f1);
+    background: var(--bg-accent-light, rgba(99, 102, 241, 0.1));
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.provider-stats {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 16px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border-color, #e0e0e0);
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--text-secondary, #666);
+}
+
+.stat-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color, #333);
+}
+
+.provider-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary, #666);
+}
+
+.empty-state p {
+    margin: 8px 0;
+}
+
+/* 暗色主题适配 */
+[data-theme="dark"] .list-category-tabs {
+    border-color: #3b3d4d;
+}
+
+[data-theme="dark"] .list-category-tab {
+    color: #9aa5ce;
+}
+
+[data-theme="dark"] .list-category-tab:hover {
+    color: #c0caf5;
+}
+
+[data-theme="dark"] .list-category-tab.active {
+    color: #7aa2f7;
+}
+
+[data-theme="dark"] .list-category-tab.active::after {
+    background: #7aa2f7;
+}
+
+[data-theme="dark"] .provider-type-tabs {
+    background: #1a1b26;
+}
+
+[data-theme="dark"] .type-tab {
+    color: #9aa5ce;
+}
+
+[data-theme="dark"] .type-tab:hover {
+    color: #c0caf5;
+}
+
+[data-theme="dark"] .type-tab.active {
+    background: #24283b;
+    color: #7aa2f7;
+}
+
+[data-theme="dark"] .subtype-option {
+    border-color: #3b3d4d;
+}
+
+[data-theme="dark"] .subtype-option:hover,
+[data-theme="dark"] .subtype-option.active {
+    border-color: #7aa2f7;
+    background: rgba(122, 162, 247, 0.08);
+}
+
+[data-theme="dark"] .option-title {
+    color: #c0caf5;
+}
+
+[data-theme="dark"] .option-desc {
+    color: #9aa5ce;
+}
+
+[data-theme="dark"] .subtype-info {
+    background: rgba(122, 162, 247, 0.12);
+}
+
+[data-theme="dark"] .auth-json-input {
+    background: #1a1b26;
+    border-color: #3b3d4d;
+    color: #c0caf5;
+}
+
+[data-theme="dark"] .auth-json-input::placeholder {
+    color: #565f89;
+}
+
+[data-theme="dark"] .auth-json-hint {
+    background: rgba(122, 162, 247, 0.12);
+}
+
+[data-theme="dark"] .auth-json-hint code {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .ai-modal-footer {
+    background: #1a1b26;
+    border-color: #3b3d4d;
+}
+
+[data-theme="dark"] .ai-btn-outline {
+    border-color: #3b3d4d;
+    color: #c0caf5;
+}
+
+[data-theme="dark"] .ai-btn-outline:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: #7aa2f7;
+    color: #7aa2f7;
+}
+
+[data-theme="dark"] .ai-btn-ghost {
+    color: #9aa5ce;
+}
+
+[data-theme="dark"] .ai-btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #c0caf5;
+}
+
+[data-theme="dark"] .provider-card {
+    background: #1a1b26;
+    border-color: #3b3d4d;
+}
+
+[data-theme="dark"] .provider-card.active {
+    background: rgba(122, 162, 247, 0.08);
+    border-color: #7aa2f7;
+}
+
+[data-theme="dark"] .provider-info h4 {
+    color: #c0caf5;
+}
+
+[data-theme="dark"] .provider-type {
+    background: #24283b;
+    color: #9aa5ce;
+}
+
+[data-theme="dark"] .badge-active {
+    background: rgba(122, 162, 247, 0.15);
+    color: #7aa2f7;
+}
+
+[data-theme="dark"] .provider-stats {
+    border-color: #3b3d4d;
+}
+
+[data-theme="dark"] .stat-label {
+    color: #9aa5ce;
+}
+
+[data-theme="dark"] .stat-value {
+    color: #c0caf5;
+}
+
+[data-theme="dark"] .ai-btn-icon {
+    background: #24283b;
+    border-color: #3b3d4d;
+}
+
+[data-theme="dark"] .ai-btn-icon:hover {
+    background: #2a2e3f;
+    border-color: #7aa2f7;
+}
+
+[data-theme="dark"] .toggle-password-btn {
+    color: #9aa5ce;
+}
+
+[data-theme="dark"] .toggle-password-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #7aa2f7;
+}
+</style>

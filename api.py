@@ -8,6 +8,7 @@ from typing import List
 
 from services import ComputerUsageService, NodeConverterService
 from services.http_collections import HttpCollectionsService
+from services.ai_manager import AIManager
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,10 @@ class Api:
         self.http_collections = HttpCollectionsService(
             data_dir=self.data_dir / "HTTP请求"
         )
+
+        # AI Manager - 使用独立的 AI配置 文件夹
+        self.ai_manager = AIManager(self.data_dir / "AI配置")
+
         self._window = None
 
     @staticmethod
@@ -1017,3 +1022,82 @@ class Api:
 
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+    # ========== AI 配置管理 ==========
+    def get_ai_providers(self):
+        """获取所有 AI Provider 列表"""
+        try:
+            return self.ai_manager.get_available_providers()
+        except Exception as e:
+            logger.error(f"获取 AI Provider 列表失败: {e}")
+            return []
+
+    def fetch_ai_models(self, temp_config: dict):
+        """动态获取 AI 模型列表"""
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            models = loop.run_until_complete(self.ai_manager.fetch_models(temp_config))
+            return {
+                'success': True,
+                'models': models
+            }
+        except Exception as e:
+            logger.error(f"获取模型列表失败: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+        finally:
+            loop.close()
+
+    def test_ai_connection(self, temp_config: dict):
+        """测试 AI Provider 连接"""
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(self.ai_manager.test_connection(temp_config))
+            return result
+        except Exception as e:
+            logger.error(f"测试连接失败: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+        finally:
+            loop.close()
+
+    def save_ai_provider(self, provider_config: dict):
+        """保存 AI Provider 配置"""
+        return self.ai_manager.save_provider(provider_config)
+
+    def delete_ai_provider(self, provider_id: str):
+        """删除 AI Provider"""
+        return self.ai_manager.delete_provider(provider_id)
+
+    def switch_ai_provider(self, provider_id: str):
+        """切换当前使用的 AI Provider"""
+        try:
+            self.ai_manager.switch_provider(provider_id)
+            return {'success': True}
+        except Exception as e:
+            logger.error(f"切换 Provider 失败: {e}")
+            return {'success': False, 'error': str(e)}
+
+    def ai_chat(self, prompt: str, system_prompt: str = None, provider_id: str = None, **kwargs):
+        """AI 对话接口"""
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(
+                self.ai_manager.chat(prompt, system_prompt, provider_id, **kwargs)
+            )
+            return result
+        except Exception as e:
+            logger.error(f"AI 对话失败: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            loop.close()

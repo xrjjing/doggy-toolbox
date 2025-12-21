@@ -286,6 +286,7 @@ const PAGE_INIT_MAP = Object.freeze({
     'tool-ua': 'initUATool',
     'tool-jsonpath': 'initJsonPathTool',
     'tool-nginx': 'initNginxTool',
+    'ai-settings': 'initAISettingsPage',
 });
 
 async function ensurePageInitialized(page) {
