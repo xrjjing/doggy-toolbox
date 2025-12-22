@@ -190,7 +190,19 @@ class AIManager:
             elif provider_type == 'openai-compatible':
                 return await self._fetch_openai_models(temp_config)
             elif provider_type == 'claude':
-                return self._get_claude_models()
+                # 尝试从 API 获取模型列表
+                api_key = temp_config.get('api_key')
+                if not api_key:
+                    api_key = os.environ.get("ANTHROPIC_API_KEY")
+
+                if api_key:
+                    try:
+                        return await self._fetch_claude_models(temp_config)
+                    except Exception as e:
+                        logger.warning(f"从 Claude API 获取模型失败: {e}，使用固定列表")
+                        return self._get_claude_models()
+                else:
+                    return self._get_claude_models()
             else:
                 return []
 
@@ -266,22 +278,71 @@ class AIManager:
             }
         ]
 
+    async def _fetch_claude_models(self, config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """从 Claude API 获取模型列表"""
+        base_url = config.get('base_url', 'https://api.anthropic.com')
+        base = base_url.rstrip('/')
+        # 智能 URL 构建
+        if base.endswith('/v1/models') or base.endswith('/models'):
+            url = base
+        elif base.endswith('/v1'):
+            url = f"{base}/models"
+        else:
+            url = f"{base}/v1/models"
+
+        api_key = config.get('api_key')
+        if not api_key:
+            api_key = os.environ.get("ANTHROPIC_API_KEY")
+
+        if not api_key:
+            raise ValueError("未找到 Claude API Key")
+
+        api_version = config.get('api_version', '2023-06-01')
+
+        headers = {
+            'x-api-key': api_key,
+            'anthropic-version': api_version,
+            'Content-Type': 'application/json'
+        }
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+            models = []
+            for model in data.get('data', []):
+                model_id = model.get('id')
+                if not model_id:
+                    continue
+                # 只保留 Claude 模型
+                if 'claude' not in model_id.lower():
+                    continue
+                models.append({
+                    'id': model_id,
+                    'name': model_id,  # 直接显示真实模型 ID
+                    'created': model.get('created_at') or model.get('created'),
+                    'owned_by': model.get('owned_by', 'anthropic')
+                })
+
+            return models
+
     def _get_claude_models(self) -> List[Dict[str, Any]]:
-        """返回 Claude 固定的模型列表"""
+        """返回 Claude 固定的模型列表（API 获取失败时的备用）"""
         return [
             {
                 'id': 'claude-opus-4-5-20251101',
-                'name': 'Claude Opus 4.5',
+                'name': 'claude-opus-4-5-20251101',
                 'description': '最强推理能力'
             },
             {
-                'id': 'claude-sonnet-4-5-20250514',
-                'name': 'Claude Sonnet 4.5',
+                'id': 'claude-sonnet-4-5-20250929',
+                'name': 'claude-sonnet-4-5-20250929',
                 'description': '平衡性能与速度'
             },
             {
-                'id': 'claude-haiku-4-5-20250514',
-                'name': 'Claude Haiku 4.5',
+                'id': 'claude-haiku-4-5-20251001',
+                'name': 'claude-haiku-4-5-20251001',
                 'description': '最快响应速度'
             }
         ]

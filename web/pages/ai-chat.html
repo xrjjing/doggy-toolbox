@@ -2,10 +2,16 @@
     <!-- Chat Header -->
     <div class="chat-header">
         <h2 class="chat-title">🤖 AI 聊天</h2>
-        <button class="ai-btn ai-btn-outline btn-sm" onclick="openAIChatSettings()">
-            <span class="btn-icon">⚙️</span>
-            <span class="btn-text">AI 设置</span>
-        </button>
+        <div class="chat-header-actions">
+            <button class="ai-btn ai-btn-outline btn-sm" onclick="clearConversation()">
+                <span class="btn-icon">🗑️</span>
+                <span class="btn-text">清除对话</span>
+            </button>
+            <button class="ai-btn ai-btn-outline btn-sm" onclick="openAIChatSettings()">
+                <span class="btn-icon">⚙️</span>
+                <span class="btn-text">AI 设置</span>
+            </button>
+        </div>
     </div>
 
     <!-- Chat Container -->
@@ -58,6 +64,12 @@
     flex-shrink: 0;
 }
 
+.chat-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .chat-title {
     font-size: 18px;
     font-weight: 600;
@@ -91,6 +103,8 @@
     padding: 12px 18px;
     border-radius: 18px;
     line-height: 1.6;
+    user-select: text;
+    -webkit-user-select: text;
 }
 
 .message-content p {

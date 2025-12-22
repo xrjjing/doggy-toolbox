@@ -223,15 +223,20 @@ async function editProvider(providerId) {
         // 设置当前编辑的 Provider ID
         currentProviderConfig.id = provider.id;
         currentProviderConfig.type = provider.type;
-        currentProviderConfig.category = provider.category || provider.type;
+        // 确定分类：claude 独立分类，openai 和 openai-compatible 归为 openai 系列
+        currentProviderConfig.category = provider.type === 'claude' ? 'claude' : 'openai';
 
-        // 选择对应的子类型
-        const targetCategory = provider.category || provider.type;
-        const subtypeRadio = document.querySelector(`input[name="openai-subtype"][value="${targetCategory}"]`);
-        if (subtypeRadio) {
-            subtypeRadio.checked = true;
-            // 触发 change 事件以更新表单字段
-            subtypeRadio.dispatchEvent(new Event('change'));
+        // 先切换顶部分类 Tab，确保显示正确的表单区域
+        switchProviderCategory(currentProviderConfig.category);
+
+        // 选择对应的子类型（仅 OpenAI 系列需要）
+        if (currentProviderConfig.category === 'openai') {
+            const subtypeRadio = document.querySelector(`input[name="provider-type"][value="${provider.type}"]`);
+            if (subtypeRadio) {
+                subtypeRadio.checked = true;
+                // 触发 change 事件以更新表单字段
+                subtypeRadio.dispatchEvent(new Event('change'));
+            }
         }
 
         // 更新选中状态样式
@@ -563,7 +568,10 @@ async function testConnection() {
         if (type === 'openai') {
             tempConfig.config.organization = document.getElementById('organization')?.value;
         } else if (type === 'claude') {
-            tempConfig.config.api_version = document.getElementById('api-version')?.value;
+            // 确保 api_version 有值，否则使用默认值
+            const apiVersionInput = document.getElementById('api-version');
+            const apiVersion = apiVersionInput?.value?.trim();
+            tempConfig.config.api_version = apiVersion || '2023-06-01';
         } else if (type === 'openai-compatible') {
             tempConfig.compatibility = {
                 endpoint: document.getElementById('endpoint').value,

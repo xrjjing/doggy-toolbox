@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 class Api:
+    # 流式聊天会话超时时间（秒）
+    CHAT_SESSION_TTL_SECONDS = 300  # 5 分钟
+
     def __init__(self, data_dir: Path):
         self.data_dir = data_dir
         self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -1102,6 +1105,29 @@ class Api:
         finally:
             loop.close()
 
+    def _cleanup_chat_sessions(self):
+        """清理超时的流式聊天会话，防止内存泄漏"""
+        import time
+
+        if not hasattr(self, '_chat_sessions') or not hasattr(self, '_chat_sessions_lock'):
+            return
+
+        now = time.monotonic()
+        expired_ids = []
+
+        with self._chat_sessions_lock:
+            for session_id, session in list(self._chat_sessions.items()):
+                last_access = session.get('last_access', now)
+                if now - last_access > self.CHAT_SESSION_TTL_SECONDS:
+                    expired_ids.append(session_id)
+
+            # 删除超时的会话
+            for session_id in expired_ids:
+                del self._chat_sessions[session_id]
+
+        if expired_ids:
+            logger.info(f"清理了 {len(expired_ids)} 个超时的聊天会话")
+
     def ai_chat_stream(self, message: str, history: list = None, provider_id: str = None):
         """
         AI 流式对话接口（适配 PyWebView）
@@ -1121,21 +1147,31 @@ class Api:
         """
         import asyncio
         import threading
+        import time
         import uuid
         from collections import deque
 
         # 生成会话 ID
         session_id = str(uuid.uuid4())
 
-        # 创建消息队列
+        # 初始化会话字典和线程锁
         if not hasattr(self, '_chat_sessions'):
             self._chat_sessions = {}
+        if not hasattr(self, '_chat_sessions_lock'):
+            self._chat_sessions_lock = threading.Lock()
 
-        self._chat_sessions[session_id] = {
-            'chunks': deque(),  # 存储增量内容
-            'done': False,
-            'error': None
-        }
+        # 清理超时的旧会话
+        self._cleanup_chat_sessions()
+
+        # 创建新会话（带时间戳）
+        now = time.monotonic()
+        with self._chat_sessions_lock:
+            self._chat_sessions[session_id] = {
+                'chunks': deque(),  # 存储增量内容
+                'done': False,
+                'error': None,
+                'last_access': now  # 记录最后访问时间
+            }
 
         # 构建 messages
         messages = []
@@ -1154,14 +1190,30 @@ class Api:
                     provider = self.ai_manager.get_provider(provider_id)
                     async for chunk in provider.chat_stream(messages):
                         if chunk:
-                            self._chat_sessions[session_id]['chunks'].append(chunk)
+                            # 线程安全地添加 chunk 并更新访问时间
+                            with self._chat_sessions_lock:
+                                session = self._chat_sessions.get(session_id)
+                                if session is None:  # 会话已被清理
+                                    break
+                                session['chunks'].append(chunk)
+                                session['last_access'] = time.monotonic()
 
                 loop.run_until_complete(run_stream())
-                self._chat_sessions[session_id]['done'] = True
+                # 标记完成
+                with self._chat_sessions_lock:
+                    session = self._chat_sessions.get(session_id)
+                    if session is not None:
+                        session['done'] = True
+                        session['last_access'] = time.monotonic()
             except Exception as e:
                 logger.error(f"AI 流式对话失败: {e}")
-                self._chat_sessions[session_id]['error'] = str(e)
-                self._chat_sessions[session_id]['done'] = True
+                # 记录错误
+                with self._chat_sessions_lock:
+                    session = self._chat_sessions.get(session_id)
+                    if session is not None:
+                        session['error'] = str(e)
+                        session['done'] = True
+                        session['last_access'] = time.monotonic()
             finally:
                 loop.close()
 
@@ -1183,25 +1235,38 @@ class Api:
                 "error": None   # 错误信息
             }
         """
-        if not hasattr(self, '_chat_sessions') or session_id not in self._chat_sessions:
+        import time
+
+        # 每次轮询时清理超时的会话
+        self._cleanup_chat_sessions()
+
+        if not hasattr(self, '_chat_sessions') or not hasattr(self, '_chat_sessions_lock'):
             return {'success': False, 'error': '无效的 session_id'}
 
-        session = self._chat_sessions[session_id]
-        chunks = []
+        # 线程安全地访问和更新会话
+        with self._chat_sessions_lock:
+            session = self._chat_sessions.get(session_id)
+            if session is None:
+                return {'success': False, 'error': '无效的 session_id'}
 
-        # 取出所有当前队列中的内容
-        while session['chunks']:
-            chunks.append(session['chunks'].popleft())
+            # 更新最后访问时间
+            session['last_access'] = time.monotonic()
 
-        result = {
+            # 取出所有当前队列中的内容
+            chunks = []
+            while session['chunks']:
+                chunks.append(session['chunks'].popleft())
+
+            done = session['done']
+            error = session['error']
+
+            # 如果已完成，清理会话
+            if done:
+                del self._chat_sessions[session_id]
+
+        return {
             'success': True,
             'chunks': chunks,
-            'done': session['done'],
-            'error': session['error']
+            'done': done,
+            'error': error
         }
-
-        # 如果已完成，清理会话
-        if session['done']:
-            del self._chat_sessions[session_id]
-
-        return result

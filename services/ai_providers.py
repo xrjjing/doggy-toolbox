@@ -183,8 +183,28 @@ class ClaudeProvider(AIProvider):
         payload.update(claude_kwargs)
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(url, headers=headers, json=payload)
-            response.raise_for_status()
+            try:
+                response = await client.post(url, headers=headers, json=payload)
+                response.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                # 尝试从响应体提取更详细的错误信息
+                error_detail = None
+                try:
+                    error_data = e.response.json()
+                except Exception:
+                    error_data = None
+
+                if isinstance(error_data, dict):
+                    error_block = error_data.get('error')
+                    if isinstance(error_block, dict):
+                        error_detail = error_block.get('message') or error_block.get('detail')
+                    if not error_detail:
+                        error_detail = error_data.get('message') or error_data.get('detail')
+
+                if error_detail:
+                    raise ValueError(f"Claude API 错误: {error_detail}") from e
+                raise
+
             data = response.json()
 
             return data['content'][0]['text']
@@ -215,20 +235,58 @@ class ClaudeProvider(AIProvider):
         payload.update(claude_kwargs)
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            async with client.stream('POST', url, headers=headers, json=payload) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    if line.startswith('data: '):
-                        data_str = line[6:]
+            try:
+                async with client.stream('POST', url, headers=headers, json=payload) as response:
+                    # 检查响应状态
+                    if response.status_code >= 400:
+                        # 读取错误响应体
+                        error_body = await response.aread()
+                        error_detail = None
                         try:
                             import json
-                            data = json.loads(data_str)
-                            if data['type'] == 'content_block_delta':
-                                delta = data['delta']
-                                if delta['type'] == 'text_delta':
-                                    yield delta['text']
-                        except Exception as e:
-                            logger.warning(f"解析流式数据失败: {e}")
+                            error_data = json.loads(error_body)
+                            if isinstance(error_data, dict):
+                                error_block = error_data.get('error')
+                                if isinstance(error_block, dict):
+                                    error_detail = error_block.get('message') or error_block.get('detail')
+                                if not error_detail:
+                                    error_detail = error_data.get('message') or error_data.get('detail')
+                        except Exception:
+                            pass
+                        if error_detail:
+                            raise ValueError(f"Claude API 错误: {error_detail}")
+                        response.raise_for_status()
+
+                    async for line in response.aiter_lines():
+                        if line.startswith('data: '):
+                            data_str = line[6:]
+                            try:
+                                import json
+                                data = json.loads(data_str)
+                                if data['type'] == 'content_block_delta':
+                                    delta = data['delta']
+                                    if delta['type'] == 'text_delta':
+                                        yield delta['text']
+                            except Exception as e:
+                                logger.warning(f"解析流式数据失败: {e}")
+            except httpx.HTTPStatusError as e:
+                # 尝试从响应体提取更详细的错误信息
+                error_detail = None
+                try:
+                    error_data = e.response.json()
+                except Exception:
+                    error_data = None
+
+                if isinstance(error_data, dict):
+                    error_block = error_data.get('error')
+                    if isinstance(error_block, dict):
+                        error_detail = error_block.get('message') or error_block.get('detail')
+                    if not error_detail:
+                        error_detail = error_data.get('message') or error_data.get('detail')
+
+                if error_detail:
+                    raise ValueError(f"Claude API 错误: {error_detail}") from e
+                raise
 
 
 class ThirdPartyProvider(AIProvider):

@@ -103,6 +103,45 @@ function addWelcomeMessage() {
 }
 
 /**
+ * 清除对话
+ */
+function clearConversation() {
+    const confirmed = window.confirm('确定要清除当前对话吗？此操作不可撤销。');
+    if (!confirmed) return;
+
+    // 停止轮询并重置会话
+    if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+    }
+    currentSessionId = null;
+
+    // 清空历史
+    chatHistory = [];
+
+    // 清空消息列表
+    const messagesContainer = document.getElementById('chat-messages');
+    if (messagesContainer) {
+        messagesContainer.innerHTML = '';
+    }
+
+    // 恢复输入状态
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+    if (chatInput) {
+        chatInput.disabled = false;
+        chatInput.value = '';
+        adjustTextareaHeight();
+    }
+    if (sendBtn) {
+        sendBtn.disabled = false;
+    }
+
+    // 重新添加欢迎消息
+    addWelcomeMessage();
+}
+
+/**
  * 处理输入框键盘事件
  */
 function handleInputKeydown(e) {
