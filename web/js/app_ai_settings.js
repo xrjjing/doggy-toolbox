@@ -205,8 +205,133 @@ function openAddProviderModal() {
 
 // 编辑 Provider
 async function editProvider(providerId) {
-    // TODO: 实现编辑功能
-    showToast('编辑功能开发中', 'info');
+    try {
+        // 获取所有 Provider
+        const api = window.pywebview && window.pywebview.api;
+        if (!api) {
+            throw new Error('后端 API 未就绪');
+        }
+
+        const providers = await api.get_ai_providers();
+        const provider = providers.find(p => p.id === providerId);
+
+        if (!provider) {
+            showToast('未找到指定的 Provider', 'error');
+            return;
+        }
+
+        // 设置当前编辑的 Provider ID
+        currentProviderConfig.id = provider.id;
+        currentProviderConfig.type = provider.type;
+        currentProviderConfig.category = provider.category || provider.type;
+
+        // 选择对应的子类型
+        const targetCategory = provider.category || provider.type;
+        const subtypeRadio = document.querySelector(`input[name="openai-subtype"][value="${targetCategory}"]`);
+        if (subtypeRadio) {
+            subtypeRadio.checked = true;
+            // 触发 change 事件以更新表单字段
+            subtypeRadio.dispatchEvent(new Event('change'));
+        }
+
+        // 更新选中状态样式
+        document.querySelectorAll('.subtype-option').forEach(opt => {
+            opt.classList.toggle('active', opt.querySelector('input').checked);
+        });
+
+        // 先更新表单字段显示（决定哪些字段可见）
+        updateFormFields();
+
+        // 再填充表单数据（会覆盖 updateFormFields 设置的默认值）
+        const config = provider.config || {};
+
+        // 基本信息
+        document.getElementById('provider-name').value = provider.name || '';
+        document.getElementById('api-key').value = config.api_key || '';
+
+        // Base URL - 在 updateFormFields 之后再次设置，覆盖默认值
+        if (config.base_url) {
+            document.getElementById('base-url').value = config.base_url;
+        }
+
+        // 可选字段
+        if (document.getElementById('organization')) {
+            document.getElementById('organization').value = config.organization || '';
+        }
+        if (document.getElementById('project')) {
+            document.getElementById('project').value = config.project || '';
+        }
+
+        // 默认模型
+        const defaultModel = config.default_model || '';
+        const modelSelect = document.getElementById('default-model');
+
+        // 编辑模式：恢复模型选项
+        if (defaultModel) {
+            // 先添加当前默认模型作为选项
+            modelSelect.innerHTML = `<option value="${defaultModel}">${defaultModel}</option>`;
+            modelSelect.value = defaultModel;
+            modelSelect.disabled = false;
+        }
+
+        // 如果有 models 列表，更新完整的模型列表
+        if (provider.models && provider.models.length > 0) {
+            currentProviderConfig.models = provider.models;
+            updateModelOptions(provider.models);
+            // 重新设置默认模型（因为 updateModelOptions 会重建列表）
+            if (defaultModel) {
+                modelSelect.value = defaultModel;
+            }
+        }
+
+        // 高级配置反显
+        if (config.temperature !== undefined) {
+            document.getElementById('temperature').value = config.temperature;
+            updateRangeValue('temperature', 'temp-value');
+        }
+        if (config.top_p !== undefined) {
+            document.getElementById('top-p').value = config.top_p;
+            updateRangeValue('top-p', 'top-p-value');
+        }
+        if (config.max_tokens !== undefined) {
+            document.getElementById('max-tokens').value = config.max_tokens;
+        }
+        if (config.timeout !== undefined) {
+            document.getElementById('timeout').value = config.timeout;
+        }
+        if (config.frequency_penalty !== undefined) {
+            document.getElementById('freq-penalty').value = config.frequency_penalty;
+            updateRangeValue('freq-penalty', 'freq-value');
+        }
+        if (config.presence_penalty !== undefined) {
+            document.getElementById('pres-penalty').value = config.presence_penalty;
+            updateRangeValue('pres-penalty', 'pres-value');
+        }
+        if (config.max_retries !== undefined) {
+            document.getElementById('max-retries').value = config.max_retries;
+        }
+        if (config.stream !== undefined) {
+            document.getElementById('stream-enabled').checked = config.stream;
+        }
+        if (config.web_search !== undefined) {
+            document.getElementById('web-search-enabled').checked = config.web_search;
+        }
+        if (config.proxy) {
+            document.getElementById('proxy').value = config.proxy;
+        }
+
+        // 更新表单字段显示
+        updateFormFields();
+
+        // 打开弹窗
+        document.getElementById('modal-title').textContent = '编辑 AI Provider';
+        document.getElementById('provider-modal').style.display = 'flex';
+
+        showToast('已加载 Provider 配置', 'success');
+    } catch (error) {
+        console.error('加载 Provider 配置失败:', error);
+        showToast(`加载失败：${error.message}`, 'error');
+    }
 }
 
 // 关闭弹窗
@@ -236,6 +361,7 @@ function resetForm() {
     document.getElementById('pres-penalty').value = 0;
     document.getElementById('max-retries').value = 3;
     document.getElementById('stream-enabled').checked = true;
+    document.getElementById('web-search-enabled').checked = false;
     document.getElementById('proxy').value = '';
 
     updateRangeValue('temperature', 'temp-value');
@@ -255,6 +381,7 @@ function updateFormFields() {
         type = checkedRadio ? checkedRadio.value : 'openai';
     }
     currentProviderConfig.type = type;
+    currentProviderConfig.category = type;  // 同步设置 category
 
     // 隐藏所有专用字段
     document.getElementById('field-api-key').style.display = 'none';
@@ -263,32 +390,46 @@ function updateFormFields() {
     document.getElementById('field-api-version').style.display = 'none';
     document.getElementById('third-party-fields').style.display = 'none';
 
+    // 判断是否为编辑模式（有 id 表示编辑）
+    const isEditMode = !!currentProviderConfig.id;
+    const currentBaseUrl = document.getElementById('base-url').value;
+
     // 根据类型显示对应字段
     if (type === 'openai') {
         // OpenAI 官方：使用 API Key
         document.getElementById('field-api-key').style.display = 'block';
         document.getElementById('field-organization').style.display = 'block';
-        // 自动设置默认 Base URL（隐藏但有值）
-        document.getElementById('base-url').value = 'https://api.openai.com/v1';
+        // 仅在新建模式或无值时设置默认 Base URL
+        if (!isEditMode || !currentBaseUrl) {
+            document.getElementById('base-url').value = 'https://api.openai.com/v1';
+        }
     } else if (type === 'claude') {
         // Claude：使用 API Key + Base URL
         document.getElementById('field-api-key').style.display = 'block';
         document.getElementById('field-base-url').style.display = 'block';
         document.getElementById('field-api-version').style.display = 'block';
-        document.getElementById('base-url').value = 'https://api.anthropic.com';
+        // 仅在新建模式或无值时设置默认值
+        if (!isEditMode || !currentBaseUrl) {
+            document.getElementById('base-url').value = 'https://api.anthropic.com';
+        }
         document.getElementById('url-hint').textContent = 'Anthropic 官方地址';
     } else if (type === 'openai-compatible') {
         // 第三方兼容：使用 API Key + Base URL
         document.getElementById('field-api-key').style.display = 'block';
         document.getElementById('field-base-url').style.display = 'block';
         document.getElementById('third-party-fields').style.display = 'block';
-        document.getElementById('base-url').value = '';
+        // 编辑模式下不清空 base_url
+        if (!isEditMode && !currentBaseUrl) {
+            document.getElementById('base-url').value = '';
+        }
         document.getElementById('url-hint').innerHTML = '⚠️ 请输入第三方 API 地址';
     }
 
-    // 清空模型列表
-    document.getElementById('default-model').innerHTML = '<option value="">⏳ 请先获取模型列表</option>';
-    document.getElementById('default-model').disabled = true;
+    // 仅在新建模式下清空模型列表
+    if (!isEditMode) {
+        document.getElementById('default-model').innerHTML = '<option value="">⏳ 请先获取模型列表</option>';
+        document.getElementById('default-model').disabled = true;
+    }
 }
 
 // 获取模型列表
@@ -489,6 +630,7 @@ async function saveProvider() {
             timeout: parseInt(document.getElementById('timeout').value),
             max_retries: parseInt(document.getElementById('max-retries').value),
             stream: document.getElementById('stream-enabled').checked,
+            web_search: document.getElementById('web-search-enabled').checked,
             proxy: document.getElementById('proxy').value.trim()
         },
         capabilities: {
@@ -615,3 +757,8 @@ function togglePasswordVisibility() {
         if (eyeClosed) eyeClosed.style.display = 'none';
     }
 }
+
+
+// 显式暴露：供 app_core 的 PAGE_INIT_MAP 调用，并兼容旧的大小写写法
+window.initAISettingsPage = initAISettingsPage;
+window.initAiSettingsPage = initAISettingsPage;

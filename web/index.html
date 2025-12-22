@@ -518,10 +518,26 @@
 	                        </li>
 	                    </ul>
 	                </li>
-	                <li class="nav-item" data-page="ai-settings">
-	                    <span class="nav-icon">🤖</span>
-	                    <span class="nav-text">AI 配置</span>
+
+	                <!-- AI 管理 -->
+	                <li class="nav-group" data-group="ai">
+	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
+	                        <span class="nav-icon">🤖</span>
+	                        <span class="nav-text">AI 管理</span>
+	                        <span class="nav-arrow">▾</span>
+	                    </div>
+	                    <ul class="nav-sublist">
+	                        <li class="nav-item" data-page="ai-chat">
+	                            <span class="nav-icon">💬</span>
+	                            <span class="nav-text">AI 聊天</span>
+	                        </li>
+	                        <li class="nav-item" data-page="ai-settings">
+	                            <span class="nav-icon">⚙️</span>
+	                            <span class="nav-text">AI 配置</span>
+	                        </li>
+	                    </ul>
 	                </li>
+
 	                <li class="nav-item" data-page="backup">
 	                    <span class="nav-icon">💾</span>
 	                    <span class="nav-text">数据备份</span>
@@ -801,6 +817,7 @@
 	    
 	    <script src="js/app_state.js" defer></script>
 	    <script src="js/app_core.js" defer></script>
+	    <script src="js/app_ai_chat.js" defer></script>
 	    <script src="js/app_computer_usage.js" defer></script>
 	    <script src="js/app_http_collections.js" defer></script>
 	    <script src="js/app_ai_settings.js" defer></script>

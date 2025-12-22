@@ -1,0 +1,245 @@
+<div id="page-ai-chat" class="page">
+    <!-- Chat Header -->
+    <div class="chat-header">
+        <h2 class="chat-title">🤖 AI 聊天</h2>
+        <button class="ai-btn ai-btn-outline btn-sm" onclick="openAIChatSettings()">
+            <span class="btn-icon">⚙️</span>
+            <span class="btn-text">AI 设置</span>
+        </button>
+    </div>
+
+    <!-- Chat Container -->
+    <div class="chat-container">
+        <!-- Message List -->
+        <div id="chat-messages" class="chat-messages">
+            <!-- 消息将通过 JS 动态添加 -->
+        </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="chat-input-area">
+        <div class="chat-input-wrapper">
+            <textarea id="chat-input" placeholder="输入消息... (Shift + Enter 换行)" rows="1"></textarea>
+            <button id="send-btn" class="ai-btn ai-btn-primary">
+                <span class="btn-icon">➤</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- AI Settings Modal (Drawer) -->
+    <div id="ai-chat-settings-modal" class="modal" style="display:none">
+        <div class="modal-overlay" onclick="closeAIChatSettings()"></div>
+        <div class="modal-content modal-large ai-modal" id="ai-settings-drawer-content">
+            <!-- Content from ai-settings.html will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<style>
+/* AI Chat Page Specific Styles */
+#page-ai-chat {
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+/* 仅在页面激活时使用 flex，避免覆盖全局 .page{display:none} */
+#page-ai-chat.active {
+    display: flex;
+}
+
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.chat-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.chat-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+.chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Message Bubbles */
+.message-bubble {
+    display: flex;
+    max-width: 80%;
+}
+
+.message-content {
+    padding: 12px 18px;
+    border-radius: 18px;
+    line-height: 1.6;
+}
+
+.message-content p {
+    margin: 0;
+}
+
+/* AI Messages (Left) */
+.ai-message {
+    align-self: flex-start;
+}
+
+.ai-message .message-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-top-left-radius: 4px;
+}
+
+/* User Messages (Right) */
+.user-message {
+    align-self: flex-end;
+}
+
+.user-message .message-content {
+    background: var(--accent);
+    color: white;
+    border-top-right-radius: 4px;
+}
+
+[data-theme="light"] .user-message .message-content {
+    color: white;
+}
+
+/* Code Blocks in Messages */
+.message-content pre {
+    margin: 12px 0;
+    padding: 14px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.ai-message .message-content pre {
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    color: var(--text-primary);
+}
+
+.user-message .message-content pre {
+    color: inherit;
+}
+
+/* Frosted Glass Effect for Messages */
+[data-glass="true"] .ai-message .message-content {
+    background: rgba(30, 41, 59, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+}
+
+[data-theme="light"][data-glass="true"] .ai-message .message-content {
+    background: rgba(255, 255, 255, 0.45);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Input Area */
+.chat-input-area {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-primary);
+    flex-shrink: 0;
+}
+
+.chat-input-wrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 8px;
+    transition: border-color 0.2s;
+}
+
+.chat-input-wrapper:focus-within {
+    border-color: var(--accent);
+}
+
+#chat-input {
+    flex-grow: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 15px;
+    line-height: 1.5;
+    padding: 8px;
+    resize: none;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#chat-input:focus {
+    outline: none;
+}
+
+#send-btn {
+    height: 40px;
+    width: 40px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    padding: 0;
+}
+
+#send-btn .btn-icon {
+    font-size: 20px;
+    transform: translateX(1px);
+}
+
+/* Settings Modal (Drawer) */
+#ai-chat-settings-modal .modal-content {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 650px;
+    max-width: 90vw;
+    height: 100%;
+    border-radius: 0;
+    border-left: 1px solid var(--border);
+    animation: slideInFromRight 0.3s ease;
+}
+
+@keyframes slideInFromRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+#ai-settings-drawer-content {
+    display: flex;
+    flex-direction: column;
+}
+
+#ai-settings-drawer-content .page-header {
+    padding: 20px 24px;
+}
+
+#ai-settings-drawer-content .ai-modal-body {
+    flex-grow: 1;
+}
+</style>

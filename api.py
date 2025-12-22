@@ -1101,3 +1101,107 @@ class Api:
             return {'success': False, 'error': str(e)}
         finally:
             loop.close()
+
+    def ai_chat_stream(self, message: str, history: list = None, provider_id: str = None):
+        """
+        AI 流式对话接口（适配 PyWebView）
+
+        由于 PyWebView 不支持原生流式返回，这里采用轮询方案：
+        1. 启动后台任务开始流式请求
+        2. 返回 session_id
+        3. 前端通过 get_chat_chunk(session_id) 轮询获取增量内容
+
+        Args:
+            message: 用户消息
+            history: 历史对话记录 [{"role": "user/assistant", "content": "..."}]
+            provider_id: Provider ID（可选，默认使用当前启用的）
+
+        Returns:
+            {"success": True, "session_id": "..."}
+        """
+        import asyncio
+        import threading
+        import uuid
+        from collections import deque
+
+        # 生成会话 ID
+        session_id = str(uuid.uuid4())
+
+        # 创建消息队列
+        if not hasattr(self, '_chat_sessions'):
+            self._chat_sessions = {}
+
+        self._chat_sessions[session_id] = {
+            'chunks': deque(),  # 存储增量内容
+            'done': False,
+            'error': None
+        }
+
+        # 构建 messages
+        messages = []
+        if history:
+            for item in history:
+                if isinstance(item, dict) and 'role' in item and 'content' in item:
+                    messages.append({'role': item['role'], 'content': item['content']})
+        messages.append({'role': 'user', 'content': message})
+
+        # 后台任务
+        def stream_task():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                async def run_stream():
+                    provider = self.ai_manager.get_provider(provider_id)
+                    async for chunk in provider.chat_stream(messages):
+                        if chunk:
+                            self._chat_sessions[session_id]['chunks'].append(chunk)
+
+                loop.run_until_complete(run_stream())
+                self._chat_sessions[session_id]['done'] = True
+            except Exception as e:
+                logger.error(f"AI 流式对话失败: {e}")
+                self._chat_sessions[session_id]['error'] = str(e)
+                self._chat_sessions[session_id]['done'] = True
+            finally:
+                loop.close()
+
+        # 启动后台线程
+        thread = threading.Thread(target=stream_task, daemon=True)
+        thread.start()
+
+        return {'success': True, 'session_id': session_id}
+
+    def get_chat_chunk(self, session_id: str):
+        """
+        获取流式对话的增量内容（轮询接口）
+
+        Returns:
+            {
+                "success": True,
+                "chunks": ["chunk1", "chunk2", ...],  # 本次获取的所有增量
+                "done": False,  # 是否完成
+                "error": None   # 错误信息
+            }
+        """
+        if not hasattr(self, '_chat_sessions') or session_id not in self._chat_sessions:
+            return {'success': False, 'error': '无效的 session_id'}
+
+        session = self._chat_sessions[session_id]
+        chunks = []
+
+        # 取出所有当前队列中的内容
+        while session['chunks']:
+            chunks.append(session['chunks'].popleft())
+
+        result = {
+            'success': True,
+            'chunks': chunks,
+            'done': session['done'],
+            'error': session['error']
+        }
+
+        # 如果已完成，清理会话
+        if session['done']:
+            del self._chat_sessions[session_id]
+
+        return result

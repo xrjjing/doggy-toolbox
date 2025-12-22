@@ -160,8 +160,10 @@ class AIManager:
                     'id': provider_id,
                     'name': provider_config.get('name', provider_id),
                     'type': provider_config.get('type'),
+                    'category': provider_config.get('category'),
                     'active': provider_id == self.active_provider_id,
                     'capabilities': provider_config.get('capabilities', {}),
+                    'config': provider_config.get('config', {}),
                     'stats': stats
                 })
 

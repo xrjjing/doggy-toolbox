@@ -152,7 +152,14 @@ class ClaudeProvider(AIProvider):
 
     async def chat(self, messages: List[Dict], model: Optional[str] = None, **kwargs) -> str:
         """Claude Messages API"""
-        url = f"{self.base_url.rstrip('/')}/v1/messages"
+        # 智能 URL 构建：如果 base_url 已包含 /v1 或 /messages，不重复添加
+        base = self.base_url.rstrip('/')
+        if base.endswith('/v1/messages') or base.endswith('/messages'):
+            url = base
+        elif base.endswith('/v1'):
+            url = f"{base}/messages"
+        else:
+            url = f"{base}/v1/messages"
 
         headers = {
             'x-api-key': self.api_key,
