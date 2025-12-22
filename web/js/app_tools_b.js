@@ -1203,7 +1203,7 @@ function copyTextOutput(btn) {
 }
 
 /* ========== M12: 正则表达式测试 ========== */
-function initRegexTool() {
+async function initRegexTool() {
     const presetEl = document.getElementById('regex-preset');
     if (presetEl) {
         const presets = DogToolboxM12Utils.getPresets();
@@ -1214,6 +1214,82 @@ function initRegexTool() {
             opt.title = p.description;
             presetEl.appendChild(opt);
         });
+    }
+
+    // 初始化 AI 辅助功能
+    await initRegexAIHelper();
+}
+
+// 正则工具 AI 辅助功能初始化
+async function initRegexAIHelper() {
+    if (typeof checkToolAIEnabled !== 'function') return;
+
+    const aiStatus = await checkToolAIEnabled('tool-regex');
+    if (!aiStatus.enabled) return;
+
+    const container = document.getElementById('regex-ai-buttons');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    // AI 生成按钮
+    if (aiStatus.features.generate) {
+        const generateBtn = document.createElement('button');
+        generateBtn.className = 'btn btn-sm ai-helper-btn ai-generate-btn';
+        generateBtn.innerHTML = '✨ AI 生成';
+        generateBtn.title = '根据描述生成正则表达式';
+        generateBtn.onclick = () => showRegexAIGenerateModal();
+        container.appendChild(generateBtn);
+    }
+
+    // AI 修复按钮
+    if (aiStatus.features.fix) {
+        const fixBtn = document.createElement('button');
+        fixBtn.className = 'btn btn-sm ai-helper-btn ai-fix-btn';
+        fixBtn.innerHTML = '🔧 AI 修复';
+        fixBtn.title = '修复正则表达式中的错误';
+        fixBtn.onclick = () => executeRegexAIFix();
+        container.appendChild(fixBtn);
+    }
+}
+
+// 显示正则 AI 生成弹窗
+function showRegexAIGenerateModal() {
+    if (typeof showAIGenerateModal !== 'function') return;
+
+    showAIGenerateModal('tool-regex', {
+        onGenerate: (result) => {
+            const patternEl = document.getElementById('regex-pattern');
+            if (patternEl) {
+                patternEl.value = result.replace(/^\/|\/[gimsuvy]*$/g, '');
+                updateRegexTool();
+            }
+        }
+    });
+}
+
+// 执行正则 AI 修复
+async function executeRegexAIFix() {
+    if (typeof executeAIFix !== 'function') return;
+
+    const patternEl = document.getElementById('regex-pattern');
+    const content = patternEl ? patternEl.value.trim() : '';
+
+    if (!content) {
+        showToast('请先输入正则表达式', 'warning');
+        return;
+    }
+
+    showToast('🔧 AI 正在修复...', 'info');
+
+    const result = await executeAIFix('tool-regex', content);
+
+    if (result.success) {
+        patternEl.value = result.result.replace(/^\/|\/[gimsuvy]*$/g, '');
+        updateRegexTool();
+        showToast('AI 修复完成', 'success');
+    } else {
+        showToast(`修复失败: ${result.error}`, 'error');
     }
 }
 

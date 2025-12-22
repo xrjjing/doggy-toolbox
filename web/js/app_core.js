@@ -704,6 +704,12 @@ async function handlePageEnter(page) {
         }
 
         await ensurePageInitialized(page);
+
+        // 初始化工具页面的 AI 按钮
+        if (typeof initPageAIButtons === 'function') {
+            initPageAIButtons(page);
+        }
+
         if (page === 'tool-jwt') {
             updateJwtTool();
         }

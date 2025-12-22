@@ -2809,11 +2809,97 @@ function resetPanelFiltering(containerSelector) {
 }
 
 // ==================== M26 Git 命令生成器初始化 ====================
-function initGitTool() {
+async function initGitTool() {
     // Git 工具使用场景切换和模板加载，无需额外初始化
     // 所有事件处理器已通过 onclick 绑定
     loadGitTemplates();
     initPanelFiltering('.git-tool');
+
+    // 初始化 AI 辅助功能
+    await initGitAIHelper();
+}
+
+// Git 工具 AI 辅助功能初始化
+async function initGitAIHelper() {
+    // 检查 AI 功能是否启用
+    if (typeof checkToolAIEnabled !== 'function') return;
+
+    const aiStatus = await checkToolAIEnabled('tool-git');
+    if (!aiStatus.enabled) return;
+
+    const container = document.getElementById('git-ai-buttons');
+    if (!container) return;
+
+    // 清空容器
+    container.innerHTML = '';
+
+    // AI 生成按钮
+    if (aiStatus.features.generate) {
+        const generateBtn = document.createElement('button');
+        generateBtn.className = 'btn btn-sm ai-helper-btn ai-generate-btn';
+        generateBtn.innerHTML = '✨ AI 生成';
+        generateBtn.title = '根据描述生成 Git 命令';
+        generateBtn.onclick = () => showGitAIGenerateModal();
+        container.appendChild(generateBtn);
+    }
+
+    // AI 修复按钮
+    if (aiStatus.features.fix) {
+        const fixBtn = document.createElement('button');
+        fixBtn.className = 'btn btn-sm ai-helper-btn ai-fix-btn';
+        fixBtn.innerHTML = '🔧 AI 修复';
+        fixBtn.title = '修复 Git 命令中的错误';
+        fixBtn.onclick = () => executeGitAIFix();
+        container.appendChild(fixBtn);
+    }
+}
+
+// 显示 Git AI 生成弹窗
+function showGitAIGenerateModal() {
+    if (typeof showAIGenerateModal !== 'function') return;
+
+    showAIGenerateModal('tool-git', {
+        onGenerate: (result) => {
+            // 将生成的命令填入输出框
+            const output = document.getElementById('git-command-output');
+            if (output) {
+                output.value = result;
+            }
+            // 更新描述
+            const desc = document.getElementById('git-command-desc');
+            if (desc) {
+                desc.textContent = 'AI 生成的命令';
+            }
+        }
+    });
+}
+
+// 执行 Git AI 修复
+async function executeGitAIFix() {
+    if (typeof executeAIFix !== 'function') return;
+
+    const output = document.getElementById('git-command-output');
+    const content = output ? output.value.trim() : '';
+
+    if (!content) {
+        showToast('请先输入或生成 Git 命令', 'warning');
+        return;
+    }
+
+    showToast('🔧 AI 正在修复...', 'info');
+
+    const result = await executeAIFix('tool-git', content);
+
+    if (result.success) {
+        output.value = result.result;
+        const desc = document.getElementById('git-command-desc');
+        if (desc) {
+            desc.textContent = 'AI 修复后的命令';
+        }
+        showToast('AI 修复完成', 'success');
+    } else {
+        showToast(`修复失败: ${result.error}`, 'error');
+    }
 }
 
 // ==================== M27 Docker 命令生成器初始化 ====================
@@ -2832,9 +2918,49 @@ function initJsonSchemaTool() {
 }
 
 // ==================== M29 Mock 数据生成器初始化 ====================
-function initMockTool() {
+async function initMockTool() {
     // Mock 工具使用按钮触发，无需额外初始化
     // 所有事件处理器已通过 onclick 绑定
+
+    // 初始化 AI 辅助功能
+    await initMockAIHelper();
+}
+
+// Mock 工具 AI 辅助功能初始化
+async function initMockAIHelper() {
+    if (typeof checkToolAIEnabled !== 'function') return;
+
+    const aiStatus = await checkToolAIEnabled('tool-mock');
+    if (!aiStatus.enabled) return;
+
+    const container = document.getElementById('mock-ai-buttons');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    // AI 生成按钮
+    if (aiStatus.features.generate) {
+        const generateBtn = document.createElement('button');
+        generateBtn.className = 'btn btn-sm ai-helper-btn ai-generate-btn';
+        generateBtn.innerHTML = '✨ AI 生成';
+        generateBtn.title = '根据描述生成测试数据';
+        generateBtn.onclick = () => showMockAIGenerateModal();
+        container.appendChild(generateBtn);
+    }
+}
+
+// 显示 Mock AI 生成弹窗
+function showMockAIGenerateModal() {
+    if (typeof showAIGenerateModal !== 'function') return;
+
+    showAIGenerateModal('tool-mock', {
+        onGenerate: (result) => {
+            const output = document.getElementById('mock-output');
+            if (output) {
+                output.value = result;
+            }
+        }
+    });
 }
 
 // ==================== M30 数据脱敏工具初始化 ====================

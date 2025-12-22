@@ -6231,3 +6231,141 @@ select option {
 .btn-icon:hover {
     opacity: 1;
 }
+
+/* ========== AI 辅助功能样式 ========== */
+
+/* AI 辅助按钮组 */
+.ai-helper-buttons {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.ai-helper-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.ai-generate-btn {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    color: white;
+    border: none;
+}
+
+.ai-generate-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.ai-fix-btn {
+    background: var(--bg-secondary, #f3f4f6);
+    color: var(--text-color, #333);
+    border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.ai-fix-btn:hover {
+    background: var(--hover-bg, rgba(0, 0, 0, 0.05));
+    border-color: var(--accent, #6366f1);
+    color: var(--accent, #6366f1);
+}
+
+/* AI 生成弹窗 */
+.ai-generate-modal .modal-content {
+    max-width: 500px;
+}
+
+.ai-generate-content {
+    border-radius: 12px;
+}
+
+.ai-generate-content .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.ai-generate-content .modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.ai-generate-content .modal-body {
+    padding: 20px;
+}
+
+.ai-generate-content .modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border-color, #e0e0e0);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* AI 示例标签 */
+.ai-examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+}
+
+.examples-label {
+    font-size: 12px;
+    color: var(--text-secondary, #666);
+}
+
+.example-chip {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    background: var(--bg-tertiary, #f3f4f6);
+    color: var(--text-secondary, #666);
+    border: 1px solid var(--border-color, #e0e0e0);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.example-chip:hover {
+    background: var(--accent, #6366f1);
+    color: white;
+    border-color: var(--accent, #6366f1);
+}
+
+/* 暗色主题适配 */
+[data-theme="dark"] .ai-fix-btn {
+    background: #24283b;
+    color: #c0caf5;
+    border-color: #3b3d4d;
+}
+
+[data-theme="dark"] .ai-fix-btn:hover {
+    background: #2a2e3f;
+    border-color: #7aa2f7;
+    color: #7aa2f7;
+}
+
+[data-theme="dark"] .ai-generate-content .modal-header,
+[data-theme="dark"] .ai-generate-content .modal-footer {
+    border-color: #3b3d4d;
+}
+
+[data-theme="dark"] .example-chip {
+    background: #24283b;
+    color: #9aa5ce;
+    border-color: #3b3d4d;
+}
+
+[data-theme="dark"] .example-chip:hover {
+    background: #7aa2f7;
+    color: white;
+    border-color: #7aa2f7;
+}

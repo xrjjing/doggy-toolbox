@@ -4,28 +4,73 @@
         <p class="page-description">配置和管理 AI Provider，支持 OpenAI、Claude 和第三方兼容 API</p>
     </div>
 
-    <div class="ai-settings-container">
-        <!-- Provider 列表 -->
-        <div class="providers-section">
-            <div class="section-header">
-                <h3>AI Provider 列表</h3>
-                <button class="ai-btn ai-btn-primary" onclick="openAddProviderModal()">
-                    <span class="btn-text">+ 添加 Provider</span>
-                </button>
+    <!-- 主 Tab 切换 -->
+    <div class="ai-main-tabs">
+        <button class="ai-main-tab active" data-tab="providers" onclick="switchAIMainTab('providers')">
+            <span class="tab-icon">🔌</span>
+            <span>Provider 管理</span>
+        </button>
+        <button class="ai-main-tab" data-tab="features" onclick="switchAIMainTab('features')">
+            <span class="tab-icon">⚡</span>
+            <span>功能开关</span>
+        </button>
+    </div>
+
+    <!-- Provider 管理面板 -->
+    <div id="ai-tab-providers" class="ai-tab-content active">
+        <div class="ai-settings-container">
+            <!-- Provider 列表 -->
+            <div class="providers-section">
+                <div class="section-header">
+                    <h3>AI Provider 列表</h3>
+                    <button class="ai-btn ai-btn-primary" onclick="openAddProviderModal()">
+                        <span class="btn-text">+ 添加 Provider</span>
+                    </button>
+                </div>
+
+                <!-- 列表分类 Tab -->
+                <div class="list-category-tabs">
+                    <button class="list-category-tab active" data-category="openai" onclick="switchListCategory('openai')">
+                        OpenAI
+                    </button>
+                    <button class="list-category-tab" data-category="claude" onclick="switchListCategory('claude')">
+                        Claude
+                    </button>
+                </div>
+
+                <div id="providers-list" class="providers-list">
+                    <!-- 动态加载 Provider 卡片 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 功能开关面板 -->
+    <div id="ai-tab-features" class="ai-tab-content">
+        <div class="ai-features-container">
+            <!-- 全局开关 -->
+            <div class="global-toggle-section">
+                <div class="global-toggle-card">
+                    <div class="toggle-info">
+                        <h3>🌐 全局 AI 功能</h3>
+                        <p>关闭后，所有工具的 AI 功能将被禁用</p>
+                    </div>
+                    <label class="global-toggle-switch">
+                        <input type="checkbox" id="global-ai-toggle" onchange="toggleGlobalAI(this.checked)">
+                        <span class="global-toggle-slider"></span>
+                    </label>
+                </div>
             </div>
 
-            <!-- 列表分类 Tab -->
-            <div class="list-category-tabs">
-                <button class="list-category-tab active" data-category="openai" onclick="switchListCategory('openai')">
-                    OpenAI
-                </button>
-                <button class="list-category-tab" data-category="claude" onclick="switchListCategory('claude')">
-                    Claude
-                </button>
+            <!-- 批量操作 -->
+            <div class="batch-actions">
+                <button class="ai-btn ai-btn-outline btn-sm" onclick="enableAllTools()">全部启用</button>
+                <button class="ai-btn ai-btn-ghost btn-sm" onclick="disableAllTools()">全部禁用</button>
             </div>
 
-            <div id="providers-list" class="providers-list">
-                <!-- 动态加载 Provider 卡片 -->
+            <!-- 工具分类列表 -->
+            <div id="tool-ai-categories" class="tool-ai-categories">
+                <!-- 动态加载工具分类和开关 -->
             </div>
         </div>
     </div>
@@ -273,6 +318,389 @@
 
 <style>
 /* AI 配置页面专用样式 */
+
+/* 主 Tab 切换样式 */
+.ai-main-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--bg-tertiary, #f3f4f6);
+    border-radius: 12px;
+    margin: 0 20px 20px;
+}
+
+.ai-main-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary, #666);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ai-main-tab:hover {
+    color: var(--text-color, #333);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.ai-main-tab.active {
+    background: var(--bg-card, #fff);
+    color: var(--accent-color, #6366f1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.ai-main-tab .tab-icon {
+    font-size: 16px;
+}
+
+/* Tab 内容区域 */
+.ai-tab-content {
+    display: none;
+}
+
+.ai-tab-content.active {
+    display: block;
+}
+
+/* 功能开关面板样式 */
+.ai-features-container {
+    padding: 0 20px;
+}
+
+/* 全局开关卡片 */
+.global-toggle-section {
+    margin-bottom: 20px;
+}
+
+.global-toggle-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, var(--accent-color, #6366f1) 0%, var(--accent-color-dark, #4f46e5) 100%);
+    border-radius: 12px;
+    color: white;
+}
+
+.global-toggle-card .toggle-info h3 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.global-toggle-card .toggle-info p {
+    margin: 0;
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+/* Toggle Switch 样式 - 全局开关专用 */
+.global-toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 28px;
+    flex-shrink: 0;
+}
+
+.global-toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.global-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.25);
+    transition: 0.3s;
+    border-radius: 28px;
+}
+
+.global-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.global-toggle-switch input:checked + .global-toggle-slider {
+    background-color: rgba(255, 255, 255, 0.35);
+}
+
+.global-toggle-switch input:checked + .global-toggle-slider:before {
+    transform: translateX(24px);
+}
+
+/* 批量操作按钮 */
+.batch-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+/* 工具分类列表 */
+.tool-ai-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* 分类卡片 */
+.tool-category-card {
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--bg-secondary, #f9fafb);
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+    cursor: pointer;
+    user-select: none;
+}
+
+.category-header:hover {
+    background: var(--hover-bg, rgba(0, 0, 0, 0.03));
+}
+
+.category-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.category-title h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-color, #333);
+}
+
+.category-count {
+    font-size: 12px;
+    color: var(--text-secondary, #666);
+    background: var(--bg-tertiary, #f3f4f6);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.category-toggle {
+    font-size: 12px;
+    color: var(--text-secondary, #666);
+    transition: transform 0.2s ease;
+}
+
+.category-header.collapsed .category-toggle {
+    transform: rotate(-90deg);
+}
+
+/* 工具列表 */
+.category-tools {
+    padding: 8px 0;
+}
+
+.category-tools.collapsed {
+    display: none;
+}
+
+.tool-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    transition: background 0.15s ease;
+}
+
+.tool-item:hover {
+    background: var(--hover-bg, rgba(0, 0, 0, 0.02));
+}
+
+.tool-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tool-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-color, #333);
+}
+
+.tool-features {
+    display: flex;
+    gap: 8px;
+}
+
+.feature-badge {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--bg-tertiary, #f3f4f6);
+    color: var(--text-secondary, #666);
+}
+
+.feature-badge.generate {
+    background: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+}
+
+.feature-badge.fix {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+}
+
+/* 工具开关 */
+.tool-toggle {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.tool-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.tool-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--border-color, #e0e0e0);
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.tool-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.tool-toggle input:checked + .tool-toggle-slider {
+    background-color: var(--accent-color, #6366f1);
+}
+
+.tool-toggle input:checked + .tool-toggle-slider:before {
+    transform: translateX(20px);
+}
+
+.tool-toggle input:disabled + .tool-toggle-slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 暗色主题适配 */
+[data-theme="dark"] .ai-main-tabs {
+    background: #1a1b26;
+}
+
+[data-theme="dark"] .ai-main-tab {
+    color: #9aa5ce;
+}
+
+[data-theme="dark"] .ai-main-tab:hover {
+    color: #c0caf5;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .ai-main-tab.active {
+    background: #24283b;
+    color: #7aa2f7;
+}
+
+[data-theme="dark"] .tool-category-card {
+    background: #1a1b26;
+    border-color: #3b3d4d;
+}
+
+[data-theme="dark"] .category-header {
+    background: #24283b;
+    border-color: #3b3d4d;
+}
+
+[data-theme="dark"] .category-header:hover {
+    background: #2a2e3f;
+}
+
+[data-theme="dark"] .category-title h4 {
+    color: #c0caf5;
+}
+
+[data-theme="dark"] .category-count {
+    background: #1a1b26;
+    color: #9aa5ce;
+}
+
+[data-theme="dark"] .tool-item:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .tool-name {
+    color: #c0caf5;
+}
+
+[data-theme="dark"] .feature-badge {
+    background: #24283b;
+    color: #9aa5ce;
+}
+
+[data-theme="dark"] .feature-badge.generate {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+
+[data-theme="dark"] .feature-badge.fix {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
+
+[data-theme="dark"] .tool-toggle-slider {
+    background-color: #3b3d4d;
+}
+
+[data-theme="dark"] .tool-toggle input:checked + .tool-toggle-slider {
+    background-color: #7aa2f7;
+}
+
 .ai-settings-container {
     padding: 0 20px;
 }

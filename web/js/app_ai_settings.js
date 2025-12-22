@@ -7,10 +7,321 @@ let currentProviderConfig = {
     models: []
 };
 
+// 工具 AI 配置缓存
+let toolAIDefinitions = null;
+let toolAIConfig = null;
+
 // 初始化 AI 配置页面
 async function initAISettingsPage() {
     await loadProviders();
     initProviderTypeListeners();
+    // 预加载功能开关数据（但不渲染，等用户切换到该 Tab 时再渲染）
+    // 等待 API 就绪后再加载
+    await waitForAPIReady();
+    await loadToolAIData();
+}
+
+// 等待 pywebview API 就绪
+async function waitForAPIReady(maxRetries = 10, delayMs = 200) {
+    for (let i = 0; i < maxRetries; i++) {
+        if (window.pywebview && window.pywebview.api) {
+            return true;
+        }
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+    console.warn('PyWebView API 未就绪，AI 功能开关可能不可用');
+    return false;
+}
+
+// 切换主 Tab
+function switchAIMainTab(tabName) {
+    // 更新 Tab 按钮状态
+    document.querySelectorAll('.ai-main-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === tabName);
+    });
+
+    // 更新内容区域
+    document.querySelectorAll('.ai-tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === `ai-tab-${tabName}`);
+    });
+
+    // 如果切换到功能开关 Tab，渲染工具列表
+    if (tabName === 'features') {
+        renderToolAICategories();
+    }
+}
+
+// 加载工具 AI 配置数据
+async function loadToolAIData() {
+    try {
+        const api = window.pywebview && window.pywebview.api;
+        if (!api) return;
+
+        // 并行加载定义和配置
+        const [definitions, config] = await Promise.all([
+            api.get_tool_ai_definitions(),
+            api.get_tool_ai_config()
+        ]);
+
+        toolAIDefinitions = definitions;
+        toolAIConfig = config;
+    } catch (error) {
+        console.error('加载工具 AI 配置失败:', error);
+    }
+}
+
+// 渲染工具 AI 分类列表
+function renderToolAICategories() {
+    if (!toolAIDefinitions || !toolAIConfig) {
+        console.warn('工具 AI 配置数据未加载');
+        return;
+    }
+
+    const container = document.getElementById('tool-ai-categories');
+    if (!container) return;
+
+    // 更新全局开关状态
+    const globalToggle = document.getElementById('global-ai-toggle');
+    if (globalToggle) {
+        globalToggle.checked = toolAIConfig.global_enabled !== false;
+    }
+
+    const globalEnabled = toolAIConfig.global_enabled !== false;
+
+    // 渲染分类
+    container.innerHTML = toolAIDefinitions.categories.map(category => {
+        const enabledCount = category.tools.filter(tool => {
+            const toolConfig = toolAIConfig.tools[tool.id];
+            return toolConfig ? toolConfig.enabled : true;
+        }).length;
+
+        return `
+            <div class="tool-category-card" data-category="${category.id}">
+                <div class="category-header" onclick="toggleCategory('${category.id}')">
+                    <div class="category-title">
+                        <h4>${getCategoryIcon(category.id)} ${category.name}</h4>
+                        <span class="category-count">${enabledCount}/${category.tools.length} 已启用</span>
+                    </div>
+                    <span class="category-toggle">▼</span>
+                </div>
+                <div class="category-tools" id="category-tools-${category.id}">
+                    ${category.tools.map(tool => renderToolItem(tool, globalEnabled)).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 获取分类图标
+function getCategoryIcon(categoryId) {
+    const icons = {
+        'generators': '🔧',
+        'data': '📊',
+        'text': '📝',
+        'encoding': '🔄',
+        'dev': '⚙️',
+        'crypto': '🔐'
+    };
+    return icons[categoryId] || '📦';
+}
+
+// 渲染单个工具项
+function renderToolItem(tool, globalEnabled) {
+    const toolConfig = toolAIConfig.tools[tool.id] || { enabled: true, features: {} };
+    const isEnabled = toolConfig.enabled !== false;
+
+    const featureBadges = tool.features.map(f => {
+        const label = f === 'generate' ? 'AI 生成' : 'AI 修复';
+        return `<span class="feature-badge ${f}">${label}</span>`;
+    }).join('');
+
+    return `
+        <div class="tool-item" data-tool="${tool.id}">
+            <div class="tool-info">
+                <span class="tool-name">${tool.name}</span>
+                <div class="tool-features">${featureBadges}</div>
+            </div>
+            <label class="tool-toggle">
+                <input type="checkbox"
+                       ${isEnabled ? 'checked' : ''}
+                       ${!globalEnabled ? 'disabled' : ''}
+                       onchange="toggleToolAI('${tool.id}', this.checked)">
+                <span class="tool-toggle-slider"></span>
+            </label>
+        </div>
+    `;
+}
+
+// 切换分类展开/折叠
+function toggleCategory(categoryId) {
+    const card = document.querySelector(`.tool-category-card[data-category="${categoryId}"]`);
+    const header = card.querySelector('.category-header');
+    const tools = card.querySelector('.category-tools');
+
+    header.classList.toggle('collapsed');
+    tools.classList.toggle('collapsed');
+}
+
+// 切换全局 AI 开关
+async function toggleGlobalAI(enabled) {
+    try {
+        const api = window.pywebview && window.pywebview.api;
+        if (!api) {
+            showToast('后端 API 未就绪，请稍后重试', 'warning');
+            // 恢复开关状态
+            document.getElementById('global-ai-toggle').checked = !enabled;
+            return;
+        }
+
+        const result = await api.set_global_ai_enabled(enabled);
+        if (result.success) {
+            toolAIConfig.global_enabled = enabled;
+            renderToolAICategories();
+            showToast(enabled ? 'AI 功能已全局启用' : 'AI 功能已全局禁用', 'success');
+            // 刷新所有工具页面的 AI 按钮
+            if (typeof refreshAllToolAIButtons === 'function') {
+                refreshAllToolAIButtons();
+            }
+        } else {
+            showToast(`操作失败: ${result.error}`, 'error');
+            // 恢复开关状态
+            document.getElementById('global-ai-toggle').checked = !enabled;
+        }
+    } catch (error) {
+        console.error('切换全局 AI 开关失败:', error);
+        showToast('操作失败', 'error');
+        document.getElementById('global-ai-toggle').checked = !enabled;
+    }
+}
+
+// 切换单个工具的 AI 开关
+async function toggleToolAI(toolId, enabled) {
+    try {
+        const api = window.pywebview && window.pywebview.api;
+        if (!api) {
+            showToast('后端 API 未就绪，请稍后重试', 'warning');
+            // 恢复开关状态
+            const checkbox = document.querySelector(`.tool-item[data-tool="${toolId}"] input`);
+            if (checkbox) checkbox.checked = !enabled;
+            return;
+        }
+
+        const result = await api.set_tool_ai_enabled(toolId, enabled);
+        if (result.success) {
+            // 更新本地缓存
+            if (!toolAIConfig.tools[toolId]) {
+                toolAIConfig.tools[toolId] = { enabled: enabled, features: {} };
+            } else {
+                toolAIConfig.tools[toolId].enabled = enabled;
+            }
+            // 更新分类计数
+            updateCategoryCount(toolId);
+            // 刷新该工具的 AI 按钮
+            if (typeof initToolAIButtons === 'function') {
+                initToolAIButtons(toolId);
+            }
+        } else {
+            showToast(`操作失败: ${result.error}`, 'error');
+            // 恢复开关状态
+            const checkbox = document.querySelector(`.tool-item[data-tool="${toolId}"] input`);
+            if (checkbox) checkbox.checked = !enabled;
+        }
+    } catch (error) {
+        console.error('切换工具 AI 开关失败:', error);
+        showToast('操作失败', 'error');
+        const checkbox = document.querySelector(`.tool-item[data-tool="${toolId}"] input`);
+        if (checkbox) checkbox.checked = !enabled;
+    }
+}
+
+// 更新分类计数
+function updateCategoryCount(toolId) {
+    // 找到工具所属的分类
+    for (const category of toolAIDefinitions.categories) {
+        const tool = category.tools.find(t => t.id === toolId);
+        if (tool) {
+            const enabledCount = category.tools.filter(t => {
+                const config = toolAIConfig.tools[t.id];
+                return config ? config.enabled : true;
+            }).length;
+
+            const countEl = document.querySelector(`.tool-category-card[data-category="${category.id}"] .category-count`);
+            if (countEl) {
+                countEl.textContent = `${enabledCount}/${category.tools.length} 已启用`;
+            }
+            break;
+        }
+    }
+}
+
+// 全部启用
+async function enableAllTools() {
+    try {
+        const api = window.pywebview && window.pywebview.api;
+        if (!api) return;
+
+        // 构建全部启用的配置
+        const newConfig = {
+            global_enabled: true,
+            tools: {}
+        };
+
+        for (const category of toolAIDefinitions.categories) {
+            for (const tool of category.tools) {
+                newConfig.tools[tool.id] = {
+                    enabled: true,
+                    features: tool.features.reduce((acc, f) => ({ ...acc, [f]: true }), {})
+                };
+            }
+        }
+
+        const result = await api.save_tool_ai_config(newConfig);
+        if (result.success) {
+            toolAIConfig = newConfig;
+            renderToolAICategories();
+            showToast('已启用所有工具的 AI 功能', 'success');
+        } else {
+            showToast(`操作失败: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('全部启用失败:', error);
+        showToast('操作失败', 'error');
+    }
+}
+
+// 全部禁用
+async function disableAllTools() {
+    try {
+        const api = window.pywebview && window.pywebview.api;
+        if (!api) return;
+
+        // 构建全部禁用的配置
+        const newConfig = {
+            global_enabled: true, // 保持全局开关开启，只禁用各个工具
+            tools: {}
+        };
+
+        for (const category of toolAIDefinitions.categories) {
+            for (const tool of category.tools) {
+                newConfig.tools[tool.id] = {
+                    enabled: false,
+                    features: tool.features.reduce((acc, f) => ({ ...acc, [f]: true }), {})
+                };
+            }
+        }
+
+        const result = await api.save_tool_ai_config(newConfig);
+        if (result.success) {
+            toolAIConfig = newConfig;
+            renderToolAICategories();
+            showToast('已禁用所有工具的 AI 功能', 'success');
+        } else {
+            showToast(`操作失败: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('全部禁用失败:', error);
+        showToast('操作失败', 'error');
+    }
 }
 
 // 初始化 Provider 类型选择监听器

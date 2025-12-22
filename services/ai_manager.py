@@ -21,13 +21,49 @@ logger = logging.getLogger(__name__)
 class AIManager:
     """统一的 AI 管理器"""
 
+    # 工具 AI 功能配置的默认定义（仅包含前端实际支持的工具）
+    TOOL_AI_DEFINITIONS = {
+        'categories': [
+            {
+                'id': 'generators',
+                'name': '命令生成器',
+                'tools': [
+                    {'id': 'tool-git', 'name': 'Git 命令生成器', 'features': ['generate', 'fix']},
+                    {'id': 'tool-docker', 'name': 'Docker 命令生成器', 'features': ['generate', 'fix']},
+                    {'id': 'tool-nginx', 'name': 'nginx 配置生成器', 'features': ['generate', 'fix']},
+                ]
+            },
+            {
+                'id': 'data',
+                'name': '数据处理',
+                'tools': [
+                    {'id': 'tool-mock', 'name': 'Mock 数据生成', 'features': ['generate']},
+                    {'id': 'tool-json', 'name': 'JSON 格式化', 'features': ['generate', 'fix']},
+                    {'id': 'tool-json-schema', 'name': 'JSON Schema 生成', 'features': ['generate']},
+                ]
+            },
+            {
+                'id': 'text',
+                'name': '文本处理',
+                'tools': [
+                    {'id': 'tool-regex', 'name': '正则表达式测试', 'features': ['generate', 'fix']},
+                    {'id': 'tool-sql', 'name': 'SQL 格式化', 'features': ['generate', 'fix']},
+                    {'id': 'tool-curl', 'name': 'cURL 解析', 'features': ['generate', 'fix']},
+                    {'id': 'tool-cron', 'name': 'Cron 解析', 'features': ['generate']},
+                ]
+            },
+        ]
+    }
+
     def __init__(self, data_dir: Path):
         self.data_dir = data_dir
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.config_path = self.data_dir / "providers.json"
+        self.tool_ai_config_path = self.data_dir / "tool_ai_config.json"
         self.providers = {}
         self.active_provider_id = None
         self.stats_cache = {}
+        self.tool_ai_config_cache = None
         self.load_config()
 
     def load_config(self):
@@ -299,10 +335,14 @@ class AIManager:
 
         api_version = config.get('api_version', '2023-06-01')
 
+        # 兼容第三方 Claude API，同时发送 x-api-key 和 Authorization 头部
         headers = {
             'x-api-key': api_key,
+            'Authorization': f'Bearer {api_key}',
             'anthropic-version': api_version,
-            'Content-Type': 'application/json'
+            'anthropic-beta': 'output-128k-2025-02-19',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
         }
 
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -503,3 +543,118 @@ class AIManager:
 
         except Exception as e:
             logger.error(f"保存活跃 Provider 失败: {e}")
+
+    # ========== 工具 AI 功能配置管理 ==========
+
+    def get_tool_ai_definitions(self) -> Dict[str, Any]:
+        """获取工具 AI 功能定义（包含所有工具及其支持的 AI 功能）"""
+        return self.TOOL_AI_DEFINITIONS
+
+    def get_tool_ai_config(self) -> Dict[str, Any]:
+        """获取工具 AI 功能配置"""
+        if self.tool_ai_config_cache is not None:
+            return self.tool_ai_config_cache
+
+        try:
+            if self.tool_ai_config_path.exists():
+                with open(self.tool_ai_config_path, 'r', encoding='utf-8') as f:
+                    self.tool_ai_config_cache = json.load(f)
+            else:
+                # 返回默认配置：全部启用
+                self.tool_ai_config_cache = self._get_default_tool_ai_config()
+
+            return self.tool_ai_config_cache
+
+        except Exception as e:
+            logger.error(f"加载工具 AI 配置失败: {e}")
+            return self._get_default_tool_ai_config()
+
+    def _get_default_tool_ai_config(self) -> Dict[str, Any]:
+        """生成默认的工具 AI 配置（全部启用）"""
+        config = {
+            'global_enabled': True,
+            'tools': {}
+        }
+
+        for category in self.TOOL_AI_DEFINITIONS['categories']:
+            for tool in category['tools']:
+                tool_id = tool['id']
+                features = {f: True for f in tool['features']}
+                config['tools'][tool_id] = {
+                    'enabled': True,
+                    'features': features
+                }
+
+        return config
+
+    def save_tool_ai_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """保存工具 AI 功能配置"""
+        try:
+            with open(self.tool_ai_config_path, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=2, ensure_ascii=False)
+
+            # 更新缓存
+            self.tool_ai_config_cache = config
+
+            logger.info("工具 AI 配置保存成功")
+            return {'success': True}
+
+        except Exception as e:
+            logger.error(f"保存工具 AI 配置失败: {e}")
+            return {'success': False, 'error': str(e)}
+
+    def get_tool_ai_enabled(self, tool_id: str) -> Dict[str, Any]:
+        """获取指定工具的 AI 功能启用状态"""
+        config = self.get_tool_ai_config()
+
+        # 全局开关关闭时，所有工具都禁用
+        if not config.get('global_enabled', True):
+            return {
+                'enabled': False,
+                'features': {'generate': False, 'fix': False}
+            }
+
+        # 获取工具配置
+        tool_config = config.get('tools', {}).get(tool_id)
+        if tool_config is None:
+            # 工具未配置，查找定义中的默认功能
+            for category in self.TOOL_AI_DEFINITIONS['categories']:
+                for tool in category['tools']:
+                    if tool['id'] == tool_id:
+                        return {
+                            'enabled': True,
+                            'features': {f: True for f in tool['features']}
+                        }
+            # 未知工具，返回禁用
+            return {
+                'enabled': False,
+                'features': {'generate': False, 'fix': False}
+            }
+
+        return tool_config
+
+    def set_tool_ai_enabled(self, tool_id: str, enabled: bool) -> Dict[str, Any]:
+        """设置指定工具的 AI 功能启用状态"""
+        config = self.get_tool_ai_config()
+
+        if tool_id not in config.get('tools', {}):
+            # 初始化工具配置
+            for category in self.TOOL_AI_DEFINITIONS['categories']:
+                for tool in category['tools']:
+                    if tool['id'] == tool_id:
+                        config.setdefault('tools', {})[tool_id] = {
+                            'enabled': enabled,
+                            'features': {f: True for f in tool['features']}
+                        }
+                        break
+
+        if tool_id in config.get('tools', {}):
+            config['tools'][tool_id]['enabled'] = enabled
+
+        return self.save_tool_ai_config(config)
+
+    def set_global_ai_enabled(self, enabled: bool) -> Dict[str, Any]:
+        """设置全局 AI 功能开关"""
+        config = self.get_tool_ai_config()
+        config['global_enabled'] = enabled
+        return self.save_tool_ai_config(config)

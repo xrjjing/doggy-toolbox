@@ -1270,3 +1270,29 @@ class Api:
             'done': done,
             'error': error
         }
+
+    # ========== 工具 AI 功能配置 ==========
+
+    def get_tool_ai_definitions(self):
+        """获取工具 AI 功能定义（包含所有工具及其支持的 AI 功能）"""
+        return self.ai_manager.get_tool_ai_definitions()
+
+    def get_tool_ai_config(self):
+        """获取工具 AI 功能配置"""
+        return self.ai_manager.get_tool_ai_config()
+
+    def save_tool_ai_config(self, config: dict):
+        """保存工具 AI 功能配置"""
+        return self.ai_manager.save_tool_ai_config(config)
+
+    def get_tool_ai_enabled(self, tool_id: str):
+        """获取指定工具的 AI 功能启用状态"""
+        return self.ai_manager.get_tool_ai_enabled(tool_id)
+
+    def set_tool_ai_enabled(self, tool_id: str, enabled: bool):
+        """设置指定工具的 AI 功能启用状态"""
+        return self.ai_manager.set_tool_ai_enabled(tool_id, enabled)
+
+    def set_global_ai_enabled(self, enabled: bool):
+        """设置全局 AI 功能开关"""
+        return self.ai_manager.set_global_ai_enabled(enabled)
