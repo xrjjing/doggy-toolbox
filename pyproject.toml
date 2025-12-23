@@ -26,6 +26,8 @@ classifiers = [
 
 dependencies = [
     "pywebview>=4.0.0",
+    "httpx>=0.25.0",
+    "duckduckgo-search>=6.0.0",  # 网络搜索功能
 ]
 
 [project.optional-dependencies]

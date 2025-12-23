@@ -7,6 +7,7 @@
 let chatHistory = []; // 对话历史
 let currentSessionId = null; // 当前流式会话 ID
 let pollingInterval = null; // 轮询定时器
+let chatMode = 'chat'; // 对话模式：'chat' 普通对话, 'explain' 解释模式
 
 /**
  * 获取 PyWebView API（带检查）
@@ -60,6 +61,9 @@ function initAIChatPage() {
 
     // 显示欢迎消息
     addWelcomeMessage();
+
+    // 初始化解释模式按钮
+    initExplainModeButton();
 
     console.log('[AI Chat] 初始化完成，事件已绑定');
 }
@@ -178,31 +182,209 @@ async function sendMessage() {
     chatInput.value = '';
     adjustTextareaHeight();
 
-    // 创建 AI 消息占位
-    const aiMessageId = addMessage('', 'ai', true);
-
     try {
         const api = getPywebviewApi();
         if (!api || typeof api.ai_chat_stream !== 'function' || typeof api.get_chat_chunk !== 'function') {
             throw new Error('后端接口未就绪（pywebview.api.ai_chat_stream/get_chat_chunk 不可用）');
         }
 
-        // 调用后端流式接口
-        const result = await api.ai_chat_stream(text, chatHistory.slice(0, -1));
+        // 调用后端流式接口（传递模式和工具推荐开关）
+        const result = await api.ai_chat_stream(text, chatHistory.slice(0, -1), null, chatMode, true);
 
         if (result.success) {
             currentSessionId = result.session_id;
+
+            // 如果有工具推荐，先显示工具推荐卡片
+            if (result.tool_recommendations && result.tool_recommendations.tools && result.tool_recommendations.tools.length > 0) {
+                addToolRecommendationsCard(result.tool_recommendations.tools);
+            }
+
+            // 如果有搜索结果，显示搜索结果
+            if (result.search_results && result.search_results.length > 0) {
+                addSearchResultsCard(result.search_results);
+            }
+
+            // 创建 AI 消息占位
+            const aiMessageId = addMessage('', 'ai', true);
             startPolling(aiMessageId);
         } else {
+            const aiMessageId = addMessage('', 'ai', false);
             updateMessage(aiMessageId, `❌ 错误：${result.error || '未知错误'}`, false);
             chatInput.disabled = false;
             sendBtn.disabled = false;
         }
     } catch (error) {
         console.error('[AI Chat] 发送消息失败:', error);
+        const aiMessageId = addMessage('', 'ai', false);
         updateMessage(aiMessageId, `❌ 错误：${error.message}`, false);
         chatInput.disabled = false;
         sendBtn.disabled = false;
+    }
+}
+
+/**
+ * 添加搜索结果卡片（可折叠）
+ */
+function addSearchResultsCard(searchResults) {
+    const messagesContainer = document.getElementById('chat-messages');
+    const cardId = `search-${Date.now()}`;
+
+    const card = document.createElement('div');
+    card.className = 'search-results-card collapsed';
+    card.id = cardId;
+
+    const header = document.createElement('div');
+    header.className = 'search-results-header';
+    header.innerHTML = `
+        <span class="search-icon">🔍</span>
+        <span class="search-title">已搜索 ${searchResults.length} 条结果</span>
+        <span class="search-toggle">▼</span>
+    `;
+    header.onclick = () => toggleSearchResults(cardId);
+
+    const content = document.createElement('div');
+    content.className = 'search-results-content';
+    content.innerHTML = searchResults.map((r, i) => `
+        <div class="search-result-item">
+            <a href="${escapeHtml(r.url)}" target="_blank" class="search-result-title">${escapeHtml(r.title)}</a>
+            <p class="search-result-snippet">${escapeHtml(r.snippet ? r.snippet.substring(0, 150) + '...' : '')}</p>
+        </div>
+    `).join('');
+
+    card.appendChild(header);
+    card.appendChild(content);
+    messagesContainer.appendChild(card);
+
+    scrollToBottom();
+}
+
+/**
+ * 切换搜索结果展开/折叠
+ */
+function toggleSearchResults(cardId) {
+    const card = document.getElementById(cardId);
+    if (card) {
+        card.classList.toggle('collapsed');
+    }
+}
+
+/**
+ * 添加工具推荐卡片
+ */
+function addToolRecommendationsCard(tools) {
+    if (!tools || tools.length === 0) return;
+
+    const messagesContainer = document.getElementById('chat-messages');
+    if (!messagesContainer) return;
+
+    const card = document.createElement('div');
+    card.className = 'tool-recommend-card';
+
+    const title = document.createElement('div');
+    title.className = 'tool-recommend-title';
+    title.innerHTML = '🛠️ 推荐工具';
+    card.appendChild(title);
+
+    const list = document.createElement('div');
+    list.className = 'tool-recommend-list';
+
+    tools.slice(0, 3).forEach(tool => {
+        if (!tool || !tool.id) return;
+
+        const item = document.createElement('div');
+        item.className = 'tool-recommend-item';
+        item.dataset.toolId = tool.id;
+
+        const name = document.createElement('span');
+        name.className = 'tool-recommend-name';
+        name.textContent = tool.name || tool.id;
+        item.appendChild(name);
+
+        if (tool.reason) {
+            const reason = document.createElement('span');
+            reason.className = 'tool-recommend-reason';
+            reason.textContent = tool.reason;
+            item.appendChild(reason);
+        }
+
+        item.addEventListener('click', () => {
+            if (typeof window.switchPage === 'function') {
+                window.switchPage(tool.id);
+            }
+        });
+
+        list.appendChild(item);
+    });
+
+    card.appendChild(list);
+    messagesContainer.appendChild(card);
+    scrollToBottom();
+}
+
+/**
+ * 初始化解释模式按钮
+ */
+function initExplainModeButton() {
+    const headerActions = document.querySelector('#page-ai-chat .chat-header-actions');
+    if (!headerActions) return;
+
+    // 检查是否已存在解释模式按钮
+    if (document.getElementById('explain-mode-btn')) return;
+
+    // 创建解释模式按钮
+    const explainBtn = document.createElement('button');
+    explainBtn.id = 'explain-mode-btn';
+    explainBtn.className = 'ai-btn ai-btn-outline btn-sm';
+    explainBtn.innerHTML = `
+        <span class="btn-icon">🧠</span>
+        <span class="btn-text">解释模式</span>
+    `;
+    explainBtn.title = '开启后，AI 将专注于解释代码和命令';
+    explainBtn.addEventListener('click', toggleExplainMode);
+
+    // 插入到清除对话按钮之前
+    const clearBtn = headerActions.querySelector('button');
+    if (clearBtn) {
+        headerActions.insertBefore(explainBtn, clearBtn);
+    } else {
+        headerActions.appendChild(explainBtn);
+    }
+
+    // 更新按钮状态
+    updateExplainModeUI();
+}
+
+/**
+ * 切换解释模式
+ */
+function toggleExplainMode() {
+    chatMode = chatMode === 'explain' ? 'chat' : 'explain';
+    updateExplainModeUI();
+
+    // 显示提示
+    if (typeof showToast === 'function') {
+        showToast(chatMode === 'explain' ? '已开启解释模式' : '已切换到普通对话', 'info');
+    }
+}
+
+/**
+ * 更新解释模式按钮 UI
+ */
+function updateExplainModeUI() {
+    const explainBtn = document.getElementById('explain-mode-btn');
+    if (!explainBtn) return;
+
+    const btnText = explainBtn.querySelector('.btn-text');
+    if (chatMode === 'explain') {
+        explainBtn.classList.add('active');
+        explainBtn.classList.remove('ai-btn-outline');
+        explainBtn.classList.add('ai-btn-primary');
+        if (btnText) btnText.textContent = '解释模式：开';
+    } else {
+        explainBtn.classList.remove('active');
+        explainBtn.classList.remove('ai-btn-primary');
+        explainBtn.classList.add('ai-btn-outline');
+        if (btnText) btnText.textContent = '解释模式';
     }
 }
 
@@ -499,6 +681,156 @@ style.textContent = `
 
 .message-content a:hover {
     text-decoration: underline;
+}
+
+/* 搜索结果卡片样式 */
+.search-results-card {
+    max-width: 80%;
+    align-self: flex-start;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-card);
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.search-results-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    user-select: none;
+    background: var(--bg-secondary);
+    transition: background 0.2s;
+}
+
+.search-results-header:hover {
+    background: var(--bg-tertiary);
+}
+
+.search-icon {
+    font-size: 14px;
+}
+
+.search-title {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.search-toggle {
+    font-size: 10px;
+    color: var(--text-secondary);
+    transition: transform 0.2s;
+}
+
+.search-results-card.collapsed .search-toggle {
+    transform: rotate(-90deg);
+}
+
+.search-results-content {
+    padding: 12px 14px;
+    max-height: 300px;
+    overflow-y: auto;
+    transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.2s ease;
+}
+
+.search-results-card.collapsed .search-results-content {
+    max-height: 0;
+    padding: 0 14px;
+    opacity: 0;
+    overflow: hidden;
+}
+
+.search-result-item {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-title {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    text-decoration: none;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.search-result-title:hover {
+    text-decoration: underline;
+}
+
+.search-result-snippet {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* 工具推荐卡片样式 */
+.tool-recommend-card {
+    max-width: 80%;
+    align-self: flex-start;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-card);
+    padding: 12px 14px;
+}
+
+.tool-recommend-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.tool-recommend-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tool-recommend-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tool-recommend-item:hover {
+    border-color: var(--accent);
+    background: var(--bg-tertiary);
+}
+
+.tool-recommend-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+}
+
+.tool-recommend-reason {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
 }
 `;
 document.head.appendChild(style);

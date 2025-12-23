@@ -433,34 +433,30 @@ function renderProviders(providers) {
                     <h4>${escapeHtml(p.name)}</h4>
                     <span class="provider-type">${getProviderTypeLabel(p.type)}</span>
                 </div>
-                ${p.active ? '<span class="badge-active">当前使用</span>' : ''}
+                ${p.active ? '<span class="badge-active">当前</span>' : ''}
             </div>
 
             <div class="provider-stats">
                 <div class="stat-item">
-                    <span class="stat-label">请求次数</span>
                     <span class="stat-value">${p.stats?.total_requests || 0}</span>
+                    <span class="stat-label">请求</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">平均延迟</span>
                     <span class="stat-value">${p.stats?.avg_latency || 0}s</span>
+                    <span class="stat-label">延迟</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">失败率</span>
                     <span class="stat-value">${calculateFailureRate(p.stats)}%</span>
+                    <span class="stat-label">失败</span>
                 </div>
             </div>
 
             <div class="provider-actions">
                 <button class="ai-btn ai-btn-outline btn-sm" onclick="switchProvider('${p.id}')" ${p.active ? 'disabled' : ''}>
-                    ${p.active ? '✓ 当前使用' : '切换'}
+                    ${p.active ? '✓ 使用中' : '切换'}
                 </button>
-                <button class="ai-btn ai-btn-ghost btn-sm" onclick="editProvider('${p.id}')">
-                    编辑
-                </button>
-                <button class="ai-btn ai-btn-ghost btn-sm" onclick="deleteProvider('${p.id}')">
-                    删除
-                </button>
+                <button class="ai-btn ai-btn-ghost btn-sm" onclick="editProvider('${p.id}')">编辑</button>
+                <button class="ai-btn ai-btn-ghost btn-sm" onclick="deleteProvider('${p.id}')">删除</button>
             </div>
         </div>
     `).join('');
@@ -632,6 +628,14 @@ async function editProvider(providerId) {
         if (config.web_search !== undefined) {
             document.getElementById('web-search-enabled').checked = config.web_search;
         }
+        // 思考模式反显
+        if (config.thinking_enabled !== undefined) {
+            document.getElementById('thinking-enabled').checked = config.thinking_enabled;
+            document.getElementById('thinking-budget-group').style.display = config.thinking_enabled ? 'block' : 'none';
+        }
+        if (config.thinking_budget !== undefined) {
+            document.getElementById('thinking-budget').value = config.thinking_budget;
+        }
         if (config.proxy) {
             document.getElementById('proxy').value = config.proxy;
         }
@@ -678,6 +682,9 @@ function resetForm() {
     document.getElementById('max-retries').value = 3;
     document.getElementById('stream-enabled').checked = true;
     document.getElementById('web-search-enabled').checked = false;
+    document.getElementById('thinking-enabled').checked = false;
+    document.getElementById('thinking-budget').value = 2048;
+    document.getElementById('thinking-budget-group').style.display = 'none';
     document.getElementById('proxy').value = '';
 
     updateRangeValue('temperature', 'temp-value');
@@ -705,6 +712,7 @@ function updateFormFields() {
     document.getElementById('field-organization').style.display = 'none';
     document.getElementById('field-api-version').style.display = 'none';
     document.getElementById('third-party-fields').style.display = 'none';
+    document.getElementById('field-thinking-mode').style.display = 'none';
 
     // 判断是否为编辑模式（有 id 表示编辑）
     const isEditMode = !!currentProviderConfig.id;
@@ -720,10 +728,11 @@ function updateFormFields() {
             document.getElementById('base-url').value = 'https://api.openai.com/v1';
         }
     } else if (type === 'claude') {
-        // Claude：使用 API Key + Base URL
+        // Claude：使用 API Key + Base URL + 思考模式
         document.getElementById('field-api-key').style.display = 'block';
         document.getElementById('field-base-url').style.display = 'block';
         document.getElementById('field-api-version').style.display = 'block';
+        document.getElementById('field-thinking-mode').style.display = 'block';
         // 仅在新建模式或无值时设置默认值
         if (!isEditMode || !currentBaseUrl) {
             document.getElementById('base-url').value = 'https://api.anthropic.com';
@@ -789,17 +798,19 @@ async function fetchModels() {
 
         const result = await pywebview.api.fetch_ai_models(tempConfig);
 
-        if (result.success) {
+        if (result.success && result.models && result.models.length > 0) {
             currentProviderConfig.models = result.models;
             updateModelOptions(result.models);
             showToast(`成功获取 ${result.models.length} 个模型`, 'success');
         } else {
-            showToast(`获取失败: ${result.error}`, 'error');
+            // 获取失败或无模型，直接启用手动输入
+            const errorMsg = result.error || '未获取到模型列表';
+            showToast(`${errorMsg}，请手动输入模型名称`, 'warning');
             enableManualModelInput();
         }
     } catch (error) {
         console.error('获取模型列表失败:', error);
-        showToast('获取模型列表失败', 'error');
+        showToast('获取模型列表失败，请手动输入模型名称', 'warning');
         enableManualModelInput();
     } finally {
         modelSelect.disabled = false;
@@ -842,8 +853,23 @@ function handleModelSelect(e) {
 // 启用手动输入
 function enableManualModelInput() {
     const modelSelect = document.getElementById('default-model');
+    const manualGroup = document.getElementById('manual-model-group');
+    const manualInput = document.getElementById('manual-model-input');
+
+    // 设置下拉框为手动输入选项
     modelSelect.innerHTML = '<option value="__manual__">✏️ 手动输入模型名</option>';
-    document.getElementById('manual-model-group').style.display = 'block';
+    modelSelect.value = '__manual__';
+    modelSelect.disabled = false;
+
+    // 显示手动输入框
+    if (manualGroup) {
+        manualGroup.style.display = 'block';
+    }
+
+    // 聚焦到输入框
+    if (manualInput) {
+        manualInput.focus();
+    }
 }
 
 // 测试连接
@@ -971,6 +997,9 @@ async function saveProvider() {
         config.config.organization = document.getElementById('organization')?.value.trim();
     } else if (type === 'claude') {
         config.config.api_version = document.getElementById('api-version')?.value;
+        // Claude 专用：思考模式
+        config.config.thinking_enabled = document.getElementById('thinking-enabled').checked;
+        config.config.thinking_budget = parseInt(document.getElementById('thinking-budget').value) || 2048;
     } else if (type === 'openai-compatible') {
         config.compatibility = {
             endpoint: document.getElementById('endpoint').value,
@@ -1076,6 +1105,20 @@ function togglePasswordVisibility() {
         if (eyeClosed) eyeClosed.style.display = 'none';
     }
 }
+
+// 思考模式开关联动
+function toggleThinkingBudget() {
+    const thinkingEnabled = document.getElementById('thinking-enabled').checked;
+    document.getElementById('thinking-budget-group').style.display = thinkingEnabled ? 'block' : 'none';
+}
+
+// 页面加载后绑定事件
+document.addEventListener('DOMContentLoaded', function() {
+    const thinkingCheckbox = document.getElementById('thinking-enabled');
+    if (thinkingCheckbox) {
+        thinkingCheckbox.addEventListener('change', toggleThinkingBudget);
+    }
+});
 
 
 // 显式暴露：供 app_core 的 PAGE_INIT_MAP 调用，并兼容旧的大小写写法

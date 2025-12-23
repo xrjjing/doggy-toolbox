@@ -75,6 +75,26 @@ const TOOL_AI_PROMPTS = {
         fix: {
             systemPrompt: '你是一个 JSON 专家。修复用户提供的 JSON 中的语法错误。只返回修正后的 JSON，不要解释。',
             placeholder: '粘贴需要修复的 JSON...'
+        },
+        analyze: {
+            systemPrompt: `你是一个 JSON 数据分析专家。请分析用户提供的 JSON 数据，并按以下格式返回结果：
+
+## 📊 数据结构概览
+简要描述这个 JSON 的整体结构和用途。
+
+## 🏷️ 字段说明
+列出主要字段及其含义、类型。
+
+## 📝 TypeScript 类型定义
+\`\`\`typescript
+// 生成对应的 TypeScript Interface
+\`\`\`
+
+## ⚠️ 潜在问题
+如果发现数据问题（空值、类型不一致、命名不规范等），在此列出。如果没有问题，写"未发现明显问题"。
+
+注意：保持简洁专业，使用中文回答。`,
+            placeholder: '分析 JSON 结构、生成类型定义、发现潜在问题'
         }
     },
     'tool-json-schema': {
@@ -220,6 +240,37 @@ async function executeAIFix(toolId, content, errorMessage = '') {
         }
     } catch (error) {
         console.error('AI 修复失败:', error);
+        return { success: false, error: error.message || 'AI 请求失败' };
+    }
+}
+
+/**
+ * 执行 AI 分析
+ * @param {string} toolId - 工具 ID
+ * @param {string} content - 需要分析的内容
+ * @returns {Promise<{success: boolean, result?: string, error?: string}>}
+ */
+async function executeAIAnalyze(toolId, content) {
+    const config = TOOL_AI_PROMPTS[toolId];
+    if (!config || !config.analyze) {
+        return { success: false, error: '该工具不支持 AI 分析功能' };
+    }
+
+    try {
+        const api = window.pywebview && window.pywebview.api;
+        if (!api) {
+            return { success: false, error: 'API 未就绪' };
+        }
+
+        const result = await api.ai_chat(content, config.analyze.systemPrompt);
+
+        if (result.success) {
+            return { success: true, result: result.response };
+        } else {
+            return { success: false, error: result.error || 'AI 请求失败' };
+        }
+    } catch (error) {
+        console.error('AI 分析失败:', error);
         return { success: false, error: error.message || 'AI 请求失败' };
     }
 }
@@ -404,6 +455,119 @@ async function executeAIFixWithUI(toolId, content, onFix) {
 }
 
 /**
+ * 显示 AI 分析结果弹窗
+ * @param {string} content - 分析结果内容（Markdown 格式）
+ */
+function showAIAnalyzeResultModal(content) {
+    // 移除已存在的弹窗
+    const existingModal = document.querySelector('.ai-analyze-modal');
+    if (existingModal) existingModal.remove();
+
+    const modal = document.createElement('div');
+    modal.className = 'modal ai-analyze-modal';
+    modal.style.display = 'flex';
+
+    modal.innerHTML = `
+        <div class="modal-content ai-analyze-content">
+            <div class="modal-header">
+                <h3>🔍 AI 分析结果</h3>
+                <button class="btn-close">×</button>
+            </div>
+            <div class="modal-body ai-analyze-body">
+                <div class="ai-analyze-result"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost btn-copy-result">📋 复制结果</button>
+                <button class="btn btn-primary btn-close-modal">关闭</button>
+            </div>
+        </div>
+    `;
+
+    // 渲染 Markdown 内容
+    const resultContainer = modal.querySelector('.ai-analyze-result');
+    resultContainer.innerHTML = renderAnalyzeMarkdown(content);
+
+    // 绑定事件
+    modal.querySelector('.btn-close').addEventListener('click', () => modal.remove());
+    modal.querySelector('.btn-close-modal').addEventListener('click', () => modal.remove());
+    modal.querySelector('.btn-copy-result').addEventListener('click', () => {
+        navigator.clipboard.writeText(content).then(() => {
+            showToast('已复制到剪贴板', 'success');
+        }).catch(() => {
+            showToast('复制失败', 'error');
+        });
+    });
+
+    // 点击遮罩关闭
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
+
+    document.body.appendChild(modal);
+}
+
+/**
+ * 简单的 Markdown 渲染（用于分析结果）
+ */
+function renderAnalyzeMarkdown(text) {
+    if (!text) return '';
+
+    let html = text;
+
+    // 代码块 ```language\ncode\n```
+    html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+        const language = lang || 'plaintext';
+        const escapedCode = escapeHtml(code.trim());
+        return `<pre class="analyze-code-block"><code class="language-${language}">${escapedCode}</code></pre>`;
+    });
+
+    // 行内代码 `code`
+    html = html.replace(/`([^`]+)`/g, '<code class="analyze-inline-code">$1</code>');
+
+    // 标题 ##
+    html = html.replace(/^## (.+)$/gm, '<h4 class="analyze-heading">$1</h4>');
+    html = html.replace(/^### (.+)$/gm, '<h5 class="analyze-subheading">$1</h5>');
+
+    // 粗体 **text**
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+    // 斜体 *text*
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+    // 列表项 - item
+    html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul class="analyze-list">$&</ul>');
+
+    // 段落（换行符转 <br>，但保留代码块内的换行）
+    html = html.replace(/\n(?!<)/g, '<br>');
+
+    return html;
+}
+
+/**
+ * 执行 AI 分析并显示结果
+ * @param {string} toolId - 工具 ID
+ * @param {string} content - 需要分析的内容
+ */
+async function executeAIAnalyzeWithUI(toolId, content) {
+    if (!content.trim()) {
+        showToast('请先输入内容', 'warning');
+        return;
+    }
+
+    showToast('🔍 AI 正在分析...', 'info');
+
+    const result = await executeAIAnalyze(toolId, content);
+
+    if (result.success) {
+        showAIAnalyzeResultModal(result.result);
+        showToast('AI 分析完成', 'success');
+    } else {
+        showToast(`分析失败: ${result.error}`, 'error');
+    }
+}
+
+/**
  * 初始化工具页面的 AI 辅助功能
  * @param {string} toolId - 工具 ID
  * @param {object} options - 配置选项
@@ -555,6 +719,9 @@ const TOOL_AI_BUTTON_CONFIG = {
                 if (typeof updateJsonTool === 'function') updateJsonTool();
             }
         },
+        onAnalyze: (result) => {
+            showAIAnalyzeResultModal(result);
+        },
         getContent: () => document.getElementById('json-input')?.value || ''
     },
     'tool-json-schema': {
@@ -689,6 +856,42 @@ async function initToolAIButtons(toolId) {
         });
         container.appendChild(fixBtn);
     }
+
+    // AI 分析按钮
+    if (aiStatus.features.analyze && promptConfig.analyze) {
+        const analyzeBtn = document.createElement('button');
+        analyzeBtn.className = 'btn btn-sm ai-helper-btn ai-analyze-btn';
+        analyzeBtn.innerHTML = '🔍 AI 分析';
+        analyzeBtn.title = promptConfig.analyze.placeholder || 'AI 分析';
+        analyzeBtn.addEventListener('click', async () => {
+            const content = config.getContent ? config.getContent() : '';
+            if (!content.trim()) {
+                if (typeof showToast === 'function') {
+                    showToast('请先输入内容', 'warning');
+                }
+                return;
+            }
+            if (typeof showToast === 'function') {
+                showToast('🔍 AI 正在分析...', 'info');
+            }
+            const result = await executeAIAnalyze(toolId, content);
+            if (result.success) {
+                if (config.onAnalyze) {
+                    config.onAnalyze(result.result);
+                } else {
+                    showAIAnalyzeResultModal(result.result);
+                }
+                if (typeof showToast === 'function') {
+                    showToast('AI 分析完成', 'success');
+                }
+            } else {
+                if (typeof showToast === 'function') {
+                    showToast(`分析失败: ${result.error}`, 'error');
+                }
+            }
+        });
+        container.appendChild(analyzeBtn);
+    }
 }
 
 /**
@@ -723,9 +926,13 @@ window.waitForAIHelperAPI = waitForAIHelperAPI;
 window.checkToolAIEnabled = checkToolAIEnabled;
 window.executeAIGenerate = executeAIGenerate;
 window.executeAIFix = executeAIFix;
+window.executeAIAnalyze = executeAIAnalyze;
 window.createAIHelperButtons = createAIHelperButtons;
 window.initToolAIHelper = initToolAIHelper;
 window.showAIGenerateModal = showAIGenerateModal;
+window.showAIAnalyzeResultModal = showAIAnalyzeResultModal;
+window.renderAnalyzeMarkdown = renderAnalyzeMarkdown;
+window.executeAIAnalyzeWithUI = executeAIAnalyzeWithUI;
 window.submitAIGenerate = submitAIGenerate;
 window.initToolAIButtons = initToolAIButtons;
 window.refreshAllToolAIButtons = refreshAllToolAIButtons;

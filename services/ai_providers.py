@@ -9,6 +9,8 @@ import logging
 import os
 from typing import List, Dict, Any, Optional, AsyncIterator
 
+from services import web_search
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,13 +23,72 @@ class AIProvider:
         self.provider_type = config.get('type')
         self.provider_name = config.get('name')
 
-    async def chat(self, messages: List[Dict], **kwargs) -> str:
+    async def chat(self, messages: List[Dict], web_search_enabled: bool = False, **kwargs) -> str:
         """同步对话接口"""
         raise NotImplementedError("子类必须实现 chat 方法")
 
-    async def chat_stream(self, messages: List[Dict], **kwargs) -> AsyncIterator[str]:
+    async def chat_stream(self, messages: List[Dict], web_search_enabled: bool = False, **kwargs) -> AsyncIterator[str]:
         """流式对话接口"""
         raise NotImplementedError("子类必须实现 chat_stream 方法")
+
+    async def _prepare_messages_with_search(self, messages: List[Dict], web_search_enabled: bool) -> List[Dict]:
+        """
+        如果启用了网络搜索，执行搜索并注入结果到消息中
+
+        Args:
+            messages: 原始消息列表
+            web_search_enabled: 是否启用网络搜索
+
+        Returns:
+            处理后的消息列表
+        """
+        if not web_search_enabled:
+            return messages
+
+        # 获取用户最后一条消息
+        user_message = None
+        for msg in reversed(messages):
+            if msg.get('role') == 'user':
+                user_message = msg.get('content', '')
+                break
+
+        if not user_message:
+            return messages
+
+        # 提取搜索关键词并执行搜索
+        query = web_search.extract_search_query(user_message)
+        if not query:
+            return messages
+
+        logger.info(f"执行网络搜索: {query}")
+        search_results = await web_search.search(query, max_results=5)
+
+        if not search_results:
+            logger.warning("搜索无结果")
+            return messages
+
+        # 格式化搜索结果
+        search_context = web_search.format_search_results(search_results)
+        logger.info(f"搜索到 {len(search_results)} 条结果")
+
+        # 注入搜索结果到消息中
+        new_messages = []
+        has_system = False
+
+        for msg in messages:
+            if msg.get('role') == 'system':
+                # 在现有 system prompt 后追加搜索结果
+                new_content = msg.get('content', '') + "\n\n" + search_context
+                new_messages.append({'role': 'system', 'content': new_content})
+                has_system = True
+            else:
+                new_messages.append(msg)
+
+        # 如果没有 system prompt，创建一个
+        if not has_system:
+            new_messages.insert(0, {'role': 'system', 'content': search_context})
+
+        return new_messages
 
     def validate_config(self) -> bool:
         """验证配置有效性"""
@@ -73,8 +134,12 @@ class OpenAIProvider(AIProvider):
             headers['OpenAI-Project'] = self.project
         return headers
 
-    async def chat(self, messages: List[Dict], model: Optional[str] = None, **kwargs) -> str:
+    async def chat(self, messages: List[Dict], model: Optional[str] = None,
+                   web_search_enabled: bool = False, **kwargs) -> str:
         """对话接口"""
+        # 处理网络搜索
+        messages = await self._prepare_messages_with_search(messages, web_search_enabled)
+
         url = f"{self.base_url.rstrip('/')}/chat/completions"
         headers = self._build_headers()
 
@@ -90,8 +155,12 @@ class OpenAIProvider(AIProvider):
             data = response.json()
             return data['choices'][0]['message']['content']
 
-    async def chat_stream(self, messages: List[Dict], model: Optional[str] = None, **kwargs) -> AsyncIterator[str]:
+    async def chat_stream(self, messages: List[Dict], model: Optional[str] = None,
+                          web_search_enabled: bool = False, **kwargs) -> AsyncIterator[str]:
         """流式响应"""
+        # 处理网络搜索
+        messages = await self._prepare_messages_with_search(messages, web_search_enabled)
+
         url = f"{self.base_url.rstrip('/')}/chat/completions"
         headers = self._build_headers()
 
@@ -130,6 +199,9 @@ class ClaudeProvider(AIProvider):
         self.api_version = config.get('config', {}).get('api_version', '2023-06-01')
         self.default_model = config.get('config', {}).get('default_model', 'claude-3-5-sonnet-20241022')
         self.timeout = config.get('config', {}).get('timeout', 60)
+        # 思考模式配置
+        self.thinking_enabled = config.get('config', {}).get('thinking_enabled', False)
+        self.thinking_budget = config.get('config', {}).get('thinking_budget', 2048)
 
     def _convert_messages(self, openai_messages: List[Dict]) -> tuple:
         """转换 OpenAI 格式消息为 Claude 格式"""
@@ -150,8 +222,13 @@ class ClaudeProvider(AIProvider):
 
         return system_prompt, claude_messages
 
-    async def chat(self, messages: List[Dict], model: Optional[str] = None, **kwargs) -> str:
+    async def chat(self, messages: List[Dict], model: Optional[str] = None,
+                   web_search_enabled: bool = False, thinking_enabled: Optional[bool] = None,
+                   thinking_budget: Optional[int] = None, **kwargs) -> str:
         """Claude Messages API"""
+        # 处理网络搜索
+        messages = await self._prepare_messages_with_search(messages, web_search_enabled)
+
         # 智能 URL 构建：如果 base_url 已包含 /v1 或 /messages，不重复添加
         base = self.base_url.rstrip('/')
         if base.endswith('/v1/messages') or base.endswith('/messages'):
@@ -177,6 +254,17 @@ class ClaudeProvider(AIProvider):
 
         if system_prompt:
             payload['system'] = system_prompt
+
+        # 思考模式：使用传入参数或配置中的默认值
+        use_thinking = thinking_enabled if thinking_enabled is not None else self.thinking_enabled
+        budget = thinking_budget if thinking_budget is not None else self.thinking_budget
+
+        if use_thinking:
+            payload['thinking'] = {
+                'type': 'enabled',
+                'budget_tokens': budget
+            }
+            logger.info(f"启用思考模式，预算: {budget} tokens")
 
         # 移除 OpenAI 特有参数
         claude_kwargs = {k: v for k, v in kwargs.items() if k in ['temperature', 'top_p', 'max_tokens']}
@@ -207,10 +295,22 @@ class ClaudeProvider(AIProvider):
 
             data = response.json()
 
-            return data['content'][0]['text']
+            # 解析响应：思考模式下可能有多个 content 块
+            content_blocks = data.get('content', [])
+            text_content = ""
+            for block in content_blocks:
+                if block.get('type') == 'text':
+                    text_content = block.get('text', '')
+                    break
 
-    async def chat_stream(self, messages: List[Dict], model: Optional[str] = None, **kwargs) -> AsyncIterator[str]:
+            return text_content
+
+    async def chat_stream(self, messages: List[Dict], model: Optional[str] = None,
+                          web_search_enabled: bool = False, **kwargs) -> AsyncIterator[str]:
         """Claude 流式响应"""
+        # 处理网络搜索
+        messages = await self._prepare_messages_with_search(messages, web_search_enabled)
+
         url = f"{self.base_url.rstrip('/')}/v1/messages"
 
         headers = {
@@ -307,8 +407,12 @@ class ThirdPartyProvider(AIProvider):
         self.custom_headers = compat.get('custom_headers', {})
         self.verify_ssl = compat.get('verify_ssl', True)
 
-    async def chat(self, messages: List[Dict], model: Optional[str] = None, **kwargs) -> str:
+    async def chat(self, messages: List[Dict], model: Optional[str] = None,
+                   web_search_enabled: bool = False, **kwargs) -> str:
         """第三方兼容 API"""
+        # 处理网络搜索
+        messages = await self._prepare_messages_with_search(messages, web_search_enabled)
+
         url = f"{self.base_url.rstrip('/')}{self.endpoint}"
 
         headers = {
@@ -340,8 +444,12 @@ class ThirdPartyProvider(AIProvider):
                 else:
                     raise ValueError(f"无法解析响应格式: {data}")
 
-    async def chat_stream(self, messages: List[Dict], model: Optional[str] = None, **kwargs) -> AsyncIterator[str]:
+    async def chat_stream(self, messages: List[Dict], model: Optional[str] = None,
+                          web_search_enabled: bool = False, **kwargs) -> AsyncIterator[str]:
         """第三方兼容 API 流式响应"""
+        # 处理网络搜索
+        messages = await self._prepare_messages_with_search(messages, web_search_enabled)
+
         url = f"{self.base_url.rstrip('/')}{self.endpoint}"
 
         headers = {

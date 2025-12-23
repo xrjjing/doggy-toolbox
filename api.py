@@ -1089,14 +1089,24 @@ class Api:
             logger.error(f"切换 Provider 失败: {e}")
             return {'success': False, 'error': str(e)}
 
-    def ai_chat(self, prompt: str, system_prompt: str = None, provider_id: str = None, **kwargs):
-        """AI 对话接口"""
+    def ai_chat(self, prompt: str, system_prompt: str = None, provider_id: str = None,
+                web_search: bool = False, thinking_enabled: bool = False, **kwargs):
+        """
+        AI 对话接口（工具 AI 使用）
+
+        注意：工具 AI 功能默认关闭网络搜索和思考模式，以提高响应速度
+        """
         import asyncio
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             result = loop.run_until_complete(
-                self.ai_manager.chat(prompt, system_prompt, provider_id, **kwargs)
+                self.ai_manager.chat(
+                    prompt, system_prompt, provider_id,
+                    web_search=web_search,
+                    thinking_enabled=thinking_enabled,
+                    **kwargs
+                )
             )
             return result
         except Exception as e:
@@ -1128,7 +1138,8 @@ class Api:
         if expired_ids:
             logger.info(f"清理了 {len(expired_ids)} 个超时的聊天会话")
 
-    def ai_chat_stream(self, message: str, history: list = None, provider_id: str = None):
+    def ai_chat_stream(self, message: str, history: list = None, provider_id: str = None,
+                        mode: str = 'chat', tool_recommend: bool = True):
         """
         AI 流式对话接口（适配 PyWebView）
 
@@ -1141,9 +1152,11 @@ class Api:
             message: 用户消息
             history: 历史对话记录 [{"role": "user/assistant", "content": "..."}]
             provider_id: Provider ID（可选，默认使用当前启用的）
+            mode: 对话模式 ('chat' 普通对话, 'explain' 解释模式)
+            tool_recommend: 是否启用工具推荐
 
         Returns:
-            {"success": True, "session_id": "..."}
+            {"success": True, "session_id": "...", "tool_recommendations": {...}}
         """
         import asyncio
         import threading
@@ -1163,6 +1176,19 @@ class Api:
         # 清理超时的旧会话
         self._cleanup_chat_sessions()
 
+        # 获取 Provider 配置，检查是否启用搜索
+        pid = provider_id or self.ai_manager.active_provider_id
+        provider_config = self.ai_manager._get_provider_config(pid)
+        web_search_enabled = provider_config.get('config', {}).get('web_search', False)
+
+        # 工具推荐（仅在普通对话模式下启用）
+        tool_recommendations = None
+        if tool_recommend and mode == 'chat':
+            try:
+                tool_recommendations = self.ai_manager.recommend_tools_sync(message, provider_id)
+            except Exception as e:
+                logger.warning(f"工具推荐失败: {e}")
+
         # 创建新会话（带时间戳）
         now = time.monotonic()
         with self._chat_sessions_lock:
@@ -1175,6 +1201,11 @@ class Api:
 
         # 构建 messages
         messages = []
+
+        # 解释模式：注入专用系统提示词
+        if mode == 'explain':
+            messages.append({'role': 'system', 'content': self.ai_manager.EXPLAINER_SYSTEM_PROMPT})
+
         if history:
             for item in history:
                 if isinstance(item, dict) and 'role' in item and 'content' in item:
@@ -1188,7 +1219,8 @@ class Api:
             try:
                 async def run_stream():
                     provider = self.ai_manager.get_provider(provider_id)
-                    async for chunk in provider.chat_stream(messages):
+                    # 让 Provider 自己处理搜索注入
+                    async for chunk in provider.chat_stream(messages, web_search_enabled=web_search_enabled):
                         if chunk:
                             # 线程安全地添加 chunk 并更新访问时间
                             with self._chat_sessions_lock:
@@ -1221,7 +1253,12 @@ class Api:
         thread = threading.Thread(target=stream_task, daemon=True)
         thread.start()
 
-        return {'success': True, 'session_id': session_id}
+        return {
+            'success': True,
+            'session_id': session_id,
+            'web_search_enabled': web_search_enabled,
+            'tool_recommendations': tool_recommendations
+        }
 
     def get_chat_chunk(self, session_id: str):
         """

@@ -21,6 +21,85 @@ logger = logging.getLogger(__name__)
 class AIManager:
     """统一的 AI 管理器"""
 
+    # 工具推荐目录（用于智能工具推荐功能）
+    TOOL_RECOMMENDATION_CATALOG = [
+        # 编码/解码
+        {'id': 'tool-base64', 'name': 'Base64 编解码', 'keywords': ['base64', '编码', '解码', 'encode', 'decode']},
+        {'id': 'tool-url', 'name': 'URL 编解码', 'keywords': ['url', 'urlencode', 'urldecode', '编码', '解码', '链接']},
+        {'id': 'tool-unicode', 'name': 'Unicode 转换', 'keywords': ['unicode', '转义', '\\u', '编码']},
+        {'id': 'tool-html-entity', 'name': 'HTML 实体', 'keywords': ['html', 'entity', '实体', '转义', '&amp;', '&lt;']},
+        {'id': 'tool-b64hex', 'name': 'Base64/Hex 转换', 'keywords': ['hex', '十六进制', 'base64']},
+        {'id': 'tool-radix', 'name': '进制转换', 'keywords': ['进制', '二进制', '八进制', '十六进制', 'binary', 'octal', 'hex']},
+        # 加密/安全
+        {'id': 'tool-hash', 'name': 'Hash 计算', 'keywords': ['hash', 'md5', 'sha', 'sha256', '哈希', '摘要']},
+        {'id': 'tool-crypto', 'name': '加密解密', 'keywords': ['加密', '解密', 'aes', 'des', 'encrypt', 'decrypt']},
+        {'id': 'tool-jwt', 'name': 'JWT 解析', 'keywords': ['jwt', 'token', '令牌', '解析']},
+        {'id': 'tool-password', 'name': '密码生成', 'keywords': ['密码', 'password', '生成', '随机']},
+        {'id': 'tool-hmac', 'name': 'HMAC 计算', 'keywords': ['hmac', '签名', 'signature']},
+        {'id': 'tool-rsa', 'name': 'RSA 工具', 'keywords': ['rsa', '公钥', '私钥', '非对称', '加密']},
+        # 数据处理
+        {'id': 'tool-json', 'name': 'JSON 格式化', 'keywords': ['json', '格式化', 'format', '美化', '压缩']},
+        {'id': 'tool-json-schema', 'name': 'JSON Schema', 'keywords': ['json', 'schema', '验证', '生成']},
+        {'id': 'tool-csv', 'name': 'CSV 工具', 'keywords': ['csv', '表格', 'excel', '转换']},
+        {'id': 'tool-mock', 'name': 'Mock 数据', 'keywords': ['mock', '测试数据', '假数据', '生成']},
+        {'id': 'tool-toml', 'name': 'TOML 工具', 'keywords': ['toml', '配置', 'config']},
+        {'id': 'tool-jsonpath', 'name': 'JSONPath', 'keywords': ['jsonpath', '查询', 'json', '提取']},
+        {'id': 'tool-data-convert', 'name': '数据转换', 'keywords': ['转换', 'json', 'yaml', 'xml', 'toml']},
+        # 文本处理
+        {'id': 'tool-text', 'name': '文本处理', 'keywords': ['文本', '去重', '排序', '替换', 'text']},
+        {'id': 'tool-diff', 'name': '文本对比', 'keywords': ['diff', '对比', '比较', '差异']},
+        {'id': 'tool-regex', 'name': '正则表达式', 'keywords': ['regex', '正则', '匹配', '提取', 'pattern']},
+        {'id': 'tool-charcount', 'name': '字符统计', 'keywords': ['字符', '统计', '字数', 'count']},
+        {'id': 'tool-markdown', 'name': 'Markdown', 'keywords': ['markdown', 'md', '预览']},
+        {'id': 'tool-text-sort', 'name': '文本排序', 'keywords': ['排序', 'sort', '文本']},
+        {'id': 'tool-mask', 'name': '数据脱敏', 'keywords': ['脱敏', 'mask', '隐藏', '手机号', '身份证']},
+        {'id': 'tool-sql', 'name': 'SQL 格式化', 'keywords': ['sql', '格式化', '查询', 'mysql', 'postgresql']},
+        # 生成器
+        {'id': 'tool-uuid', 'name': 'UUID 生成', 'keywords': ['uuid', 'guid', '唯一标识']},
+        {'id': 'tool-time', 'name': '时间戳转换', 'keywords': ['时间戳', 'timestamp', '时间', '日期', 'unix']},
+        {'id': 'tool-datecalc', 'name': '日期计算', 'keywords': ['日期', '计算', '天数', '间隔']},
+        {'id': 'tool-naming', 'name': '命名转换', 'keywords': ['命名', 'camel', 'snake', '驼峰', '下划线']},
+        {'id': 'tool-curl', 'name': 'cURL 解析', 'keywords': ['curl', 'http', '请求', 'api']},
+        {'id': 'tool-color', 'name': '颜色转换', 'keywords': ['颜色', 'color', 'rgb', 'hex', 'hsl']},
+        {'id': 'tool-ip', 'name': 'IP 工具', 'keywords': ['ip', '地址', 'cidr', '子网']},
+        {'id': 'tool-cron', 'name': 'Cron 表达式', 'keywords': ['cron', '定时', '任务', '表达式']},
+        {'id': 'tool-qrcode', 'name': '二维码', 'keywords': ['二维码', 'qrcode', 'qr', '生成']},
+        {'id': 'tool-img-base64', 'name': '图片 Base64', 'keywords': ['图片', 'image', 'base64', '转换']},
+        {'id': 'tool-ua', 'name': 'User-Agent', 'keywords': ['ua', 'user-agent', '浏览器', '解析']},
+        # 命令生成器
+        {'id': 'tool-git', 'name': 'Git 命令', 'keywords': ['git', 'commit', 'merge', 'branch', '版本控制']},
+        {'id': 'tool-docker', 'name': 'Docker 命令', 'keywords': ['docker', '容器', 'container', 'image']},
+        {'id': 'tool-nginx', 'name': 'Nginx 配置', 'keywords': ['nginx', '反向代理', 'proxy', '配置']},
+        # 网络
+        {'id': 'http-collections', 'name': 'HTTP 请求', 'keywords': ['http', 'api', '请求', 'request', 'post', 'get']},
+        {'id': 'tool-websocket', 'name': 'WebSocket', 'keywords': ['websocket', 'ws', '连接', '实时']},
+    ]
+
+    # 工具推荐系统提示词
+    TOOL_RECOMMEND_SYSTEM_PROMPT = '''你是开发者工具箱的意图识别助手。根据用户消息，判断是否需要推荐工具。
+
+可用工具列表：
+{tool_catalog}
+
+请仅输出 JSON，格式如下：
+{{"tools": [{{"id": "tool-xxx", "name": "工具名称", "reason": "推荐理由"}}]}}
+
+规则：
+1. 只推荐与用户需求高度相关的工具（最多 3 个）
+2. 如果用户只是闲聊或问题与工具无关，返回空数组：{{"tools": []}}
+3. reason 要简洁，说明为什么推荐这个工具
+4. 不要输出任何多余文字，只输出 JSON'''
+
+    # 代码/命令解释系统提示词
+    EXPLAINER_SYSTEM_PROMPT = '''你是代码和命令解释助手。请用中文解释用户提供的代码或命令。
+
+输出格式：
+1. **功能概述**：一句话说明这段代码/命令的作用
+2. **逐行解释**：解释关键部分的含义
+3. **注意事项**：可能的风险、常见错误或最佳实践建议
+
+保持简洁专业，使用 Markdown 格式。'''
+
     # 工具 AI 功能配置的默认定义（仅包含前端实际支持的工具）
     TOOL_AI_DEFINITIONS = {
         'categories': [
@@ -38,7 +117,7 @@ class AIManager:
                 'name': '数据处理',
                 'tools': [
                     {'id': 'tool-mock', 'name': 'Mock 数据生成', 'features': ['generate']},
-                    {'id': 'tool-json', 'name': 'JSON 格式化', 'features': ['generate', 'fix']},
+                    {'id': 'tool-json', 'name': 'JSON 格式化', 'features': ['generate', 'fix', 'analyze']},
                     {'id': 'tool-json-schema', 'name': 'JSON Schema 生成', 'features': ['generate']},
                 ]
             },
@@ -124,10 +203,26 @@ class AIManager:
         return self.providers[pid]
 
     async def chat(self, prompt: str, system_prompt: Optional[str] = None,
-                   provider_id: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+                   provider_id: Optional[str] = None, web_search: Optional[bool] = None,
+                   thinking_enabled: Optional[bool] = None, thinking_budget: Optional[int] = None,
+                   **kwargs) -> Dict[str, Any]:
         """统一的对话接口"""
         pid = provider_id or self.active_provider_id
         provider = self.get_provider(pid)
+
+        # 获取 Provider 配置
+        provider_config = self._get_provider_config(pid)
+        config_dict = provider_config.get('config', {})
+
+        # web_search：使用传入参数或配置中的默认值
+        if web_search is None:
+            web_search = config_dict.get('web_search', False)
+
+        # thinking：使用传入参数或配置中的默认值（仅 Claude）
+        if thinking_enabled is None:
+            thinking_enabled = config_dict.get('thinking_enabled', False)
+        if thinking_budget is None:
+            thinking_budget = config_dict.get('thinking_budget', 2048)
 
         # 构建消息
         messages = []
@@ -140,7 +235,18 @@ class AIManager:
         request_id = str(uuid.uuid4())
 
         try:
-            result = await provider.chat(messages, **kwargs)
+            # 根据 Provider 类型传递不同参数
+            if provider_config.get('type') == 'claude':
+                result = await provider.chat(
+                    messages,
+                    web_search_enabled=web_search,
+                    thinking_enabled=thinking_enabled,
+                    thinking_budget=thinking_budget,
+                    **kwargs
+                )
+            else:
+                result = await provider.chat(messages, web_search_enabled=web_search, **kwargs)
+
             latency = time.time() - start_time
 
             # 更新统计
@@ -151,7 +257,9 @@ class AIManager:
                 'response': result,
                 'request_id': request_id,
                 'provider_id': pid,
-                'latency': latency
+                'latency': latency,
+                'web_search': web_search,
+                'thinking_enabled': thinking_enabled if provider_config.get('type') == 'claude' else False
             }
 
         except Exception as e:
@@ -159,6 +267,23 @@ class AIManager:
             self._update_stats(pid, success=False, latency=latency)
             logger.error(f"AI 请求失败: {e}")
             raise e
+
+    def _get_provider_config(self, provider_id: str) -> Dict[str, Any]:
+        """获取指定 Provider 的配置"""
+        try:
+            if not self.config_path.exists():
+                return {}
+
+            with open(self.config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+
+            for p in config.get('providers', []):
+                if p.get('id') == provider_id:
+                    return p
+        except Exception as e:
+            logger.error(f"获取 Provider 配置失败: {e}")
+
+        return {}
 
     def switch_provider(self, provider_id: str):
         """切换活跃的 Provider"""
@@ -658,3 +783,74 @@ class AIManager:
         config = self.get_tool_ai_config()
         config['global_enabled'] = enabled
         return self.save_tool_ai_config(config)
+
+    # ========== 智能工具推荐功能 ==========
+
+    def _parse_json_response(self, raw: str) -> Dict[str, Any]:
+        """安全解析 AI 返回的 JSON"""
+        import re
+        if not raw:
+            return {}
+        text = raw.strip()
+        # 移除 markdown 代码块标记
+        if text.startswith("```"):
+            text = re.sub(r"^```\w*\n|```$", "", text).strip()
+        # 提取 JSON 对象
+        match = re.search(r"\{.*\}", text, re.S)
+        if not match:
+            return {}
+        try:
+            return json.loads(match.group(0))
+        except Exception:
+            return {}
+
+    async def recommend_tools(self, user_message: str, provider_id: Optional[str] = None) -> Dict[str, Any]:
+        """根据用户消息推荐工具"""
+        try:
+            # 构建工具目录字符串
+            tool_catalog = "\n".join([
+                f"- {t['id']}: {t['name']} (关键词: {', '.join(t['keywords'][:3])})"
+                for t in self.TOOL_RECOMMENDATION_CATALOG
+            ])
+            system_prompt = self.TOOL_RECOMMEND_SYSTEM_PROMPT.format(tool_catalog=tool_catalog)
+
+            result = await self.chat(
+                user_message,
+                system_prompt=system_prompt,
+                provider_id=provider_id,
+                web_search=False,
+                thinking_enabled=False
+            )
+
+            if result.get('success'):
+                parsed = self._parse_json_response(result.get('response', ''))
+                tools = parsed.get('tools', [])
+                # 验证工具 ID 是否有效
+                valid_ids = {t['id'] for t in self.TOOL_RECOMMENDATION_CATALOG}
+                valid_tools = [t for t in tools if t.get('id') in valid_ids]
+                return {'tools': valid_tools[:3]}  # 最多返回 3 个
+
+            return {'tools': []}
+
+        except Exception as e:
+            logger.warning(f"工具推荐失败: {e}")
+            return {'tools': []}
+
+    def recommend_tools_sync(self, user_message: str, provider_id: Optional[str] = None) -> Dict[str, Any]:
+        """同步版本的工具推荐（用于非异步上下文）"""
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # 如果已有事件循环在运行，创建新线程执行
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(
+                        lambda: asyncio.run(self.recommend_tools(user_message, provider_id))
+                    )
+                    return future.result(timeout=30)
+            else:
+                return loop.run_until_complete(self.recommend_tools(user_message, provider_id))
+        except Exception as e:
+            logger.warning(f"同步工具推荐失败: {e}")
+            return {'tools': []}
