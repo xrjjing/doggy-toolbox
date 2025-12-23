@@ -13,6 +13,7 @@ jobs:
   build:
     name: Build
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: macos-latest
@@ -37,17 +38,17 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          python -m pip install .
           python -m pip install pyinstaller
-
-      - name: Build
-        run: |
-          pyinstaller --onedir --windowed --name "${{ matrix.app_name }}" --collect-all httpx --collect-all duckduckgo_search --add-data "web${{ matrix.sep }}web" --add-data "services${{ matrix.sep }}services" main.py
+          python -m pip check
 
       - name: Verify dependencies
         run: |
           python -c "import httpx; import duckduckgo_search; print('httpx OK:', httpx.__version__)"
-          python -m pip check
+
+      - name: Build
+        run: |
+          pyinstaller --onedir --windowed --name "${{ matrix.app_name }}" --collect-all httpx --collect-all duckduckgo_search --add-data "web${{ matrix.sep }}web" --add-data "services${{ matrix.sep }}services" main.py
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
