@@ -3,9 +3,14 @@ from __future__ import annotations
 
 import re
 import json
+import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict, field
+
+from services.db_manager import DatabaseManager
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -48,14 +53,40 @@ class ComputerUsageService:
         credentials_file: Path | None = None,
         tabs_file: Path | None = None,
     ):
-        # 说明：
-        # - data_dir 作为默认目录（兼容旧版：根目录就是 data_dir）
-        # - 允许显式传入文件路径，实现“旧版根目录/新版子目录/混合”的兼容读取
         self.data_dir = data_dir
         self.commands_file = commands_file or (data_dir / "commands.json")
         self.credentials_file = credentials_file or (data_dir / "credentials.json")
         self.tabs_file = tabs_file or (data_dir / "command_tabs.json")
-        self._ensure_files()
+
+        # 数据库支持
+        # 如果 data_dir 是子目录（如 电脑使用/），则向上找到根数据目录
+        # 如果 data_dir 就是根目录（如 ~/.dog_toolbox/），则直接使用
+        if data_dir.name in ["电脑使用", "AI配置", "HTTP请求", "转化节点"]:
+            self.db_path = data_dir.parent / "doggy_toolbox.db"
+        else:
+            self.db_path = data_dir / "doggy_toolbox.db"
+        self.db = None
+        try:
+            if self.db_path.exists():
+                self.db = DatabaseManager(self.db_path)
+                logger.info(f"使用 SQLite 数据库: {self.db_path}")
+        except Exception as e:
+            logger.error(f"初始化数据库失败: {e}，回退到 JSON 模式")
+            self.db = None
+
+        if self._use_db():
+            self._ensure_default_tab()
+        else:
+            self._ensure_files()
+
+    def _use_db(self) -> bool:
+        """是否使用数据库"""
+        return self.db is not None
+
+    def _ensure_default_tab(self):
+        """确保数据库中有默认标签页"""
+        if not self.db.get_by_id("command_tabs", "0"):
+            self.db.insert("command_tabs", {"id": "0", "name": "未分类", "order_index": 0})
 
     def _ensure_files(self):
         # 兼容“混合布局”：按各自文件所在目录创建
@@ -72,10 +103,34 @@ class ComputerUsageService:
 
     # ========== 页签管理 ==========
     def _load_tabs(self) -> List[CommandTab]:
+        if self._use_db():
+            rows = self.db.get_all("command_tabs", order_by="order_index ASC")
+            if not rows:
+                self._ensure_default_tab()
+                rows = self.db.get_all("command_tabs", order_by="order_index ASC")
+            return [CommandTab(id=r.get("id", ""), name=r.get("name", ""), order=r.get("order_index", 0) or 0) for r in rows]
+
         data = json.loads(self.tabs_file.read_text(encoding="utf-8"))
         return [CommandTab(**item) for item in data]
 
     def _save_tabs(self, tabs: List[CommandTab]):
+        if self._use_db():
+            existing = self.db.get_all("command_tabs", order_by="")
+            existing_ids = {r.get("id") for r in existing}
+            new_ids = {t.id for t in tabs}
+
+            for removed_id in existing_ids - new_ids:
+                if removed_id:
+                    self.db.delete("command_tabs", "id = ?", (removed_id,))
+
+            for tab in tabs:
+                data = {"id": tab.id, "name": tab.name, "order_index": tab.order}
+                if tab.id in existing_ids:
+                    self.db.update("command_tabs", data, "id = ?", (tab.id,))
+                else:
+                    self.db.insert("command_tabs", data)
+            return
+
         data = [asdict(t) for t in tabs]
         self.tabs_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -129,8 +184,19 @@ class ComputerUsageService:
 
     # ========== 命令块管理 ==========
     def _load_commands(self) -> List[CommandBlock]:
+        if self._use_db():
+            rows = self.db.get_all("computer_commands", order_by="tab_id ASC, order_index ASC")
+            return [CommandBlock(
+                id=r.get("id", ""),
+                title=r.get("title", ""),
+                description=r.get("description", ""),
+                commands=r.get("commands") or [],
+                tab_id=r.get("tab_id", "0") or "0",
+                order=r.get("order_index", 0) or 0,
+                tags=r.get("tags") or []
+            ) for r in rows]
+
         data = json.loads(self.commands_file.read_text(encoding="utf-8"))
-        # 兼容旧数据：添加缺失的字段
         for item in data:
             if 'tab_id' not in item:
                 item['tab_id'] = "0"
@@ -139,6 +205,31 @@ class ComputerUsageService:
         return [CommandBlock(**item) for item in data]
 
     def _save_commands(self, commands: List[CommandBlock]):
+        if self._use_db():
+            existing = self.db.get_all("computer_commands", order_by="")
+            existing_ids = {r.get("id") for r in existing}
+            new_ids = {c.id for c in commands}
+
+            for removed_id in existing_ids - new_ids:
+                if removed_id:
+                    self.db.delete("computer_commands", "id = ?", (removed_id,))
+
+            for cmd in commands:
+                data = {
+                    "id": cmd.id,
+                    "title": cmd.title,
+                    "description": cmd.description,
+                    "commands": cmd.commands,
+                    "tab_id": cmd.tab_id or "0",
+                    "order_index": cmd.order,
+                    "tags": cmd.tags or []
+                }
+                if cmd.id in existing_ids:
+                    self.db.update("computer_commands", data, "id = ?", (cmd.id,))
+                else:
+                    self.db.insert("computer_commands", data)
+            return
+
         data = [asdict(c) for c in commands]
         self.commands_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -266,14 +357,50 @@ class ComputerUsageService:
 
     # ========== 凭证管理 ==========
     def _load_credentials(self) -> List[Credential]:
+        if self._use_db():
+            rows = self.db.get_all("credentials", order_by="order_index ASC")
+            return [Credential(
+                id=r.get("id", ""),
+                service=r.get("service", ""),
+                url=r.get("url", ""),
+                account=r.get("account", ""),
+                password=r.get("password", ""),
+                extra=r.get("extra") or [],
+                order=r.get("order_index", 0) or 0
+            ) for r in rows]
+
         data = json.loads(self.credentials_file.read_text(encoding="utf-8"))
         for idx, item in enumerate(data):
-            # 兼容旧数据：补齐排序字段
             if "order" not in item:
                 item["order"] = idx
         return [Credential(**item) for item in data]
 
     def _save_credentials(self, credentials: List[Credential]):
+        if self._use_db():
+            existing = self.db.get_all("credentials", order_by="")
+            existing_ids = {r.get("id") for r in existing}
+            new_ids = {c.id for c in credentials}
+
+            for removed_id in existing_ids - new_ids:
+                if removed_id:
+                    self.db.delete("credentials", "id = ?", (removed_id,))
+
+            for cred in credentials:
+                data = {
+                    "id": cred.id,
+                    "service": cred.service,
+                    "url": cred.url,
+                    "account": cred.account,
+                    "password": cred.password,
+                    "extra": cred.extra or [],
+                    "order_index": cred.order
+                }
+                if cred.id in existing_ids:
+                    self.db.update("credentials", data, "id = ?", (cred.id,))
+                else:
+                    self.db.insert("credentials", data)
+            return
+
         data = [asdict(c) for c in credentials]
         self.credentials_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 

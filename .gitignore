@@ -29,12 +29,9 @@ dist/
 htmlcov/
 .pytest_cache/
 
-# 用户数据（含敏感信息）
-电脑使用/credentials.json
-电脑使用/commands.json
-电脑使用/command_tabs.json
-转化节点/nodes.md
-config.json
+# 数据库文件（用户数据，不纳入版本控制）
+doggy_toolbox.db
+_json_backup/
 
 # 覆盖率与测试相关
 .coverage
@@ -50,10 +47,6 @@ CHANGELOG.md
 /.claude/
 /.snow/
 docs/
-电脑使用/
-转化节点/
-HTTP请求/
-AI配置/
 
 # 测试文件（仅开发时使用）
 tests/

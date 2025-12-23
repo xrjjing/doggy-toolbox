@@ -10,7 +10,7 @@ from pathlib import Path
 def cleanup(root):
     """清理打包临时文件"""
     build_dir = root / "build"
-    spec_file = root / "狗狗百宝箱.spec"
+    spec_file = root / f"{_get_package_name()}.spec"
 
     if build_dir.exists():
         shutil.rmtree(build_dir)
@@ -20,17 +20,27 @@ def cleanup(root):
         print(f"已删除: {spec_file}")
 
 
+def _get_package_name() -> str:
+    """根据平台返回打包产物名称"""
+    return "狗狗百宝箱"
+
+
 def build():
     root = Path(__file__).parent
     main_py = root / "main.py"
     web_dir = root / "web"
+    services_dir = root / "services"
     icon_path = root / "icon.icns"  # Mac图标 (可选)
     icon_ico = root / "icon.ico"    # Windows图标 (可选)
+    package_name = _get_package_name()
 
     # 清理旧的输出目录
     dist_dir = root / "dist"
     if dist_dir.exists():
         shutil.rmtree(dist_dir)
+
+    # PyInstaller 的 --add-data 分隔符：Windows 用 ';'，其他平台用 ':'
+    add_data_sep = ";" if platform.system() == "Windows" else ":"
 
     # 基础命令
     cmd = [
@@ -38,8 +48,24 @@ def build():
         "--onedir",
         "--windowed",
         "-y",
-        "--name", "狗狗百宝箱",
-        "--add-data", f"{web_dir}:web",
+        "--name", package_name,
+        # 只收集必要的隐藏导入，减小体积
+        "--hidden-import", "httpx",
+        "--hidden-import", "httpx._client",
+        "--hidden-import", "httpx._config",
+        "--hidden-import", "duckduckgo_search",
+        # 排除不必要的大模块
+        "--exclude-module", "PIL",
+        "--exclude-module", "Pillow",
+        "--exclude-module", "matplotlib",
+        "--exclude-module", "numpy",
+        "--exclude-module", "pandas",
+        "--exclude-module", "pytest",
+        "--exclude-module", "unittest",
+        "--exclude-module", "setuptools",
+        "--exclude-module", "tkinter",
+        "--add-data", f"{web_dir}{add_data_sep}web",
+        "--add-data", f"{services_dir}{add_data_sep}services",
         str(main_py)
     ]
 

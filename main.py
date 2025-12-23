@@ -2,11 +2,16 @@
 """狗狗百宝箱 - 主入口"""
 
 import sys
+import logging
 from pathlib import Path
 
 import webview
 
 from api import Api
+from services.db_manager import DatabaseManager
+from services.data_migration import DataMigration
+
+logger = logging.getLogger(__name__)
 
 
 # 判断是否为打包环境
@@ -36,6 +41,26 @@ def get_data_dir():
 
 def main():
     data_dir = get_data_dir()
+
+    # 初始化数据库并执行迁移
+    db_path = data_dir / "doggy_toolbox.db"
+    try:
+        db_manager = DatabaseManager(db_path)
+        migration = DataMigration(data_dir, db_manager)
+
+        if migration.check_migration_needed():
+            logger.info("检测到 JSON 数据，开始迁移...")
+            # 备份 JSON 文件
+            migration.backup_json_files()
+            # 执行迁移
+            result = migration.migrate_all()
+            if result['success']:
+                logger.info("数据迁移成功")
+            else:
+                logger.error(f"数据迁移失败: {result.get('message')}")
+    except Exception as e:
+        logger.error(f"数据库初始化失败: {e}")
+
     api = Api(data_dir)
 
     web_dir = get_base_path() / "web"

@@ -4,6 +4,11 @@ import uuid
 from pathlib import Path
 from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict
+import logging
+
+from services.db_manager import DatabaseManager
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -74,7 +79,28 @@ class HttpCollectionsService:
     def __init__(self, data_dir: Path):
         self.data_dir = data_dir
         self.collections_file = data_dir / "collections.json"
+
+        # 初始化数据库
+        # 如果 data_dir 是子目录（如 HTTP请求/），则向上找到根数据目录
+        # 如果 data_dir 就是根目录（如 ~/.dog_toolbox/），则直接使用
+        if self.data_dir.name in ["电脑使用", "AI配置", "HTTP请求", "转化节点"]:
+            self.db_path = self.data_dir.parent / "doggy_toolbox.db"
+        else:
+            self.db_path = self.data_dir / "doggy_toolbox.db"
+        self.db = None
+        try:
+            if self.db_path.exists():
+                self.db = DatabaseManager(self.db_path)
+                logger.info("HTTP Collections: 使用数据库模式")
+        except Exception as e:
+            logger.warning(f"HTTP Collections: 数据库初始化失败，使用 JSON 模式: {e}")
+            self.db = None
+
         self._ensure_file()
+
+    def _use_db(self) -> bool:
+        """判断是否使用数据库"""
+        return self.db is not None
 
     def _ensure_file(self):
         """确保数据目录和文件存在"""
@@ -86,27 +112,85 @@ class HttpCollectionsService:
             )
 
     def _load_data(self) -> Dict:
-        """加载数据"""
+        """加载数据（JSON 模式）"""
         try:
             return json.loads(self.collections_file.read_text(encoding="utf-8"))
         except Exception:
             return {"version": "1.0.0", "collections": []}
 
     def _save_data(self, data: Dict):
-        """保存数据"""
+        """保存数据（JSON 模式）"""
         self.collections_file.write_text(
             json.dumps(data, ensure_ascii=False, indent=2),
             encoding="utf-8"
         )
 
+    def _build_tree_from_db(self) -> List[Dict]:
+        """从数据库构建集合树形结构"""
+        all_items = self.db.get_all("http_collections", order_by="order_index ASC")
+
+        # 构建 id -> item 映射
+        item_map = {item['id']: item for item in all_items}
+
+        # 构建树形结构
+        root_collections = []
+        for item in all_items:
+            if item['parent_id'] is None:
+                # 根节点（集合或顶级文件夹/请求）
+                collection = self._build_collection_node(item, item_map)
+                root_collections.append(collection)
+
+        return root_collections
+
+    def _build_collection_node(self, item: Dict, item_map: Dict) -> Dict:
+        """递归构建集合节点"""
+        node = {
+            'id': item['id'],
+            'name': item['name'],
+            'description': item.get('description', ''),
+            'type': item.get('type', 'folder')
+        }
+
+        if item['type'] == 'request':
+            # 请求节点，包含完整数据
+            node.update(item.get('data', {}))
+        else:
+            # 文件夹节点，递归构建子节点
+            node['folders'] = []
+            node['requests'] = []
+
+            # 收集所有子节点并按 order_index 排序
+            children = []
+            for child_id, child_item in item_map.items():
+                if child_item.get('parent_id') == item['id']:
+                    children.append(child_item)
+
+            # 按 order_index 排序
+            children.sort(key=lambda x: x.get('order_index', 0))
+
+            # 分类添加到 folders 或 requests
+            for child_item in children:
+                if child_item['type'] == 'folder':
+                    node['folders'].append(self._build_collection_node(child_item, item_map))
+                elif child_item['type'] == 'request':
+                    node['requests'].append(self._build_collection_node(child_item, item_map))
+
+        return node
+
     def get_collections(self) -> List[Dict]:
         """获取所有集合"""
-        data = self._load_data()
-        return data.get("collections", [])
+        if self._use_db():
+            try:
+                return self._build_tree_from_db()
+            except Exception as e:
+                logger.error(f"从数据库获取集合失败: {e}")
+                return []
+        else:
+            data = self._load_data()
+            return data.get("collections", [])
 
     def add_collection(self, name: str, description: str = "") -> Dict:
         """新建集合"""
-        data = self._load_data()
         new_collection = {
             "id": str(uuid.uuid4()),
             "name": name,
@@ -115,25 +199,65 @@ class HttpCollectionsService:
             "requests": [],
             "environments": []
         }
+
+        if self._use_db():
+            try:
+                # 获取当前所有根集合的最大 order_index
+                root_collections = self.db.get_all("http_collections", where="parent_id IS NULL")
+                max_order = max([c.get('order_index', 0) for c in root_collections], default=-1)
+
+                self.db.insert("http_collections", {
+                    "id": new_collection["id"],
+                    "name": name,
+                    "description": description,
+                    "parent_id": None,
+                    "type": "folder",
+                    "data": None,
+                    "order_index": max_order + 1
+                })
+                return new_collection
+            except Exception as e:
+                logger.error(f"新建集合失败: {e}")
+                raise
+
+        # JSON 模式降级
+        data = self._load_data()
         data["collections"].append(new_collection)
         self._save_data(data)
         return new_collection
 
     def delete_collection(self, collection_id: str):
         """删除集合"""
+        if self._use_db():
+            try:
+                # 递归删除所有子项
+                self._delete_collection_recursive(collection_id)
+                return
+            except Exception as e:
+                logger.error(f"删除集合失败: {e}")
+                raise
+
+        # JSON 模式降级
         data = self._load_data()
         data["collections"] = [c for c in data["collections"] if c["id"] != collection_id]
         self._save_data(data)
+
+    def _delete_collection_recursive(self, parent_id: str):
+        """递归删除集合及其所有子项"""
+        # 查找所有子项
+        children = self.db.get_all("http_collections", where="parent_id = ?", params=(parent_id,))
+
+        # 递归删除子项
+        for child in children:
+            self._delete_collection_recursive(child['id'])
+
+        # 删除当前项
+        self.db.delete("http_collections", where="id = ?", params=(parent_id,))
 
     def add_folder(self, collection_id: str, name: str, parent_path: List[str] = None, level: int = 1) -> Dict:
         """新建文件夹（最多3级）"""
         if level > 3:
             raise ValueError("文件夹层级不能超过3级")
-
-        data = self._load_data()
-        collection = next((c for c in data["collections"] if c["id"] == collection_id), None)
-        if not collection:
-            raise ValueError("集合不存在")
 
         new_folder = {
             "id": str(uuid.uuid4()),
@@ -142,6 +266,35 @@ class HttpCollectionsService:
             "folders": [],
             "requests": []
         }
+
+        if self._use_db():
+            try:
+                # 确定父ID
+                parent_id = collection_id if not parent_path else parent_path[-1]
+
+                # 获取当前父级下的最大 order_index
+                siblings = self.db.get_all("http_collections", where="parent_id = ?", params=(parent_id,))
+                max_order = max([s.get('order_index', 0) for s in siblings], default=-1)
+
+                self.db.insert("http_collections", {
+                    "id": new_folder["id"],
+                    "name": name,
+                    "description": "",
+                    "parent_id": parent_id,
+                    "type": "folder",
+                    "data": None,
+                    "order_index": max_order + 1
+                })
+                return new_folder
+            except Exception as e:
+                logger.error(f"新建文件夹失败: {e}")
+                raise
+
+        # JSON 模式降级
+        data = self._load_data()
+        collection = next((c for c in data["collections"] if c["id"] == collection_id), None)
+        if not collection:
+            raise ValueError("集合不存在")
 
         # 如果没有父路径，添加到根级别
         if not parent_path:
@@ -173,11 +326,6 @@ class HttpCollectionsService:
 
     def add_request(self, collection_id: str, request_data: Dict, folder_path: List[str] = None) -> Dict:
         """新建请求"""
-        data = self._load_data()
-        collection = next((c for c in data["collections"] if c["id"] == collection_id), None)
-        if not collection:
-            raise ValueError("集合不存在")
-
         new_request = {
             "id": str(uuid.uuid4()),
             "name": request_data.get("name", "新请求"),
@@ -190,6 +338,35 @@ class HttpCollectionsService:
             "description": request_data.get("description", ""),
             "tags": request_data.get("tags", [])
         }
+
+        if self._use_db():
+            try:
+                # 确定父ID
+                parent_id = collection_id if not folder_path else folder_path[-1]
+
+                # 获取当前父级下的最大 order_index
+                siblings = self.db.get_all("http_collections", where="parent_id = ?", params=(parent_id,))
+                max_order = max([s.get('order_index', 0) for s in siblings], default=-1)
+
+                self.db.insert("http_collections", {
+                    "id": new_request["id"],
+                    "name": new_request["name"],
+                    "description": new_request.get("description", ""),
+                    "parent_id": parent_id,
+                    "type": "request",
+                    "data": new_request,
+                    "order_index": max_order + 1
+                })
+                return new_request
+            except Exception as e:
+                logger.error(f"新建请求失败: {e}")
+                raise
+
+        # JSON 模式降级
+        data = self._load_data()
+        collection = next((c for c in data["collections"] if c["id"] == collection_id), None)
+        if not collection:
+            raise ValueError("集合不存在")
 
         # 如果没有文件夹路径，添加到根级别
         if not folder_path:
@@ -207,6 +384,30 @@ class HttpCollectionsService:
 
     def update_request(self, collection_id: str, request_id: str, request_data: Dict) -> Dict:
         """更新请求"""
+        if self._use_db():
+            try:
+                # 获取原请求
+                existing = self.db.get_by_id("http_collections", request_id)
+                if not existing or existing['type'] != 'request':
+                    raise ValueError("请求不存在")
+
+                # 合并数据
+                updated_data = existing.get('data', {})
+                updated_data.update(request_data)
+
+                # 更新数据库
+                self.db.update("http_collections", {
+                    "name": request_data.get("name", existing['name']),
+                    "description": request_data.get("description", existing.get('description', '')),
+                    "data": updated_data
+                }, where="id = ?", params=(request_id,))
+
+                return updated_data
+            except Exception as e:
+                logger.error(f"更新请求失败: {e}")
+                raise
+
+        # JSON 模式降级
         data = self._load_data()
         collection = next((c for c in data["collections"] if c["id"] == collection_id), None)
         if not collection:
@@ -231,6 +432,15 @@ class HttpCollectionsService:
 
     def delete_request(self, collection_id: str, request_id: str):
         """删除请求"""
+        if self._use_db():
+            try:
+                self.db.delete("http_collections", where="id = ?", params=(request_id,))
+                return
+            except Exception as e:
+                logger.error(f"删除请求失败: {e}")
+                raise
+
+        # JSON 模式降级
         data = self._load_data()
         collection = next((c for c in data["collections"] if c["id"] == collection_id), None)
         if not collection:
