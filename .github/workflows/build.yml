@@ -16,10 +16,12 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            artifact: 狗狗百宝箱-mac
+            artifact: dog_toolbox-macos
+            app_name: dog_toolbox-macos
             sep: ':'
           - os: windows-latest
-            artifact: 狗狗百宝箱-win
+            artifact: dog_toolbox-windows
+            app_name: dog_toolbox-windows
             sep: ';'
 
     runs-on: ${{ matrix.os }}
@@ -34,12 +36,18 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          pip install pyinstaller
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
 
       - name: Build
         run: |
-          pyinstaller --onedir --windowed --name "狗狗百宝箱" --add-data "web${{ matrix.sep }}web" --add-data "services${{ matrix.sep }}services" main.py
+          pyinstaller --onedir --windowed --name "${{ matrix.app_name }}" --collect-all httpx --collect-all duckduckgo_search --add-data "web${{ matrix.sep }}web" --add-data "services${{ matrix.sep }}services" main.py
+
+      - name: Verify dependencies
+        run: |
+          python -c "import httpx; import duckduckgo_search; print('httpx OK:', httpx.__version__)"
+          python -m pip check
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
