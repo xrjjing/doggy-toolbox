@@ -1,8 +1,54 @@
 // ==================== 凭证管理 ====================
+// 当前视图模式
+let credentialsViewMode = localStorage.getItem('credentials_view_mode') || 'card';
+
+// SVG 图标定义
+const CREDENTIAL_ICONS = {
+    delete: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+    extra: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>'
+};
+
+// 视图切换函数
+function switchCredentialsView(view) {
+    credentialsViewMode = view;
+    localStorage.setItem('credentials_view_mode', view);
+
+    // 更新按钮状态
+    const toggle = document.getElementById('credentials-view-toggle');
+    if (toggle) {
+        toggle.querySelectorAll('.view-toggle-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.view === view);
+        });
+    }
+
+    // 更新容器视图
+    const container = document.getElementById('credentials-list');
+    if (container) {
+        container.dataset.view = view;
+    }
+}
+
+// 初始化视图切换按钮状态
+function initCredentialsViewToggle() {
+    const toggle = document.getElementById('credentials-view-toggle');
+    if (toggle) {
+        toggle.querySelectorAll('.view-toggle-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.view === credentialsViewMode);
+        });
+    }
+    const container = document.getElementById('credentials-list');
+    if (container) {
+        container.dataset.view = credentialsViewMode;
+    }
+}
+
 async function loadCredentials() {
     if (!window.pywebview || !window.pywebview.api) return;
     if (!document.getElementById('credentials-list')) return;
     allCredentials = await pywebview.api.get_credentials();
+    initCredentialsViewToggle();
     renderCredentials(allCredentials);
 }
 
@@ -23,15 +69,21 @@ function renderCredentials(credentials) {
              ondragstart="onCredentialDragStart(event)"
              ondragover="onCredentialDragOver(event)"
              ondrop="onCredentialDrop(event)"
-             ondragend="onCredentialDragEnd(event)">
+             ondragend="onCredentialDragEnd(event)"
+             onclick="toggleCredentialCardExpand(this, event)">
             <div class="credential-header">
                 <div class="credential-title-area">
                     <div class="credential-service">${escapeHtml(cred.service)}</div>
-                    ${cred.url ? `<div class="credential-url"><a href="${escapeHtml(cred.url)}" target="_blank">${escapeHtml(cred.url)}</a></div>` : ''}
+                    ${cred.url ? `<div class="credential-url"><a href="${escapeHtml(cred.url)}" target="_blank" onclick="event.stopPropagation()">${escapeHtml(cred.url)}</a></div>` : ''}
+                    <div class="credential-inline-info">
+                        ${cred.account ? `<span class="inline-field"><span class="inline-label">账号:</span> <span class="inline-value">${escapeHtml(cred.account)}</span><button class="copy-btn inline-copy" onclick="event.stopPropagation(); copyField(this, '${escapeAttr(cred.account)}')" title="复制">${CREDENTIAL_ICONS.copy}</button></span>` : ''}
+                        ${cred.password ? `<span class="inline-field"><span class="inline-label">密码:</span> <span class="inline-value">${escapeHtml(cred.password)}</span><button class="copy-btn inline-copy" onclick="event.stopPropagation(); copyField(this, '${escapeAttr(cred.password)}')" title="复制">${CREDENTIAL_ICONS.copy}</button></span>` : ''}
+                    </div>
                 </div>
                 <div class="credential-actions">
-                    <button class="btn btn-sm btn-ghost" onclick="editCredential('${cred.id}')">编辑</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteCredential('${cred.id}')" title="删除"><span class="btn-icon">🗑️</span></button>
+                    ${cred.extra && cred.extra.length ? `<button class="btn btn-sm btn-ghost credential-extra-btn" onclick="event.stopPropagation(); toggleCredentialExtra('${cred.id}', event)" title="附加信息"><span class="btn-icon">${CREDENTIAL_ICONS.extra}</span></button>` : ''}
+                    <button class="btn btn-sm btn-ghost" onclick="event.stopPropagation(); editCredential('${cred.id}')" title="编辑"><span class="btn-icon">${CREDENTIAL_ICONS.edit}</span></button>
+                    <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteCredential('${cred.id}')" title="删除"><span class="btn-icon">${CREDENTIAL_ICONS.delete}</span></button>
                 </div>
             </div>
             <div class="credential-body">
@@ -39,18 +91,18 @@ function renderCredentials(credentials) {
                 <div class="credential-field">
                     <span class="credential-label">账号</span>
                     <span class="credential-value">${escapeHtml(cred.account)}</span>
-                    <button class="copy-btn" onclick="copyField(this, '${escapeAttr(cred.account)}')" title="复制">📋</button>
+                    <button class="copy-btn" onclick="event.stopPropagation(); copyField(this, '${escapeAttr(cred.account)}')" title="复制">${CREDENTIAL_ICONS.copy}</button>
                 </div>` : ''}
                 ${cred.password ? `
                 <div class="credential-field">
                     <span class="credential-label">密码</span>
                     <span class="credential-value">${escapeHtml(cred.password)}</span>
-                    <button class="copy-btn" onclick="copyField(this, '${escapeAttr(cred.password)}')" title="复制">📋</button>
+                    <button class="copy-btn" onclick="event.stopPropagation(); copyField(this, '${escapeAttr(cred.password)}')" title="复制">${CREDENTIAL_ICONS.copy}</button>
                 </div>` : ''}
             </div>
             ${cred.extra && cred.extra.length ? `
             <div class="credential-extra-toggle">
-                <button class="btn btn-sm btn-ghost" onclick="toggleCredentialExtra('${cred.id}', event)">
+                <button class="btn btn-sm btn-ghost" onclick="event.stopPropagation(); toggleCredentialExtra('${cred.id}', event)">
                     ${expandedCredentialIds.has(cred.id) ? '收起附加信息' : '展开附加信息'}
                 </button>
             </div>
@@ -59,6 +111,17 @@ function renderCredentials(credentials) {
             </div>` : ''}
         </div>
     `).join('');
+}
+
+// 列表视图下点击卡片展开/收起详情
+function toggleCredentialCardExpand(card, event) {
+    const container = document.getElementById('credentials-list');
+    if (!container || container.dataset.view !== 'list') return;
+
+    // 如果点击的是按钮或链接，不处理
+    if (event.target.closest('button') || event.target.closest('a')) return;
+
+    card.classList.toggle('expanded');
 }
 
 function filterCredentials() {
@@ -379,6 +442,7 @@ async function loadCommands() {
     if (!window.pywebview || !window.pywebview.api) return;
     if (!document.getElementById('commands-list')) return;
     allCommands = await pywebview.api.get_commands();
+    initCommandDragEvents(); // 初始化拖拽事件委托
     renderTabs(); // 更新计数
     renderCommandsByTab();
 }
@@ -389,6 +453,14 @@ function renderCommandsByTab() {
         : allCommands;
     renderCommands(commands);
 }
+
+// 命令管理 SVG 图标
+const COMMAND_ICONS = {
+    delete: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+    move: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'
+};
 
 function renderCommands(commands) {
     const container = document.getElementById('commands-list');
@@ -403,59 +475,93 @@ function renderCommands(commands) {
     }
 
     container.innerHTML = commands.map(cmd => `
-        <div class="command-card" data-cmd-id="${cmd.id}" draggable="true"
-             ondragstart="onCommandDragStart(event)"
-             ondragover="onCommandDragOver(event)"
-             ondrop="onCommandDrop(event)"
-             ondragend="onCommandDragEnd(event)">
+        <div class="command-card" data-cmd-id="${cmd.id}">
             <div class="command-header">
                 <div class="command-info">
                     <div class="command-title">${escapeHtml(cmd.title)}</div>
                     ${cmd.description ? `<div class="command-description">${escapeHtml(cmd.description)}</div>` : ''}
                 </div>
                 <div class="command-actions">
-                    <button class="btn btn-sm btn-ghost" onclick="showMoveCommandModal('${cmd.id}')" title="移动">📁</button>
-                    <button class="btn btn-sm btn-ghost" onclick="editCommand('${cmd.id}')">编辑</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteCommand('${cmd.id}')" title="删除"><span class="btn-icon">🗑️</span></button>
+                    <button class="btn btn-sm btn-ghost" onclick="showMoveCommandModal('${cmd.id}')" title="移动"><span class="btn-icon">${COMMAND_ICONS.move}</span></button>
+                    <button class="btn btn-sm btn-ghost" onclick="editCommand('${cmd.id}')" title="编辑"><span class="btn-icon">${COMMAND_ICONS.edit}</span></button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteCommand('${cmd.id}')" title="删除"><span class="btn-icon">${COMMAND_ICONS.delete}</span></button>
                 </div>
             </div>
             <div class="command-body">
                 <pre>${escapeHtml(cmd.commands.join('\n'))}</pre>
-                <button class="command-copy-btn" onclick="copyCommand(this, \`${escapeAttr(cmd.commands.join('\n'))}\`)" title="复制命令">📋</button>
+                <button class="command-copy-btn" onclick="copyCommand(this, \`${escapeAttr(cmd.commands.join('\n'))}\`)" title="复制命令">${COMMAND_ICONS.copy}</button>
             </div>
         </div>
     `).join('');
 }
 
-// 命令拖拽排序
+// 命令拖拽排序 - 使用事件委托
 
-function onCommandDragStart(e) {
-    draggedCommandId = e.target.closest('.command-card').dataset.cmdId;
-    e.target.closest('.command-card').classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-}
+// 初始化命令列表的拖拽事件委托
+function initCommandDragEvents() {
+    const container = document.getElementById('commands-list');
+    if (!container || container._dragEventsInitialized) return;
+    container._dragEventsInitialized = true;
 
-function onCommandDragOver(e) {
-    e.preventDefault();
-    const target = e.target.closest('.command-card');
-    if (target && target.dataset.cmdId !== draggedCommandId) {
-        target.classList.add('drag-over');
-    }
-}
+    // mousedown: 只在 header 区域启用拖拽
+    container.addEventListener('mousedown', (e) => {
+        const header = e.target.closest('.command-header');
+        if (!header || e.target.closest('button')) return;
+        const card = header.closest('.command-card');
+        if (card) {
+            card.setAttribute('draggable', 'true');
+        }
+    });
 
-async function onCommandDrop(e) {
-    e.preventDefault();
-    const target = e.target.closest('.command-card');
-    if (target && draggedCommandId && target.dataset.cmdId !== draggedCommandId) {
-        await reorderCommands(draggedCommandId, target.dataset.cmdId);
-    }
-    document.querySelectorAll('.command-card').forEach(el => el.classList.remove('drag-over'));
-}
+    // mouseup: 禁用拖拽
+    container.addEventListener('mouseup', (e) => {
+        const card = e.target.closest('.command-card');
+        if (card) {
+            card.setAttribute('draggable', 'false');
+        }
+    });
 
-function onCommandDragEnd(e) {
-    draggedCommandId = null;
-    document.querySelectorAll('.command-card').forEach(el => {
-        el.classList.remove('dragging', 'drag-over');
+    // dragstart
+    container.addEventListener('dragstart', (e) => {
+        const card = e.target.closest('.command-card');
+        if (!card) return;
+        draggedCommandId = card.dataset.cmdId;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    });
+
+    // dragover
+    container.addEventListener('dragover', (e) => {
+        if (!draggedCommandId) return;
+        e.preventDefault();
+        const target = e.target.closest('.command-card');
+        if (target && target.dataset.cmdId !== draggedCommandId) {
+            // 清除其他卡片的 drag-over
+            container.querySelectorAll('.command-card.drag-over').forEach(el => {
+                if (el !== target) el.classList.remove('drag-over');
+            });
+            target.classList.add('drag-over');
+        }
+    });
+
+    // drop
+    container.addEventListener('drop', async (e) => {
+        if (!draggedCommandId) return;
+        e.preventDefault();
+        const target = e.target.closest('.command-card');
+        if (target && target.dataset.cmdId !== draggedCommandId) {
+            await reorderCommands(draggedCommandId, target.dataset.cmdId);
+        }
+        container.querySelectorAll('.command-card').forEach(el => el.classList.remove('drag-over'));
+    });
+
+    // dragend
+    container.addEventListener('dragend', () => {
+        draggedCommandId = null;
+        container.querySelectorAll('.command-card').forEach(el => {
+            el.classList.remove('dragging', 'drag-over');
+            el.setAttribute('draggable', 'false');
+        });
     });
 }
 

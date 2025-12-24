@@ -1107,18 +1107,66 @@ body {
     justify-content: center;
 }
 
+/* ========== 视图切换按钮 ========== */
+.view-toggle {
+    display: flex;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+}
+
+.view-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.view-toggle-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    fill: none;
+}
+
+.view-toggle-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.view-toggle-btn.active {
+    background: var(--accent);
+    color: white;
+}
+
 /* ========== 凭证卡片 ========== */
 .credentials-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+/* 列表视图 */
+.credentials-grid[data-view="list"] {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .credential-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 14px 16px;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     box-shadow: var(--shadow-sm), var(--card-highlight, none);
@@ -1126,8 +1174,110 @@ body {
 
 .credential-card:hover {
     border-color: var(--text-muted);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px hsla(0, 0%, 0%, 0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px hsla(0, 0%, 0%, 0.15);
+}
+
+/* 列表视图下的卡片样式 */
+.credentials-grid[data-view="list"] .credential-card {
+    padding: 10px 14px;
+}
+
+.credentials-grid[data-view="list"] .credential-card:hover {
+    transform: none;
+}
+
+.credentials-grid[data-view="list"] .credential-header {
+    margin-bottom: 0;
+    align-items: center;
+}
+
+.credentials-grid[data-view="list"] .credential-body {
+    display: none;
+}
+
+.credentials-grid[data-view="list"] .credential-card.expanded .credential-body {
+    display: flex;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+
+.credentials-grid[data-view="list"] .credential-title-area {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.credentials-grid[data-view="list"] .credential-service {
+    font-size: 14px;
+    min-width: 120px;
+}
+
+.credentials-grid[data-view="list"] .credential-url {
+    margin-top: 0;
+    font-size: 11px;
+}
+
+.credentials-grid[data-view="list"] .credential-inline-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.credentials-grid[data-view="list"] .credential-inline-info .inline-label {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.credentials-grid[data-view="list"] .credential-inline-info .inline-value {
+    font-family: "SF Mono", Monaco, monospace;
+    color: var(--text-primary);
+}
+
+.credentials-grid[data-view="list"] .credential-extra-toggle {
+    display: none;
+}
+
+/* 卡片视图下隐藏内联信息和附加信息按钮 */
+.credentials-grid[data-view="card"] .credential-inline-info {
+    display: none;
+}
+
+.credentials-grid[data-view="card"] .credential-extra-btn {
+    display: none;
+}
+
+/* 列表视图下的内联字段 */
+.credential-inline-info .inline-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+/* 列表视图下的内联复制按钮 */
+.credential-inline-info .inline-copy {
+    width: 20px;
+    height: 20px;
+    padding: 2px;
+    flex-shrink: 0;
+}
+
+.credential-inline-info .inline-copy svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* 附加信息按钮图标 */
+.credential-extra-btn .btn-icon svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
 }
 
 .credential-extra-toggle {
@@ -1158,7 +1308,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     gap: 12px;
 }
 
@@ -1168,7 +1318,7 @@ body {
 }
 
 .credential-service {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
     word-break: break-word;
@@ -1194,37 +1344,50 @@ body {
 
 .credential-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     flex-shrink: 0;
+}
+
+.credential-actions .btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.credential-actions .btn-icon svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
 }
 
 .credential-body {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .credential-field {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     min-width: 0;
 }
 
 .credential-label {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-secondary);
-    width: 40px;
+    width: 36px;
     flex-shrink: 0;
 }
 
 .credential-value {
     flex: 1;
     font-family: "SF Mono", Monaco, monospace;
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-primary);
     background: var(--bg-input);
-    padding: 8px 12px;
+    padding: 6px 10px;
     border-radius: 6px;
     word-break: break-all;
     overflow-wrap: break-word;
@@ -1233,8 +1396,8 @@ body {
 
 .copy-btn {
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1243,8 +1406,14 @@ body {
     border-radius: 6px;
     cursor: pointer;
     color: var(--text-secondary);
-    font-size: 14px;
     transition: all 0.2s;
+}
+
+.copy-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
 }
 
 .copy-btn:hover {
@@ -1342,8 +1511,21 @@ body {
 
 .command-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     flex-shrink: 0;
+}
+
+.command-actions .btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.command-actions .btn-icon svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
 }
 
 .command-body {
@@ -1353,7 +1535,6 @@ body {
 .command-body pre {
     margin: 0;
     padding: 16px 20px;
-    padding-right: 60px;
     background: var(--bg-input);
     font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
     font-size: 13px;
@@ -1362,14 +1543,19 @@ body {
     overflow-x: auto;
     white-space: pre-wrap;
     word-break: break-all;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    cursor: text !important;
 }
 
 .command-copy-btn {
     position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 36px;
-    height: 36px;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1378,8 +1564,19 @@ body {
     border-radius: 6px;
     cursor: pointer;
     color: var(--text-secondary);
-    font-size: 16px;
     transition: all 0.2s;
+    opacity: 0.7;
+}
+
+.command-copy-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    fill: none;
+}
+
+.command-body:hover .command-copy-btn {
+    opacity: 1;
 }
 
 .command-copy-btn:hover {
@@ -2473,11 +2670,11 @@ textarea {
     box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
-.command-card[draggable="true"] {
+.command-card .command-header {
     cursor: grab;
 }
 
-.command-card[draggable="true"]:active {
+.command-card .command-header:active {
     cursor: grabbing;
 }
 
