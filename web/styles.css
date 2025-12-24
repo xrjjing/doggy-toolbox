@@ -7222,53 +7222,81 @@ select option {
 /* ========== 浮动导航子菜单（毛玻璃模式） ========== */
 #floating-nav-sublist {
     list-style: none;
+    margin: 0;
+    /* 强制覆盖 JS 内联样式，确保毛玻璃背景透明度正确 */
+    background: rgba(var(--glass-sidebar-rgb), 0.85) !important;
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
 }
 
 #floating-nav-sublist .nav-item {
     display: flex !important;
     align-items: center;
     justify-content: flex-start !important;
-    gap: 8px;
-    width: auto;
+    gap: 10px;
+    width: 100%;
     height: auto;
-    margin: 2px 0;
-    padding: 8px 12px;
+    margin: 4px 0;
+    padding: 10px 14px;
     border-radius: 8px;
     cursor: pointer;
-    transition: background 0.15s, transform 0.15s;
-    color: var(--text-primary);
+    transition: all 0.2s ease;
+    /* 确保文字颜色和可见性 */
+    color: var(--text-primary) !important;
+    background: transparent;
+    opacity: 1 !important;
+    visibility: visible !important;
+    text-decoration: none;
+    pointer-events: auto;
 }
 
 #floating-nav-sublist .nav-item:hover {
-    background: var(--bg-hover);
-    transform: translateX(2px);
+    background: var(--bg-hover) !important;
+    color: var(--text-primary) !important;
+    transform: translateX(4px);
 }
 
 #floating-nav-sublist .nav-item.active {
-    background: var(--accent-glow);
+    background: var(--accent-glow) !important;
+    color: var(--accent) !important;
 }
 
 #floating-nav-sublist .nav-icon {
-    width: 18px;
-    height: 18px;
-    display: flex;
+    width: 20px;
+    height: 20px;
+    display: flex !important;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+    opacity: 1 !important;
+    visibility: visible !important;
+    margin: 0 !important;
 }
 
 #floating-nav-sublist .nav-icon svg {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     stroke: currentColor;
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
     fill: none;
+    display: block !important;
 }
 
 #floating-nav-sublist .nav-text {
-    display: inline !important;
+    /* 强制显示文字，覆盖 .sidebar.collapsed 下的隐藏规则 */
+    display: inline-block !important;
     font-size: 13px;
     font-weight: 500;
+    opacity: 1 !important;
+    visibility: visible !important;
+    color: inherit;
+    line-height: 1.5;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
