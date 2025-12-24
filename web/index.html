@@ -178,12 +178,12 @@
     <!-- 全局错误横幅 -->
     <div id="global-error-banner" class="global-error-banner" style="display: none;">
         <div class="error-banner-content">
-            <span class="error-icon">⚠️</span>
+            <span class="error-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
             <div class="error-message">
                 <strong>模块加载失败</strong>
                 <p id="error-banner-text"></p>
             </div>
-            <button class="error-close" onclick="closeErrorBanner()">✕</button>
+            <button class="error-close" onclick="closeErrorBanner()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
     </div>
     <!-- 自定义标题栏 -->
@@ -225,28 +225,28 @@
             </div>
 	            <ul class="nav-list">
 	                <li class="nav-item active" data-page="credentials">
-	                    <span class="nav-icon">🔑</span>
+	                    <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></span>
 	                    <span class="nav-text">密码管理</span>
 	                </li>
 	                <li class="nav-item" data-page="commands">
-	                    <span class="nav-icon">⌨️</span>
+	                    <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
 	                    <span class="nav-text">命令管理</span>
 	                </li>
 
 	                <!-- 节点管理（分组） -->
 	                <li class="nav-group" data-group="nodes">
 	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
-	                        <span class="nav-icon">🌐</span>
+	                        <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
 	                        <span class="nav-text">节点管理</span>
 	                        <span class="nav-arrow">▾</span>
 	                    </div>
 	                    <ul class="nav-sublist">
 	                        <li class="nav-item" data-page="converter">
-	                            <span class="nav-icon">⚡</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
 	                            <span class="nav-text">节点转换</span>
 	                        </li>
 	                        <li class="nav-item" data-page="nodes">
-	                            <span class="nav-icon">📋</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
 	                            <span class="nav-text">节点列表</span>
 	                        </li>
 	                    </ul>
@@ -255,33 +255,33 @@
 	                <!-- 编码转换 -->
 	                <li class="nav-group" data-group="tools-encode">
 	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
-	                        <span class="nav-icon">🔄</span>
+	                        <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
 	                        <span class="nav-text">编码转换</span>
 	                        <span class="nav-arrow">▾</span>
 	                    </div>
 	                    <ul class="nav-sublist">
 	                        <li class="nav-item" data-page="tool-base64">
-	                            <span class="nav-icon">🔤</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg></span>
 	                            <span class="nav-text">Base64 编解码</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-url">
-	                            <span class="nav-icon">🔗</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
 	                            <span class="nav-text">URL 编解码</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-b64hex">
-	                            <span class="nav-icon">🔁</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></span>
 	                            <span class="nav-text">Base64 ↔ Hex</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-radix">
-	                            <span class="nav-icon">🔢</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/><path d="M8 18h8"/></svg></span>
 	                            <span class="nav-text">进制转换</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-unicode">
-	                            <span class="nav-icon">🔠</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
 	                            <span class="nav-text">Unicode 编解码</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-html-entity">
-	                            <span class="nav-icon">🏷️</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
 	                            <span class="nav-text">HTML 实体编解码</span>
 	                        </li>
 	                    </ul>
@@ -290,33 +290,33 @@
 	                <!-- 加密安全 -->
 	                <li class="nav-group" data-group="tools-crypto">
 	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
-	                        <span class="nav-icon">🔐</span>
+	                        <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
 	                        <span class="nav-text">加密安全</span>
 	                        <span class="nav-arrow">▾</span>
 	                    </div>
 	                    <ul class="nav-sublist">
 	                        <li class="nav-item" data-page="tool-hash">
-	                            <span class="nav-icon">#️⃣</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg></span>
 	                            <span class="nav-text">哈希计算</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-crypto">
-	                            <span class="nav-icon">🔒</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg></span>
 	                            <span class="nav-text">对称加密</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-jwt">
-	                            <span class="nav-icon">🎟️</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg></span>
 	                            <span class="nav-text">JWT 解码</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-password">
-	                            <span class="nav-icon">🔑</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5"/></svg></span>
 	                            <span class="nav-text">密码生成器</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-hmac">
-	                            <span class="nav-icon">🔏</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
 	                            <span class="nav-text">HMAC 计算</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-rsa">
-	                            <span class="nav-icon">🔐</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>
 	                            <span class="nav-text">RSA 加解密</span>
 	                        </li>
 	                    </ul>
@@ -325,17 +325,17 @@
 	                <!-- 网络测试 -->
 	                <li class="nav-group" data-group="tools-network">
 	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
-	                        <span class="nav-icon">🌐</span>
+	                        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg></span>
 	                        <span class="nav-text">网络测试</span>
 	                        <span class="nav-arrow">▾</span>
 	                    </div>
 	                    <ul class="nav-sublist">
 	                        <li class="nav-item" data-page="http-collections">
-	                            <span class="nav-icon">📚</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
 	                            <span class="nav-text">HTTP 请求集合</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-websocket">
-	                            <span class="nav-icon">🔌</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M6 4v6a6 6 0 0 0 12 0V4"/><line x1="4" y1="20" x2="20" y2="20"/></svg></span>
 	                            <span class="nav-text">WebSocket 测试</span>
 	                        </li>
 	                    </ul>
@@ -344,37 +344,37 @@
 	                <!-- 数据格式 -->
 	                <li class="nav-group" data-group="tools-format">
 	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
-	                        <span class="nav-icon">📦</span>
+	                        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
 	                        <span class="nav-text">数据格式</span>
 	                        <span class="nav-arrow">▾</span>
 	                    </div>
 	                    <ul class="nav-sublist">
 	                        <li class="nav-item" data-page="tool-json">
-	                            <span class="nav-icon">📋</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/></svg></span>
 	                            <span class="nav-text">JSON 格式化</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-json-schema">
-	                            <span class="nav-icon">📐</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></span>
 	                            <span class="nav-text">JSON Schema</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-data-convert">
-	                            <span class="nav-icon">🔄</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg></span>
 	                            <span class="nav-text">数据格式转换</span>
 	                        </li>
 		                        <li class="nav-item" data-page="tool-csv">
-		                            <span class="nav-icon">📊</span>
+		                            <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg></span>
 		                            <span class="nav-text">CSV 处理</span>
 		                        </li>
 		                        <li class="nav-item" data-page="tool-mock">
-		                            <span class="nav-icon">🧪</span>
+		                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>
 		                            <span class="nav-text">Mock 数据生成</span>
 		                        </li>
 		                        <li class="nav-item" data-page="tool-toml">
-		                            <span class="nav-icon">📄</span>
+		                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></span>
 		                            <span class="nav-text">TOML 格式化</span>
 		                        </li>
 		                        <li class="nav-item" data-page="tool-jsonpath">
-		                            <span class="nav-icon">🔎</span>
+		                            <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
 		                            <span class="nav-text">JSON Path 查询</span>
 		                        </li>
 		                    </ul>
@@ -383,33 +383,33 @@
 	                <!-- 文本处理 -->
 	                <li class="nav-group" data-group="tools-text">
 	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
-	                        <span class="nav-icon">📝</span>
+	                        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
 	                        <span class="nav-text">文本处理</span>
 	                        <span class="nav-arrow">▾</span>
 	                    </div>
 	                    <ul class="nav-sublist">
 	                        <li class="nav-item" data-page="tool-text">
-	                            <span class="nav-icon">📑</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
 	                            <span class="nav-text">文本处理</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-diff">
-	                            <span class="nav-icon">🆚</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="8" height="16" rx="1"/><rect x="14" y="4" width="8" height="16" rx="1"/><path d="M10 12h4"/></svg></span>
 	                            <span class="nav-text">文本对比</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-regex">
-	                            <span class="nav-icon">🔍</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M8 11h6"/><path d="M11 8v6"/></svg></span>
 	                            <span class="nav-text">正则表达式</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-charcount">
-	                            <span class="nav-icon">📊</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
 	                            <span class="nav-text">字符统计</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-markdown">
-	                            <span class="nav-icon">📝</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M10 9l-2 6h1.5l.5-1.5h2l.5 1.5H14l-2-6h-2z"/><path d="M11 11.5l.5-1.5.5 1.5h-1z"/></svg></span>
 	                            <span class="nav-text">Markdown 预览</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-text-sort">
-	                            <span class="nav-icon">🔤</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M11 5h10"/><path d="M11 9h7"/><path d="M11 13h4"/><path d="M3 17l3 3 3-3"/><path d="M6 18V4"/></svg></span>
 	                            <span class="nav-text">文本排序/去重</span>
 	                        </li>
 	                    </ul>
@@ -418,17 +418,17 @@
 	                <!-- 数据安全 -->
 	                <li class="nav-group" data-group="tools-security">
 	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
-	                        <span class="nav-icon">🔒</span>
+	                        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
 	                        <span class="nav-text">数据安全</span>
 	                        <span class="nav-arrow">▾</span>
 	                    </div>
 	                    <ul class="nav-sublist">
 	                        <li class="nav-item" data-page="tool-mask">
-	                            <span class="nav-icon">🎭</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z"/><path d="M6 21v-2c0-2.21 1.79-4 4-4h4c2.21 0 4 1.79 4 4v2"/><line x1="2" y1="2" x2="22" y2="22"/></svg></span>
 	                            <span class="nav-text">数据脱敏</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-sql">
-	                            <span class="nav-icon">🗃️</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></span>
 	                            <span class="nav-text">SQL 格式化</span>
 	                        </li>
 	                    </ul>
@@ -437,53 +437,53 @@
 	                <!-- 开发工具 -->
 	                <li class="nav-group" data-group="tools-dev">
 	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
-	                        <span class="nav-icon">🛠️</span>
+	                        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
 	                        <span class="nav-text">开发工具</span>
 	                        <span class="nav-arrow">▾</span>
 	                    </div>
 	                    <ul class="nav-sublist">
 	                        <li class="nav-item" data-page="tool-uuid">
-	                            <span class="nav-icon">🆔</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 14h.01"/><path d="M12 14h.01"/><path d="M15 14h.01"/></svg></span>
 	                            <span class="nav-text">UUID 生成器</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-time">
-	                            <span class="nav-icon">⏱️</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
 	                            <span class="nav-text">时间戳转换</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-datecalc">
-	                            <span class="nav-icon">📅</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
 	                            <span class="nav-text">日期计算器</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-naming">
-	                            <span class="nav-icon">🏷️</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
 	                            <span class="nav-text">变量命名转换</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-curl">
-	                            <span class="nav-icon">📡</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
 	                            <span class="nav-text">cURL 解析</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-color">
-	                            <span class="nav-icon">🎨</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.555C21.965 6.012 17.461 2 12 2z"/></svg></span>
 	                            <span class="nav-text">颜色转换</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-ip">
-	                            <span class="nav-icon">🌐</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg></span>
 	                            <span class="nav-text">IP 工具</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-cron">
-	                            <span class="nav-icon">⏰</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 8 14"/><path d="M17 12h2"/><path d="M12 17v2"/></svg></span>
 	                            <span class="nav-text">Cron 解析</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-qrcode">
-	                            <span class="nav-icon">📱</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><rect x="18" y="14" width="3" height="3"/><rect x="14" y="18" width="3" height="3"/><rect x="18" y="18" width="3" height="3"/></svg></span>
 	                            <span class="nav-text">二维码生成</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-img-base64">
-	                            <span class="nav-icon">🖼️</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
 	                            <span class="nav-text">图片 Base64</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-ua">
-	                            <span class="nav-icon">🔍</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></span>
 	                            <span class="nav-text">User-Agent 解析</span>
 	                        </li>
 	                    </ul>
@@ -491,29 +491,29 @@
 	                <!-- 命令生成 -->
 	                <li class="nav-group" data-group="tools-command">
 	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
-	                        <span class="nav-icon">⌨️</span>
+	                        <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
 	                        <span class="nav-text">命令生成</span>
 	                        <span class="nav-arrow">▾</span>
 	                    </div>
 	                    <ul class="nav-sublist">
 	                        <li class="nav-item" data-page="tool-git">
-	                            <span class="nav-icon">📦</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></span>
 	                            <span class="nav-text">Git 命令生成器</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-docker">
-	                            <span class="nav-icon">🐳</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M22 12.5c-.5-.3-1.2-.5-2-.5-.3-1.2-1.3-2-2.5-2-.4 0-.8.1-1.1.2-.5-1.5-1.9-2.7-3.4-2.7-1.3 0-2.4.7-3 1.7-.3-.1-.6-.2-1-.2-1.7 0-3 1.3-3 3 0 .2 0 .4.1.6C4.3 13 3 14.5 3 16.3 3 18.4 4.6 20 6.7 20h12.6c1.5 0 2.7-1.2 2.7-2.7 0-1.3-.9-2.4-2-2.8z"/><rect x="5" y="14" width="2" height="2"/><rect x="8" y="14" width="2" height="2"/><rect x="11" y="14" width="2" height="2"/><rect x="8" y="11" width="2" height="2"/><rect x="11" y="11" width="2" height="2"/><rect x="14" y="11" width="2" height="2"/><rect x="11" y="8" width="2" height="2"/></svg></span>
 	                            <span class="nav-text">Docker 命令生成器</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-docker-service">
-	                            <span class="nav-icon">🔧</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>
 	                            <span class="nav-text">Docker Service</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-docker-swarm">
-	                            <span class="nav-icon">🌐</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="5" cy="8.5" r="2"/><circle cx="19" cy="8.5" r="2"/><circle cx="5" cy="15.5" r="2"/><circle cx="19" cy="15.5" r="2"/><path d="M12 7v3"/><path d="M12 14v3"/><path d="M6.7 9.5l3.8 1.5"/><path d="M13.5 13l3.8 1.5"/><path d="M6.7 14.5l3.8-1.5"/><path d="M13.5 11l3.8-1.5"/></svg></span>
 	                            <span class="nav-text">Docker Swarm</span>
 	                        </li>
 	                        <li class="nav-item" data-page="tool-nginx">
-	                            <span class="nav-icon">🌍</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
 	                            <span class="nav-text">nginx 配置生成</span>
 	                        </li>
 	                    </ul>
@@ -522,103 +522,34 @@
 	                <!-- AI 管理 -->
 	                <li class="nav-group" data-group="ai">
 	                    <div class="nav-group-header" tabindex="0" role="button" aria-expanded="false">
-	                        <span class="nav-icon">🤖</span>
+	                        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="8" cy="14" r="2"/><circle cx="16" cy="14" r="2"/></svg></span>
 	                        <span class="nav-text">AI 管理</span>
 	                        <span class="nav-arrow">▾</span>
 	                    </div>
 	                    <ul class="nav-sublist">
 	                        <li class="nav-item" data-page="ai-chat">
-	                            <span class="nav-icon">💬</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
 	                            <span class="nav-text">AI 聊天</span>
 	                        </li>
 	                        <li class="nav-item" data-page="ai-settings">
-	                            <span class="nav-icon">⚙️</span>
+	                            <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
 	                            <span class="nav-text">AI 配置</span>
 	                        </li>
 	                    </ul>
 	                </li>
 
 	                <li class="nav-item" data-page="backup">
-	                    <span class="nav-icon">💾</span>
+	                    <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></span>
 	                    <span class="nav-text">数据备份</span>
 	                </li>
 	            </ul>
             <div class="sidebar-footer">
                 <div class="theme-selector-wrapper">
-                    <div class="theme-popup-menu" id="themeMenu">
-                        <div class="theme-group">
-                            <div class="theme-group-label">亮色系</div>
-                            <div class="theme-grid">
-                                <button class="theme-item" data-theme="light" onclick="selectTheme('light')">
-                                    <span class="emoji">☀️</span>
-                                    <span class="label">亮色</span>
-                                </button>
-                                <button class="theme-item" data-theme="cute" onclick="selectTheme('cute')">
-                                    <span class="emoji">🐶</span>
-                                    <span class="label">可爱</span>
-                                </button>
-                                <button class="theme-item" data-theme="office" onclick="selectTheme('office')">
-                                    <span class="emoji">📊</span>
-                                    <span class="label">办公</span>
-                                </button>
-                                <button class="theme-item" data-theme="neon-light" onclick="selectTheme('neon-light')">
-                                    <span class="emoji">🌊</span>
-                                    <span class="label">极光</span>
-                                </button>
-                                <button class="theme-item" data-theme="cyberpunk-light" onclick="selectTheme('cyberpunk-light')">
-                                    <span class="emoji">🌸</span>
-                                    <span class="label">赛博</span>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="theme-divider"></div>
-                        <div class="theme-group">
-                            <div class="theme-group-label">暗色系</div>
-                            <div class="theme-grid">
-                                <button class="theme-item" data-theme="dark" onclick="selectTheme('dark')">
-                                    <span class="emoji">🌙</span>
-                                    <span class="label">暗色</span>
-                                </button>
-                                <button class="theme-item" data-theme="neon" onclick="selectTheme('neon')">
-                                    <span class="emoji">🌈</span>
-                                    <span class="label">极光</span>
-                                </button>
-                                <button class="theme-item" data-theme="cyberpunk" onclick="selectTheme('cyberpunk')">
-                                    <span class="emoji">🤖</span>
-                                    <span class="label">赛博</span>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="theme-divider"></div>
-                        <div class="glass-toggle-wrapper">
-                            <label class="glass-toggle-label">
-                                <span>毛玻璃效果</span>
-                                <input type="checkbox" id="glassToggle" onchange="toggleGlassMode()">
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-                        <div class="glass-opacity-wrapper" id="glassOpacityWrapper" style="display: none;">
-                            <label class="glass-opacity-label">
-                                <span>透明度</span>
-                                <span class="opacity-value" id="opacityValue">60%</span>
-                            </label>
-                            <input type="range" id="glassOpacitySlider" min="20" max="90" value="60"
-                                   oninput="updateGlassOpacity(this.value)">
-                        </div>
-                        <div class="theme-divider"></div>
-                        <div class="titlebar-mode-wrapper">
-                            <label class="titlebar-mode-label">
-                                <span>标题栏模式</span>
-                            </label>
-                            <div class="titlebar-mode-btns">
-                                <button class="titlebar-mode-btn active" data-mode="fixed" onclick="setTitlebarMode('fixed')">固定</button>
-                                <button class="titlebar-mode-btn" data-mode="minimal" onclick="setTitlebarMode('minimal')">简约</button>
-                            </div>
-                        </div>
-                        <div class="menu-arrow"></div>
-                    </div>
-                    <button class="theme-main-btn" id="themeToggleBtn" onclick="toggleThemeMenu()">
-                        <span class="current-icon" id="currentThemeIcon">🌙</span>
+                    <button class="theme-main-btn" id="settingsBtn" onclick="openSettingsModal()" title="设置">
+                        <span class="current-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+                    </button>
+                    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="收起侧边栏">
+                        <span class="toggle-icon">«</span>
                     </button>
                 </div>
             </div>
@@ -627,6 +558,137 @@
                 <main class="content" id="page-root">
         </main>
 	    </div>
+
+    <!-- 设置弹窗 -->
+    <div id="settings-modal" class="modal settings-modal">
+        <div class="modal-overlay" onclick="requestCloseSettingsModal()"></div>
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h2>设置</h2>
+                <button class="close-btn" onclick="requestCloseSettingsModal()">×</button>
+            </div>
+            <div class="modal-body settings-modal-body">
+                <div class="settings-section">
+                    <div class="settings-section-title">主题</div>
+                    <div class="theme-group">
+                        <div class="theme-group-label">亮色系</div>
+                        <div class="theme-grid">
+                            <button class="theme-item" data-theme="light" onclick="settingsPreviewTheme('light')">
+                                <span class="emoji">☀️</span>
+                                <span class="label">亮色</span>
+                            </button>
+                            <button class="theme-item" data-theme="cute" onclick="settingsPreviewTheme('cute')">
+                                <span class="emoji">🐶</span>
+                                <span class="label">可爱</span>
+                            </button>
+                            <button class="theme-item" data-theme="office" onclick="settingsPreviewTheme('office')">
+                                <span class="emoji">📊</span>
+                                <span class="label">办公</span>
+                            </button>
+                            <button class="theme-item" data-theme="neon-light" onclick="settingsPreviewTheme('neon-light')">
+                                <span class="emoji">🌊</span>
+                                <span class="label">极光</span>
+                            </button>
+                            <button class="theme-item" data-theme="cyberpunk-light" onclick="settingsPreviewTheme('cyberpunk-light')">
+                                <span class="emoji">🌸</span>
+                                <span class="label">赛博</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="theme-divider"></div>
+                    <div class="theme-group">
+                        <div class="theme-group-label">暗色系</div>
+                        <div class="theme-grid">
+                            <button class="theme-item" data-theme="dark" onclick="settingsPreviewTheme('dark')">
+                                <span class="emoji">🌙</span>
+                                <span class="label">暗色</span>
+                            </button>
+                            <button class="theme-item" data-theme="neon" onclick="settingsPreviewTheme('neon')">
+                                <span class="emoji">🌈</span>
+                                <span class="label">极光</span>
+                            </button>
+                            <button class="theme-item" data-theme="cyberpunk" onclick="settingsPreviewTheme('cyberpunk')">
+                                <span class="emoji">🤖</span>
+                                <span class="label">赛博</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="settings-section-title">外观</div>
+                    <div class="glass-toggle-wrapper">
+                        <label class="glass-toggle-label">
+                            <span>毛玻璃效果</span>
+                            <input type="checkbox" id="settingsGlassToggle" onchange="settingsPreviewGlassMode(this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="glass-opacity-wrapper" id="settingsGlassOpacityWrapper" style="display: none;">
+                        <label class="glass-opacity-label">
+                            <span>透明度</span>
+                            <span class="opacity-value" id="settingsOpacityValue">60%</span>
+                        </label>
+                        <input type="range" id="settingsGlassOpacitySlider" min="20" max="90" value="60"
+                               oninput="settingsPreviewGlassOpacity(this.value)">
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="settings-section-title">界面</div>
+                    <div class="ui-scale-wrapper">
+                        <label class="ui-scale-label">
+                            <span>UI 缩放</span>
+                            <span class="scale-value" id="settingsScaleValue">100%</span>
+                        </label>
+                        <div class="ui-scale-btns">
+                            <button class="ui-scale-btn" data-scale="50" onclick="settingsPreviewUIScale(50)">50%</button>
+                            <button class="ui-scale-btn" data-scale="60" onclick="settingsPreviewUIScale(60)">60%</button>
+                            <button class="ui-scale-btn" data-scale="70" onclick="settingsPreviewUIScale(70)">70%</button>
+                            <button class="ui-scale-btn" data-scale="80" onclick="settingsPreviewUIScale(80)">80%</button>
+                            <button class="ui-scale-btn" data-scale="90" onclick="settingsPreviewUIScale(90)">90%</button>
+                            <button class="ui-scale-btn" data-scale="100" onclick="settingsPreviewUIScale(100)">100%</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="settings-section-title">窗口</div>
+                    <div class="titlebar-mode-wrapper">
+                        <label class="titlebar-mode-label">
+                            <span>标题栏模式</span>
+                        </label>
+                        <div class="titlebar-mode-btns">
+                            <button class="titlebar-mode-btn" data-mode="fixed" onclick="settingsPreviewTitlebarMode('fixed')">固定</button>
+                            <button class="titlebar-mode-btn" data-mode="minimal" onclick="settingsPreviewTitlebarMode('minimal')">简约</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="requestCloseSettingsModal()">关闭</button>
+                <button class="btn btn-primary" id="settingsSaveBtn" onclick="saveSettingsModal()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 未保存确认弹窗 -->
+    <div id="settings-confirm-modal" class="modal settings-confirm-modal">
+        <div class="modal-overlay" onclick="cancelCloseSettingsModal()"></div>
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>提示</h2>
+                <button class="close-btn" onclick="cancelCloseSettingsModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="text-align: center; margin: 20px 0;">有未保存的更改，确定要关闭吗？</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="cancelCloseSettingsModal()">取消</button>
+                <button class="btn btn-danger" onclick="discardAndCloseSettingsModal()">放弃更改</button>
+            </div>
+        </div>
+    </div>
 
     <!-- 凭证编辑弹窗 -->
     <div id="credential-modal" class="modal">
@@ -822,6 +884,7 @@
 	    <script src="js/app_http_collections.js" defer></script>
 	    <script src="js/app_ai_settings.js" defer></script>
 	    <script src="js/app_ai_helper.js" defer></script>
+	    <script src="js/app_ai_global_helper.js" defer></script>
 	    <script src="js/app_nodes_converter.js" defer></script>
 	    <script src="js/app_tools_a.js" defer></script>
 	    <script src="js/app_tools_b.js" defer></script>

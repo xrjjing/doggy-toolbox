@@ -378,6 +378,38 @@ function showPageLoadError(page, error) {
     }
 }
 
+// 窗口关闭前保存配置（修复 Command+W 配置丢失问题）
+window.addEventListener('beforeunload', () => {
+    try {
+        // 保存当前主题
+        const theme = document.documentElement.getAttribute('data-theme');
+        if (theme) {
+            localStorage.setItem('theme', theme);
+            if (window.pywebview?.api?.save_theme) {
+                window.pywebview.api.save_theme(theme).catch(() => {});
+            }
+        }
+
+        // 保存毛玻璃透明度
+        const slider = document.getElementById('glassOpacitySlider');
+        if (slider) {
+            const opacity = slider.value;
+            localStorage.setItem('glass_opacity', opacity);
+            if (window.pywebview?.api?.save_glass_opacity) {
+                window.pywebview.api.save_glass_opacity(parseInt(opacity)).catch(() => {});
+            }
+        }
+
+        // 保存 UI 缩放
+        const uiScale = localStorage.getItem('ui_scale');
+        if (uiScale && window.pywebview?.api?.save_ui_scale) {
+            window.pywebview.api.save_ui_scale(parseInt(uiScale)).catch(() => {});
+        }
+    } catch (e) {
+        console.error('保存配置失败:', e);
+    }
+});
+
 // 初始化
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -637,9 +669,13 @@ function initNavigation() {
         });
     });
 
-    // 分组：点击展开/收起
+    // 分组：点击展开/收起（仅在侧边栏展开状态下生效）
     document.querySelectorAll('.nav-group-header').forEach(header => {
         header.addEventListener('click', () => {
+            const sidebar = document.querySelector('.sidebar');
+            // 收起状态下由 initSidebarInteraction 处理
+            if (sidebar && sidebar.classList.contains('collapsed')) return;
+
             const group = header.closest('.nav-group');
             if (!group) return;
             const willExpand = !group.classList.contains('expanded');
@@ -672,15 +708,30 @@ async function switchPage(page) {
     document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
     target.classList.add('active');
 
-    // 自动展开所属分组，保证当前项可见
+    // 自动展开所属分组，保证当前项可见（仅在侧边栏展开状态下）
+    const sidebar = document.querySelector('.sidebar');
+    const isCollapsed = sidebar && sidebar.classList.contains('collapsed');
     const group = document.querySelector(`.nav-item[data-page="${page}"]`)?.closest('.nav-group');
-    if (group) {
+    if (group && !isCollapsed) {
+        // 仅在展开状态下自动展开分组
         group.classList.add('expanded');
         group.querySelector('.nav-group-header')?.setAttribute('aria-expanded', 'true');
+    }
+    // 收起状态下不修改分组的 expanded 状态，让用户手动关闭抽屉
+
+    // 收起状态下重置导航列表的水平滚动位置，防止图标"消失"
+    if (isCollapsed) {
+        const navList = sidebar.querySelector('.nav-list');
+        if (navList) {
+            navList.scrollLeft = 0;
+        }
     }
 
     activePage = page;
     await handlePageEnter(page);
+
+    // 触发页面切换事件，供全局 AI 帮助按钮等组件监听
+    document.dispatchEvent(new CustomEvent('pageChanged', { detail: { page } }));
 }
 
 async function handlePageEnter(page) {
@@ -823,6 +874,209 @@ function updateThemeSelector(activeTheme) {
     document.querySelectorAll('.theme-item').forEach(opt => {
         opt.classList.toggle('active', opt.dataset.theme === activeTheme);
     });
+}
+
+// ==================== 设置弹窗（预览/保存） ====================
+let _settingsOriginal = null;
+let _settingsDraft = null;
+
+const ALLOWED_THEMES = ['light', 'cute', 'office', 'neon-light', 'cyberpunk-light', 'dark', 'neon', 'cyberpunk'];
+const ALLOWED_TITLEBAR_MODES = ['fixed', 'minimal'];
+
+function _readCurrentSettings() {
+    const theme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('theme') || 'dark';
+    const glassMode = document.documentElement.getAttribute('data-glass') === 'true';
+
+    let glassOpacity = parseInt(localStorage.getItem('glass_opacity') || '60');
+    if (isNaN(glassOpacity)) glassOpacity = 60;
+    glassOpacity = Math.max(20, Math.min(90, glassOpacity));
+
+    let uiScale = parseInt(localStorage.getItem('ui_scale') || '100');
+    if (isNaN(uiScale)) uiScale = 100;
+    uiScale = Math.max(50, Math.min(100, uiScale));
+
+    const titlebarMode = document.documentElement.getAttribute('data-titlebar-mode') || localStorage.getItem('titlebar_mode') || 'fixed';
+
+    return {
+        theme: ALLOWED_THEMES.includes(theme) ? theme : 'dark',
+        glassMode,
+        glassOpacity,
+        uiScale,
+        titlebarMode: ALLOWED_TITLEBAR_MODES.includes(titlebarMode) ? titlebarMode : 'fixed'
+    };
+}
+
+function _areSettingsEqual(a, b) {
+    return a.theme === b.theme &&
+           a.glassMode === b.glassMode &&
+           a.glassOpacity === b.glassOpacity &&
+           a.uiScale === b.uiScale &&
+           a.titlebarMode === b.titlebarMode;
+}
+
+function _applySettingsPreview(settings) {
+    // 主题
+    document.documentElement.setAttribute('data-theme', settings.theme);
+    updateThemeSelector(settings.theme);
+
+    // 毛玻璃
+    document.documentElement.setAttribute('data-glass', settings.glassMode ? 'true' : 'false');
+    const glassToggle = document.getElementById('settingsGlassToggle');
+    if (glassToggle) glassToggle.checked = settings.glassMode;
+    const opacityWrapper = document.getElementById('settingsGlassOpacityWrapper');
+    if (opacityWrapper) opacityWrapper.style.display = settings.glassMode ? 'block' : 'none';
+
+    // 透明度
+    document.documentElement.style.setProperty('--glass-opacity', settings.glassOpacity / 100);
+    const opacitySlider = document.getElementById('settingsGlassOpacitySlider');
+    if (opacitySlider) opacitySlider.value = settings.glassOpacity;
+    const opacityValue = document.getElementById('settingsOpacityValue');
+    if (opacityValue) opacityValue.textContent = settings.glassOpacity + '%';
+
+    // UI 缩放
+    document.documentElement.style.setProperty('--ui-scale', settings.uiScale / 100);
+    const scaleValue = document.getElementById('settingsScaleValue');
+    if (scaleValue) scaleValue.textContent = settings.uiScale + '%';
+    document.querySelectorAll('#settings-modal .ui-scale-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.scale) === settings.uiScale);
+    });
+
+    // 标题栏模式
+    document.documentElement.setAttribute('data-titlebar-mode', settings.titlebarMode);
+    document.querySelectorAll('#settings-modal .titlebar-mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === settings.titlebarMode);
+    });
+}
+
+function _updateSaveButtonState() {
+    const saveBtn = document.getElementById('settingsSaveBtn');
+    if (!saveBtn || !_settingsOriginal || !_settingsDraft) return;
+    const dirty = !_areSettingsEqual(_settingsOriginal, _settingsDraft);
+    saveBtn.disabled = !dirty;
+}
+
+function openSettingsModal() {
+    const snapshot = _readCurrentSettings();
+    _settingsOriginal = { ...snapshot };
+    _settingsDraft = { ...snapshot };
+
+    _applySettingsPreview(snapshot);
+    _updateSaveButtonState();
+
+    openModal('settings-modal');
+
+    // ESC 键关闭
+    document.addEventListener('keydown', _settingsEscHandler);
+}
+
+function _settingsEscHandler(e) {
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        const confirmModal = document.getElementById('settings-confirm-modal');
+        if (confirmModal && confirmModal.classList.contains('active')) {
+            cancelCloseSettingsModal();
+        } else {
+            requestCloseSettingsModal();
+        }
+    }
+}
+
+function settingsPreviewTheme(theme) {
+    if (!_settingsDraft || !ALLOWED_THEMES.includes(theme)) return;
+    _settingsDraft.theme = theme;
+    document.documentElement.setAttribute('data-theme', theme);
+    updateThemeSelector(theme);
+    _updateSaveButtonState();
+}
+
+function settingsPreviewGlassMode(enabled) {
+    if (!_settingsDraft) return;
+    _settingsDraft.glassMode = enabled;
+    document.documentElement.setAttribute('data-glass', enabled ? 'true' : 'false');
+    const opacityWrapper = document.getElementById('settingsGlassOpacityWrapper');
+    if (opacityWrapper) opacityWrapper.style.display = enabled ? 'block' : 'none';
+    _updateSaveButtonState();
+}
+
+function settingsPreviewGlassOpacity(value) {
+    if (!_settingsDraft) return;
+    const v = Math.max(20, Math.min(90, parseInt(value) || 60));
+    _settingsDraft.glassOpacity = v;
+    document.documentElement.style.setProperty('--glass-opacity', v / 100);
+    const opacityValue = document.getElementById('settingsOpacityValue');
+    if (opacityValue) opacityValue.textContent = v + '%';
+    _updateSaveButtonState();
+}
+
+function settingsPreviewUIScale(scale) {
+    if (!_settingsDraft) return;
+    const v = Math.max(50, Math.min(100, parseInt(scale) || 100));
+    _settingsDraft.uiScale = v;
+    document.documentElement.style.setProperty('--ui-scale', v / 100);
+    const scaleValue = document.getElementById('settingsScaleValue');
+    if (scaleValue) scaleValue.textContent = v + '%';
+    document.querySelectorAll('#settings-modal .ui-scale-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.scale) === v);
+    });
+    _updateSaveButtonState();
+}
+
+function settingsPreviewTitlebarMode(mode) {
+    if (!_settingsDraft || !ALLOWED_TITLEBAR_MODES.includes(mode)) return;
+    _settingsDraft.titlebarMode = mode;
+    document.documentElement.setAttribute('data-titlebar-mode', mode);
+    document.querySelectorAll('#settings-modal .titlebar-mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+    _updateSaveButtonState();
+}
+
+function requestCloseSettingsModal() {
+    if (!_settingsOriginal || !_settingsDraft) {
+        _closeSettingsModalCleanup();
+        return;
+    }
+
+    const dirty = !_areSettingsEqual(_settingsOriginal, _settingsDraft);
+    if (dirty) {
+        openModal('settings-confirm-modal');
+    } else {
+        _closeSettingsModalCleanup();
+    }
+}
+
+function cancelCloseSettingsModal() {
+    closeModal('settings-confirm-modal');
+}
+
+function discardAndCloseSettingsModal() {
+    // 恢复原始设置
+    if (_settingsOriginal) {
+        _applySettingsPreview(_settingsOriginal);
+    }
+    closeModal('settings-confirm-modal');
+    _closeSettingsModalCleanup();
+}
+
+function saveSettingsModal() {
+    if (!_settingsDraft) return;
+
+    // 持久化保存
+    setTheme(_settingsDraft.theme);
+    setGlassMode(_settingsDraft.glassMode);
+    updateGlassOpacity(String(_settingsDraft.glassOpacity));
+    setUIScale(_settingsDraft.uiScale);
+    setTitlebarMode(_settingsDraft.titlebarMode);
+
+    closeModal('settings-confirm-modal');
+    _closeSettingsModalCleanup();
+}
+
+function _closeSettingsModalCleanup() {
+    closeModal('settings-modal');
+    document.removeEventListener('keydown', _settingsEscHandler);
+    _settingsOriginal = null;
+    _settingsDraft = null;
 }
 
 // ==================== 毛玻璃模式 ====================
@@ -1012,4 +1266,306 @@ function showToast(message, type = 'info', duration = 3000) {
         toast.classList.add('toast-out');
         toast.addEventListener('animationend', () => toast.remove());
     }, duration);
+}
+
+// 侧边栏收起/展开
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const toggleBtn = document.getElementById('sidebarToggleBtn');
+
+    if (!sidebar) return;
+
+    const isCollapsed = sidebar.classList.contains('collapsed');
+
+    if (isCollapsed) {
+        // 展开
+        sidebar.classList.remove('collapsed');
+        if (toggleBtn) {
+            toggleBtn.title = '收起侧边栏';
+        }
+        localStorage.setItem('sidebar_collapsed', 'false');
+
+        // 清理浮动菜单（毛玻璃模式下收起状态创建的）
+        const floatingMenu = document.getElementById('floating-nav-sublist');
+        if (floatingMenu) {
+            floatingMenu.remove();
+        }
+        // 清理收起状态下展开的分组
+        document.querySelectorAll('.nav-group.expanded').forEach(group => {
+            group.classList.remove('expanded');
+            group.querySelector('.nav-group-header')?.setAttribute('aria-expanded', 'false');
+        });
+    } else {
+        // 收起
+        sidebar.classList.add('collapsed');
+        if (toggleBtn) {
+            toggleBtn.title = '展开侧边栏';
+        }
+        localStorage.setItem('sidebar_collapsed', 'true');
+
+        // 如果有展开的分组，收起它们
+        document.querySelectorAll('.nav-group.expanded').forEach(group => {
+            group.classList.remove('expanded');
+            const header = group.querySelector('.nav-group-header');
+            if (header) {
+                header.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+}
+
+// 展开侧边栏（不切换，只展开）
+function expandSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const toggleBtn = document.getElementById('sidebarToggleBtn');
+
+    if (!sidebar) return;
+
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    if (isCollapsed) {
+        sidebar.classList.remove('collapsed');
+        if (toggleBtn) {
+            toggleBtn.title = '收起侧边栏';
+        }
+        localStorage.setItem('sidebar_collapsed', 'false');
+    }
+}
+
+// 初始化侧边栏状态
+function initSidebarState() {
+    const sidebar = document.querySelector('.sidebar');
+    const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+
+    if (sidebar && isCollapsed) {
+        sidebar.classList.add('collapsed');
+        const toggleBtn = document.getElementById('sidebarToggleBtn');
+        if (toggleBtn) {
+            toggleBtn.title = '展开侧边栏';
+        }
+    }
+}
+
+// 初始化侧边栏交互
+function initSidebarInteraction() {
+    const sidebar = document.querySelector('.sidebar');
+    if (!sidebar) return;
+
+    // 为所有导航项添加 tooltip 属性
+    document.querySelectorAll('.nav-item').forEach(item => {
+        const textEl = item.querySelector('.nav-text');
+        if (textEl && textEl.textContent) {
+            item.setAttribute('data-tooltip', textEl.textContent.trim());
+        }
+    });
+
+    document.querySelectorAll('.nav-group-header').forEach(header => {
+        const textEl = header.querySelector('.nav-text');
+        if (textEl && textEl.textContent) {
+            header.setAttribute('data-tooltip', textEl.textContent.trim());
+        }
+    });
+
+    // 收起态下：显式 open/close，避免"先全关再重开"造成状态抖动
+    const closeCollapsedGroup = (group) => {
+        if (!group) return;
+        group.classList.remove('expanded');
+        group.querySelector('.nav-group-header')?.setAttribute('aria-expanded', 'false');
+        // 移除浮动菜单
+        const floatingMenu = document.getElementById('floating-nav-sublist');
+        if (floatingMenu) {
+            floatingMenu.remove();
+        }
+    };
+
+    const openCollapsedGroup = (group, navGroupHeader) => {
+        if (!group) return;
+        group.classList.add('expanded');
+        navGroupHeader?.setAttribute('aria-expanded', 'true');
+
+        // 动态设置抽屉位置
+        const sublist = group.querySelector('.nav-sublist');
+        if (!sublist || !navGroupHeader) return;
+
+        const rect = navGroupHeader.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        let top = rect.top;
+
+        // sublist 有 max-height: 70vh，按可见高度上限做一次夹取，避免过度计算/抖动
+        const maxVisibleHeight = Math.floor(viewportHeight * 0.7);
+        const sublistHeight = Math.min(sublist.scrollHeight + 16, maxVisibleHeight);
+        if (top + sublistHeight > viewportHeight - 20) {
+            top = Math.max(20, viewportHeight - sublistHeight - 20);
+        }
+
+        sublist.style.top = `${top}px`;
+
+        // 毛玻璃模式下，将菜单克隆到 body 以避免堆叠上下文问题
+        const isGlassMode = document.documentElement.getAttribute('data-glass') === 'true';
+        if (isGlassMode) {
+            // 移除旧的浮动菜单
+            const oldFloating = document.getElementById('floating-nav-sublist');
+            if (oldFloating) oldFloating.remove();
+
+            // 克隆菜单到 body
+            const floatingMenu = sublist.cloneNode(true);
+            floatingMenu.id = 'floating-nav-sublist';
+            floatingMenu.style.cssText = `
+                display: block !important;
+                position: fixed !important;
+                left: 72px;
+                top: ${top}px;
+                width: 180px;
+                max-height: 70vh;
+                overflow-y: auto;
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+                z-index: 2147483647;
+                padding: 8px;
+                opacity: 1;
+                visibility: visible;
+                pointer-events: auto;
+                -webkit-backdrop-filter: blur(20px);
+                backdrop-filter: blur(20px);
+            `;
+            document.body.appendChild(floatingMenu);
+
+            // 为克隆的菜单项添加点击事件
+            floatingMenu.querySelectorAll('.nav-item[data-page]').forEach(item => {
+                item.addEventListener('click', () => {
+                    switchPage(item.dataset.page);
+                    // 重置滚动位置
+                    const navList = sidebar.querySelector('.nav-list');
+                    if (navList) setTimeout(() => { navList.scrollLeft = 0; }, 0);
+                });
+            });
+        }
+    };
+
+    // 收起状态下的交互逻辑
+    sidebar.addEventListener('click', (e) => {
+        const isCollapsed = sidebar.classList.contains('collapsed');
+        if (!isCollapsed) return;
+
+        const navItem = e.target.closest('.nav-item');
+        const navGroupHeader = e.target.closest('.nav-group-header');
+
+        // 点击抽屉内的导航项：不关闭抽屉，让用户点击外部关闭
+        // switchPage 会自动处理页面切换
+        if (navItem && navItem.closest('.nav-sublist')) {
+            // 重置滚动位置，防止图标"消失"
+            const navList = sidebar.querySelector('.nav-list');
+            if (navList) {
+                setTimeout(() => { navList.scrollLeft = 0; }, 0);
+            }
+            return;
+        }
+
+        // 点击分组头部：显示/隐藏抽屉菜单
+        if (navGroupHeader) {
+            e.preventDefault();
+            e.stopPropagation();
+            const group = navGroupHeader.closest('.nav-group');
+            if (!group) return;
+
+            const expandedGroup = sidebar.querySelector('.nav-group.expanded');
+            if (expandedGroup && expandedGroup !== group) {
+                closeCollapsedGroup(expandedGroup);
+            }
+
+            if (group.classList.contains('expanded')) {
+                closeCollapsedGroup(group);
+                return;
+            }
+
+            openCollapsedGroup(group, navGroupHeader);
+            return;
+        }
+
+        // 点击普通导航项（一级菜单）：直接切换页面，不展开侧边栏
+        // switchPage 会自动处理页面切换
+    });
+
+    // 点击外部关闭抽屉菜单
+    document.addEventListener('click', (e) => {
+        const isCollapsed = sidebar.classList.contains('collapsed');
+        if (!isCollapsed) return;
+
+        const expandedGroup = sidebar.querySelector('.nav-group.expanded');
+        const floatingMenu = document.getElementById('floating-nav-sublist');
+
+        if (!expandedGroup && !floatingMenu) return;
+
+        // 如果点击的不是展开的分组内部，也不是浮动菜单内部，则关闭抽屉
+        const clickedInGroup = expandedGroup && expandedGroup.contains(e.target);
+        const clickedInFloating = floatingMenu && floatingMenu.contains(e.target);
+
+        if (!clickedInGroup && !clickedInFloating) {
+            if (expandedGroup) closeCollapsedGroup(expandedGroup);
+            if (floatingMenu) floatingMenu.remove();
+        }
+    });
+}
+
+// 在页面加载时初始化
+document.addEventListener('DOMContentLoaded', () => {
+    initSidebarState();
+    initSidebarInteraction();
+    initUIScale();
+});
+
+// UI 缩放功能
+function setUIScale(scale) {
+    // 更新 CSS 变量
+    document.documentElement.style.setProperty('--ui-scale', scale / 100);
+
+    // 更新显示值
+    const scaleValue = document.getElementById('scaleValue');
+    if (scaleValue) {
+        scaleValue.textContent = `${scale}%`;
+    }
+
+    // 更新按钮激活状态
+    document.querySelectorAll('.ui-scale-btn').forEach(btn => {
+        if (parseInt(btn.dataset.scale) === scale) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    // 保存到 localStorage
+    localStorage.setItem('ui_scale', scale.toString());
+
+    // 同步到后端
+    if (window.pywebview?.api?.save_ui_scale) {
+        window.pywebview.api.save_ui_scale(scale).catch(() => {});
+    }
+}
+
+// 初始化 UI 缩放
+async function initUIScale() {
+    let scale = 100;
+
+    // 先从 localStorage 读取默认值
+    const localScale = localStorage.getItem('ui_scale');
+    if (localScale) {
+        scale = parseInt(localScale, 10);
+    }
+
+    // 尝试从后端读取（如果有的话会覆盖）
+    try {
+        if (window.pywebview?.api?.get_ui_scale) {
+            const backendScale = await window.pywebview.api.get_ui_scale();
+            if (backendScale) {
+                scale = backendScale;
+            }
+        }
+    } catch (e) {
+        // 后端读取失败，使用 localStorage 的值
+    }
+
+    // 应用缩放
+    setUIScale(scale);
 }

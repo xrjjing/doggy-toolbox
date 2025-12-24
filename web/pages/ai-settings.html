@@ -1,17 +1,17 @@
 <div id="page-ai-settings" class="page">
     <div class="page-header">
-        <h2>🤖 AI 配置</h2>
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px;vertical-align:middle;margin-right:8px"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>AI 配置</h2>
         <p class="page-description">配置和管理 AI Provider，支持 OpenAI、Claude 和第三方兼容 API</p>
     </div>
 
     <!-- 主 Tab 切换 -->
     <div class="ai-main-tabs">
         <button class="ai-main-tab active" data-tab="providers" onclick="switchAIMainTab('providers')">
-            <span class="tab-icon">🔌</span>
+            <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg></span>
             <span>Provider 管理</span>
         </button>
         <button class="ai-main-tab" data-tab="features" onclick="switchAIMainTab('features')">
-            <span class="tab-icon">⚡</span>
+            <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
             <span>功能开关</span>
         </button>
     </div>
@@ -52,7 +52,7 @@
             <div class="global-toggle-section">
                 <div class="global-toggle-card">
                     <div class="toggle-info">
-                        <h3>🌐 全局 AI 功能</h3>
+                        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;vertical-align:middle;margin-right:6px"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>全局 AI 功能</h3>
                         <p>关闭后，所有工具的 AI 功能将被禁用</p>
                     </div>
                     <label class="global-toggle-switch">
@@ -192,7 +192,7 @@
 
                 <!-- 高级选项 -->
                 <details class="advanced-options">
-                    <summary>⚙️ 高级选项</summary>
+                    <summary><svg class="summary-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> 高级选项</summary>
 
                     <div class="form-row">
                         <div class="form-group">
@@ -282,7 +282,7 @@
 
                     <!-- 第三方兼容专用 -->
                     <div id="third-party-fields" style="display:none">
-                        <h4 class="section-title">🔧 兼容性配置</h4>
+                        <h4 class="section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:middle;margin-right:4px"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>兼容性配置</h4>
 
                         <div class="form-group">
                             <label>端点路径</label>
@@ -306,7 +306,7 @@
                                 <input type="checkbox" id="verify-ssl" checked>
                                 <span>验证 SSL 证书</span>
                             </label>
-                            <small class="form-hint warning">⚠️ 关闭 SSL 验证可能存在安全风险</small>
+                            <small class="form-hint warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>关闭 SSL 验证可能存在安全风险</small>
                         </div>
                     </div>
                 </details>
@@ -331,6 +331,19 @@
 
 <style>
 /* AI 配置页面专用样式 */
+
+/* Summary 图标样式 */
+.summary-icon {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    vertical-align: middle;
+    margin-right: 4px;
+}
 
 /* 主 Tab 切换样式 */
 .ai-main-tabs {

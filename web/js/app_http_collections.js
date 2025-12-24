@@ -6,48 +6,6 @@ let importCollectionFileContent = '';
 let newRequestCollectionId = '';
 let newRequestFolderPath = [];
 let sidebarCollapsed = false;
-let httpCollectionsZoom = 100;
-
-// 初始化缩放
-function initHttpCollectionsZoom() {
-    const savedZoom = localStorage.getItem('httpCollectionsZoom');
-    if (savedZoom) {
-        httpCollectionsZoom = parseInt(savedZoom);
-        applyHttpCollectionsZoom();
-    }
-}
-
-// 应用缩放
-function applyHttpCollectionsZoom() {
-    const container = document.getElementById('page-http-collections');
-    if (container) {
-        const scale = httpCollectionsZoom / 100;
-        container.style.transform = `scale(${scale})`;
-        container.style.transformOrigin = 'top left';
-        container.style.width = `${100 / scale}%`;
-        container.style.height = `${100 / scale}%`;
-    }
-
-    const zoomLevel = document.getElementById('http-collections-zoom-level');
-    if (zoomLevel) {
-        zoomLevel.textContent = `${httpCollectionsZoom}%`;
-    }
-
-    // 保存到 localStorage
-    localStorage.setItem('httpCollectionsZoom', httpCollectionsZoom);
-}
-
-// 调整缩放
-function adjustHttpCollectionsZoom(delta) {
-    httpCollectionsZoom = Math.max(50, Math.min(100, httpCollectionsZoom + delta));
-    applyHttpCollectionsZoom();
-}
-
-// 重置缩放
-function resetHttpCollectionsZoom() {
-    httpCollectionsZoom = 100;
-    applyHttpCollectionsZoom();
-}
 
 // 切换侧边栏收缩
 function toggleCollectionsSidebar() {
@@ -67,9 +25,6 @@ function toggleCollectionsSidebar() {
 async function loadHttpCollections() {
     if (!window.pywebview || !window.pywebview.api) return;
     if (!document.getElementById('collections-list')) return;
-
-    // 初始化缩放
-    initHttpCollectionsZoom();
 
     allCollections = await pywebview.api.get_http_collections();
     renderCollectionsList();
