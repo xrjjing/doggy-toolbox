@@ -7497,3 +7497,105 @@ select option {
     text-overflow: ellipsis;
 }
 
+/* ========== AI 通用按钮样式 ========== */
+.ai-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    outline: none;
+    white-space: nowrap;
+}
+
+.ai-btn .btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ai-btn .btn-icon svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+}
+
+.ai-btn .btn-text {
+    display: inline;
+}
+
+.ai-btn-primary {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.ai-btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.ai-btn-primary:active {
+    transform: translateY(0);
+}
+
+.ai-btn-outline {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+.ai-btn-outline:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.ai-btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    padding: 8px 12px;
+}
+
+.ai-btn-ghost:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.ai-btn.btn-sm {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+.ai-btn-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.ai-btn-close:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+

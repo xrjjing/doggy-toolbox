@@ -55,3 +55,4 @@ test_*.py
 *_test.py
 *.test.js
 tests/desktop_tools_*.test.js
+.ace-tool/

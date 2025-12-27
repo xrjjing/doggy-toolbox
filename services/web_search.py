@@ -1,33 +1,24 @@
 # -*- coding: utf-8 -*-
 """
 Web Search Service
-使用 DuckDuckGo 提供网络搜索功能
+使用 ddgs (DuckDuckGo Search) 提供网络搜索功能
 """
 
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
-# 线程池用于异步执行同步的 DuckDuckGo 搜索
 _executor = ThreadPoolExecutor(max_workers=2)
 
 
 def _search_sync(query: str, max_results: int = 5, region: str = 'wt-wt') -> List[Dict[str, Any]]:
-    """
-    同步搜索（内部使用）
-
-    Args:
-        query: 搜索关键词
-        max_results: 最大结果数量
-        region: 搜索区域，默认 wt-wt（全球）以获得更好的结果
-    """
+    """同步搜索（内部使用）"""
     try:
-        from duckduckgo_search import DDGS
+        from ddgs import DDGS
         import time
 
-        # 重试机制，最多重试 3 次
         for attempt in range(3):
             try:
                 results = []
@@ -42,7 +33,6 @@ def _search_sync(query: str, max_results: int = 5, region: str = 'wt-wt') -> Lis
                 if results:
                     return results
 
-                # 如果没有结果，等待后重试
                 if attempt < 2:
                     logger.warning(f"搜索无结果，第 {attempt + 1} 次重试...")
                     time.sleep(0.5)
@@ -57,7 +47,7 @@ def _search_sync(query: str, max_results: int = 5, region: str = 'wt-wt') -> Lis
         return results
 
     except ImportError:
-        logger.error("duckduckgo-search 库未安装，请运行: pip install duckduckgo-search")
+        logger.error("搜索库未安装，请运行: pip install ddgs")
         return []
     except Exception as e:
         logger.error(f"搜索失败: {e}")
@@ -84,35 +74,30 @@ async def search(query: str, max_results: int = 5, region: str = 'wt-wt') -> Lis
 
 
 def format_search_results(results: List[Dict[str, Any]], max_length: int = 2000) -> str:
-    """
-    格式化搜索结果为可注入 prompt 的文本
-
-    Args:
-        results: 搜索结果列表
-        max_length: 最大文本长度
-
-    Returns:
-        格式化后的搜索结果文本
-    """
+    """格式化搜索结果为可注入 prompt 的文本"""
     if not results:
         return ""
 
-    lines = ["以下是相关的网络搜索结果，请基于这些信息回答用户问题：", ""]
+    lines = [
+        "# 已提供的参考资料",
+        "",
+        "你无法实时浏览互联网，但已为你提供以下参考资料。请基于这些资料回答用户问题，如资料不足请说明。不要说「我无法搜索」或「我无法联网」。",
+        ""
+    ]
 
     for i, r in enumerate(results, 1):
         title = r.get('title', '无标题')
         url = r.get('url', '')
         snippet = r.get('snippet', '')
 
-        # 截断过长的摘要
         if len(snippet) > 300:
             snippet = snippet[:300] + "..."
 
-        lines.append(f"[{i}] {title}")
+        lines.append(f"**资料 {i}**: {title}")
         if url:
-            lines.append(f"    链接: {url}")
+            lines.append(f"来源: {url}")
         if snippet:
-            lines.append(f"    摘要: {snippet}")
+            lines.append(f"内容: {snippet}")
         lines.append("")
 
     text = "\n".join(lines)

@@ -44,11 +44,11 @@ jobs:
 
       - name: Verify dependencies
         run: |
-          python -c "import httpx; import duckduckgo_search; print('httpx OK:', httpx.__version__)"
+          python -c "import httpx; import ddgs; print('httpx OK:', httpx.__version__)"
 
       - name: Build
         run: |
-          pyinstaller --onedir --windowed -y --name "${{ matrix.app_name }}" --hidden-import httpx --hidden-import httpx._client --hidden-import httpx._config --hidden-import duckduckgo_search --exclude-module PIL --exclude-module Pillow --exclude-module matplotlib --exclude-module numpy --exclude-module pandas --exclude-module pytest --exclude-module unittest --exclude-module setuptools --exclude-module tkinter --add-data "web${{ matrix.sep }}web" --add-data "services${{ matrix.sep }}services" main.py
+          pyinstaller --onedir --windowed -y --name "${{ matrix.app_name }}" --hidden-import httpx --hidden-import httpx._client --hidden-import httpx._config --hidden-import ddgs --exclude-module PIL --exclude-module Pillow --exclude-module matplotlib --exclude-module numpy --exclude-module pandas --exclude-module pytest --exclude-module unittest --exclude-module setuptools --exclude-module tkinter --add-data "web${{ matrix.sep }}web" --add-data "services${{ matrix.sep }}services" main.py
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

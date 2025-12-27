@@ -288,6 +288,7 @@ const PAGE_INIT_MAP = Object.freeze({
     'tool-nginx': 'initNginxTool',
     'ai-chat': 'initAIChatPage',
     'ai-settings': 'initAISettingsPage',
+    'prompt-templates': 'initPromptTemplates',
 });
 
 async function ensurePageInitialized(page) {

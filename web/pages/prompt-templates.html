@@ -1,0 +1,684 @@
+<section id="page-prompt-templates" class="page">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Prompt 模板库</h1>
+            <p class="subtitle">管理和复用常用的 Prompt 模板</p>
+        </div>
+        <div class="page-actions">
+            <button class="btn btn-ghost" onclick="showPromptCategoryModal()">
+                <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>管理分类
+            </button>
+            <button class="btn btn-ghost" onclick="showImportPromptModal()">
+                <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>导入
+            </button>
+            <button class="btn btn-ghost" onclick="exportPromptTemplates()">
+                <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>导出
+            </button>
+            <button class="btn btn-primary" onclick="showPromptTemplateModal()">
+                <span class="btn-icon">+</span>添加模板
+            </button>
+        </div>
+    </div>
+
+    <div class="tabs-bar" id="prompt-category-tabs"></div>
+
+    <div class="search-bar">
+        <input type="text" id="prompt-search" placeholder="搜索模板标题或内容..." oninput="filterPromptTemplates()">
+        <label class="prompt-filter-toggle">
+            <input type="checkbox" id="prompt-favorites-only" onchange="filterPromptTemplates()">
+            <span>仅收藏</span>
+        </label>
+    </div>
+
+    <div id="prompt-templates-list" class="prompt-templates-grid"></div>
+
+    <!-- 分类管理弹窗 -->
+    <div id="prompt-category-modal" class="modal" style="display:none">
+        <div class="modal-overlay" onclick="closePromptCategoryModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>管理分类</h3>
+                <button class="modal-close" onclick="closePromptCategoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="prompt-category-form">
+                    <input type="text" id="new-category-name" placeholder="分类名称" class="prompt-cat-input">
+                    <input type="text" id="new-category-icon" placeholder="图标" maxlength="4" class="prompt-cat-icon">
+                    <button class="btn btn-primary btn-sm" onclick="addPromptCategory()">添加</button>
+                </div>
+                <div id="category-list" class="prompt-category-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模板编辑弹窗 - 全屏式 -->
+    <div id="prompt-template-modal" class="modal prompt-editor-modal" style="display:none">
+        <div class="modal-overlay" onclick="closePromptTemplateModal()"></div>
+        <div class="modal-content prompt-editor-content">
+            <div class="modal-header">
+                <h3 id="prompt-modal-title">添加模板</h3>
+                <button class="modal-close" onclick="closePromptTemplateModal()">&times;</button>
+            </div>
+            <div class="modal-body prompt-editor-body">
+                <input type="hidden" id="edit-template-id">
+                <div class="prompt-editor-sidebar">
+                    <div class="form-group">
+                        <label>标题 <span class="required">*</span></label>
+                        <input type="text" id="template-title" placeholder="模板标题">
+                    </div>
+                    <div class="form-group">
+                        <label>分类</label>
+                        <select id="template-category">
+                            <option value="">未分类</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>描述</label>
+                        <textarea id="template-description" rows="3" placeholder="简短描述模板用途"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>标签</label>
+                        <input type="text" id="template-tags" placeholder="逗号分隔">
+                    </div>
+                    <div class="prompt-editor-hint">
+                        <strong>变量语法：</strong>
+                        <code>{{'{{'}}变量名{{'}}'}}</code> 基础变量<br>
+                        <code>{{'{{'}}变量:默认值{{'}}'}}</code> 带默认值<br>
+                        <code>{{'{{'}}变量|选项1|选项2{{'}}'}}</code> 下拉选择
+                    </div>
+                </div>
+                <div class="prompt-editor-main">
+                    <div class="form-group prompt-content-group">
+                        <label>Prompt 内容 <span class="required">*</span></label>
+                        <textarea id="template-content" placeholder="在此粘贴或编写 Prompt 内容..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closePromptTemplateModal()">取消</button>
+                <button class="btn btn-primary" onclick="savePromptTemplate()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 变量填充弹窗 -->
+    <div id="prompt-variables-modal" class="modal" style="display:none">
+        <div class="modal-overlay" onclick="closePromptVariablesModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>填写变量</h3>
+                <button class="modal-close" onclick="closePromptVariablesModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="use-template-id">
+                <div id="variables-form"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closePromptVariablesModal()">取消</button>
+                <button class="btn btn-primary" onclick="applyPromptTemplate()">应用</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入弹窗 -->
+    <div id="prompt-import-modal" class="modal" style="display:none">
+        <div class="modal-overlay" onclick="closeImportPromptModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>导入模板</h3>
+                <button class="modal-close" onclick="closeImportPromptModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>选择文件</label>
+                    <input type="file" id="import-file" accept=".json" onchange="handleImportFile(this)">
+                </div>
+                <div class="form-group">
+                    <label>或粘贴 JSON</label>
+                    <textarea id="import-json-content" rows="8" class="prompt-import-textarea" placeholder='{"templates": [...]}' ></textarea>
+                </div>
+                <label class="prompt-filter-toggle">
+                    <input type="checkbox" id="import-overwrite">
+                    <span>覆盖同名模板</span>
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeImportPromptModal()">取消</button>
+                <button class="btn btn-primary" onclick="doImportPromptTemplates()">导入</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+/* ========== Prompt 模板页面样式 - 主题适配 ========== */
+
+/* 页面头部按钮 - 紧凑样式 */
+#page-prompt-templates .page-actions .btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    gap: 4px;
+}
+
+#page-prompt-templates .page-actions .btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#page-prompt-templates .page-actions .btn-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* 分类标签按钮 */
+#page-prompt-templates .tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+#page-prompt-templates .tab-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+    border-color: var(--border-light);
+}
+
+#page-prompt-templates .tab-btn.active {
+    color: var(--accent);
+    background: var(--accent-glow);
+    border-color: var(--accent);
+}
+
+/* 毛玻璃效果适配 */
+[data-glass="true"] #page-prompt-templates .tab-btn {
+    background: rgba(30, 41, 59, 0.35);
+    border-color: rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+}
+
+[data-glass="true"] #page-prompt-templates .tab-btn:hover {
+    background: rgba(30, 41, 59, 0.5);
+}
+
+[data-glass="true"] #page-prompt-templates .tab-btn.active {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: var(--accent);
+}
+
+/* 亮色主题毛玻璃 */
+[data-theme="light"][data-glass="true"] #page-prompt-templates .tab-btn,
+[data-theme="cute"][data-glass="true"] #page-prompt-templates .tab-btn,
+[data-theme="office"][data-glass="true"] #page-prompt-templates .tab-btn,
+[data-theme="neon-light"][data-glass="true"] #page-prompt-templates .tab-btn,
+[data-theme="cyberpunk-light"][data-glass="true"] #page-prompt-templates .tab-btn {
+    background: rgba(255, 255, 255, 0.5);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"][data-glass="true"] #page-prompt-templates .tab-btn:hover,
+[data-theme="cute"][data-glass="true"] #page-prompt-templates .tab-btn:hover,
+[data-theme="office"][data-glass="true"] #page-prompt-templates .tab-btn:hover,
+[data-theme="neon-light"][data-glass="true"] #page-prompt-templates .tab-btn:hover,
+[data-theme="cyberpunk-light"][data-glass="true"] #page-prompt-templates .tab-btn:hover {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+/* 搜索栏筛选 */
+.prompt-filter-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    user-select: none;
+}
+
+.prompt-filter-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+}
+
+/* 模板网格 */
+.prompt-templates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+    padding: 16px 0;
+}
+
+/* 模板卡片 - 使用全局卡片样式 */
+.prompt-template-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.2s ease;
+}
+
+.prompt-template-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px var(--shadow-color, rgba(0,0,0,0.1));
+}
+
+.prompt-template-card.favorite {
+    border-color: var(--warning, #f59e0b);
+    background: linear-gradient(135deg, var(--bg-card), rgba(245, 158, 11, 0.05));
+}
+
+/* 毛玻璃效果适配 */
+[data-glass="true"] .prompt-template-card {
+    background: rgba(30, 41, 59, 0.35);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"][data-glass="true"] .prompt-template-card,
+[data-theme="cute"][data-glass="true"] .prompt-template-card,
+[data-theme="office"][data-glass="true"] .prompt-template-card,
+[data-theme="neon-light"][data-glass="true"] .prompt-template-card,
+[data-theme="cyberpunk-light"][data-glass="true"] .prompt-template-card {
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* 卡片头部 */
+.tpl-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.tpl-card-title {
+    flex: 1;
+    min-width: 0;
+}
+
+.tpl-card-title h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tpl-card-category {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 3px;
+}
+
+/* 卡片操作按钮 */
+.tpl-card-actions {
+    display: flex;
+    gap: 2px;
+}
+
+.tpl-action-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+
+.tpl-action-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.tpl-action-btn.is-favorite {
+    color: var(--warning, #f59e0b);
+}
+
+.tpl-action-btn.is-delete:hover {
+    color: var(--danger, #ef4444);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.tpl-action-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* 卡片描述 */
+.tpl-card-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* 卡片内容预览 */
+.tpl-card-preview {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light, var(--border));
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 12px;
+    font-family: var(--font-mono, "SF Mono", Monaco, monospace);
+    color: var(--text-primary);
+    line-height: 1.5;
+    max-height: 80px;
+    overflow: hidden;
+    position: relative;
+}
+
+.tpl-card-preview::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 24px;
+    background: linear-gradient(transparent, var(--bg-secondary));
+    pointer-events: none;
+}
+
+/* 卡片底部 */
+.tpl-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: auto;
+}
+
+.tpl-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.tpl-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--accent-glow, rgba(99, 102, 241, 0.15));
+    color: var(--accent);
+    border: 1px solid transparent;
+}
+
+.tpl-use-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 5px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.tpl-use-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+.tpl-use-btn svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+}
+
+/* ========== 分类管理 ========== */
+.prompt-category-form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.prompt-cat-input {
+    flex: 1;
+}
+
+.prompt-cat-icon {
+    width: 60px;
+    text-align: center;
+}
+
+.prompt-category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.prompt-cat-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+.prompt-cat-item-icon {
+    font-size: 18px;
+    width: 24px;
+    text-align: center;
+}
+
+.prompt-cat-item-name {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.prompt-cat-item-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.prompt-cat-item-actions button {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.prompt-cat-item-actions button:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.prompt-cat-item-actions button.is-delete:hover {
+    color: var(--danger, #ef4444);
+}
+
+.prompt-cat-item-actions button svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* ========== 模板编辑器 - 大编辑区域 ========== */
+.prompt-editor-modal .modal-content {
+    width: 95vw;
+    max-width: 1200px;
+    height: 85vh;
+    max-height: 800px;
+}
+
+.prompt-editor-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.prompt-editor-body {
+    display: flex;
+    gap: 20px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.prompt-editor-sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+}
+
+.prompt-editor-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.prompt-content-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.prompt-content-group textarea {
+    flex: 1;
+    min-height: 300px;
+    resize: none;
+    font-family: var(--font-mono, "SF Mono", Monaco, monospace);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.prompt-editor-hint {
+    padding: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.prompt-editor-hint strong {
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 6px;
+}
+
+.prompt-editor-hint code {
+    background: var(--bg-input);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+}
+
+/* 导入弹窗 */
+.prompt-import-textarea {
+    font-family: var(--font-mono, monospace);
+    font-size: 12px;
+}
+
+/* 变量表单 */
+#variables-form .form-group {
+    margin-bottom: 14px;
+}
+
+/* 空状态 */
+.prompt-empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+}
+
+.prompt-empty-state svg {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    opacity: 0.4;
+    stroke: var(--text-secondary);
+}
+
+.prompt-empty-state h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    color: var(--text-primary);
+}
+
+.prompt-empty-state p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+    .prompt-editor-body {
+        flex-direction: column;
+    }
+
+    .prompt-editor-sidebar {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .prompt-editor-sidebar .form-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .prompt-editor-hint {
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .prompt-templates-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .prompt-editor-modal .modal-content {
+        width: 100%;
+        height: 100%;
+        max-height: none;
+        border-radius: 0;
+    }
+}
+</style>

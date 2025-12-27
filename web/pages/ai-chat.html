@@ -1,42 +1,195 @@
 <div id="page-ai-chat" class="page">
-    <!-- Chat Header -->
-    <div class="chat-header">
-        <h2 class="chat-title"><svg class="title-icon" viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="8" cy="14" r="2"/><circle cx="16" cy="14" r="2"/></svg> AI 聊天</h2>
-        <div class="chat-header-actions">
-            <button class="ai-btn ai-btn-outline btn-sm" onclick="clearConversation()">
-                <span class="btn-icon"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
-                <span class="btn-text">清除对话</span>
-            </button>
-            <button class="ai-btn ai-btn-outline btn-sm" onclick="openAIChatSettings()">
-                <span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
-                <span class="btn-text">AI 设置</span>
-            </button>
+    <div class="ai-chat-layout">
+        <!-- Sidebar: Conversation History -->
+        <div id="ai-chat-sidebar" class="chat-sidebar">
+            <div class="chat-sidebar-header">
+                <div class="sidebar-header-row">
+                    <button class="ai-btn ai-btn-primary new-chat-btn" onclick="startNewChat()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span>新对话</span>
+                    </button>
+                    <button class="icon-btn sidebar-collapse-btn" onclick="toggleChatSidebar(false)" title="收起侧边栏">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>
+                    </button>
+                </div>
+                <div class="chat-search-wrapper">
+                    <input type="text" id="chat-history-search" placeholder="搜索历史对话..." oninput="filterChatHistory(this.value)">
+                    <span class="search-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
+                </div>
+            </div>
+            <div id="chat-history-list" class="chat-history-list">
+                <!-- Conversation items will be injected here via JS -->
+            </div>
+        </div>
+
+        <!-- Main: Chat Area -->
+        <div class="chat-main">
+            <!-- Chat Header -->
+            <div class="chat-header">
+                <div class="chat-header-left">
+                    <button class="icon-btn sidebar-toggle-btn" onclick="toggleChatSidebar()" title="展开侧边栏">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+                    <h2 class="chat-title">
+                        <svg class="title-icon" viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="8" cy="14" r="2"/><circle cx="16" cy="14" r="2"/></svg>
+                        <span id="current-chat-title">AI 聊天</span>
+                    </h2>
+                </div>
+                <div class="chat-header-actions">
+                    <button class="ai-btn ai-btn-outline btn-sm" onclick="openAIChatSettings()">
+                        <span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+                        <span class="btn-text">AI 设置</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat Container -->
+            <div class="chat-container">
+                <!-- Message List -->
+                <div id="chat-messages" class="chat-messages">
+                    <!-- Messages will be dynamically added via JS -->
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="chat-input-area">
+                <div class="chat-input-toolbar">
+                    <button class="toolbar-btn" onclick="showChatTemplateSelector()" title="选择 Prompt 模板">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        <span>模板</span>
+                    </button>
+                    <button class="toolbar-btn" onclick="showSlashCommandHelp()" title="快捷命令帮助">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6-6-6"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                        <span>/命令</span>
+                    </button>
+                </div>
+                <div class="chat-input-wrapper">
+                    <!-- 快捷命令提示框 -->
+                    <div id="slash-command-popup" class="slash-command-popup" style="display:none">
+                        <div class="slash-command-list" id="slash-command-list"></div>
+                    </div>
+                    <textarea id="chat-input" placeholder="输入消息... 输入 / 查看快捷命令" rows="1"></textarea>
+                    <button id="send-btn" class="send-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Chat Container -->
-    <div class="chat-container">
-        <!-- Message List -->
-        <div id="chat-messages" class="chat-messages">
-            <!-- 消息将通过 JS 动态添加 -->
-        </div>
-    </div>
-
-    <!-- Input Area -->
-    <div class="chat-input-area">
-        <div class="chat-input-wrapper">
-            <textarea id="chat-input" placeholder="输入消息... (Shift + Enter 换行)" rows="1"></textarea>
-            <button id="send-btn" class="ai-btn ai-btn-primary">
-                <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></span>
-            </button>
-        </div>
-    </div>
+    <!-- Mobile Sidebar Overlay -->
+    <div id="ai-chat-sidebar-overlay" class="chat-sidebar-overlay" onclick="toggleChatSidebar(false)"></div>
 
     <!-- AI Settings Modal (Drawer) -->
     <div id="ai-chat-settings-modal" class="modal" style="display:none">
         <div class="modal-overlay" onclick="closeAIChatSettings()"></div>
         <div class="modal-content modal-large ai-modal" id="ai-settings-drawer-content">
             <!-- Content from ai-settings.html will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Template Selector Modal -->
+    <div id="chat-template-modal" class="modal" style="display:none">
+        <div class="modal-overlay" onclick="closeChatTemplateSelector()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>选择 Prompt 模板</h3>
+                <button class="modal-close" onclick="closeChatTemplateSelector()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="template-search-box">
+                    <input type="text" id="chat-template-search" placeholder="搜索模板..." oninput="filterChatTemplates(this.value)">
+                </div>
+                <div id="chat-template-list" class="chat-template-list">
+                    <!-- 模板列表由 JS 动态渲染 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template Variables Modal -->
+    <div id="chat-template-vars-modal" class="modal" style="display:none">
+        <div class="modal-overlay" onclick="closeChatTemplateVarsModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>填写变量</h3>
+                <button class="modal-close" onclick="closeChatTemplateVarsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="chat-use-template-id">
+                <div id="chat-template-vars-form">
+                    <!-- 变量表单由 JS 动态渲染 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeChatTemplateVarsModal()">取消</button>
+                <button class="btn btn-primary" onclick="applyChatTemplate()">应用</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快捷命令帮助弹窗 -->
+    <div id="slash-command-help-modal" class="modal" style="display:none">
+        <div class="modal-overlay" onclick="closeSlashCommandHelp()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>快捷命令</h3>
+                <button class="modal-close" onclick="closeSlashCommandHelp()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="slash-help-section">
+                    <h4>📝 模板命令</h4>
+                    <div class="slash-help-list">
+                        <div class="slash-help-item">
+                            <code>/tpl</code>
+                            <span>打开模板选择器</span>
+                        </div>
+                        <div class="slash-help-item">
+                            <code>/tpl:模板名</code>
+                            <span>快速使用指定模板</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="slash-help-section">
+                    <h4>🔧 会话命令</h4>
+                    <div class="slash-help-list">
+                        <div class="slash-help-item">
+                            <code>/new</code>
+                            <span>创建新会话</span>
+                        </div>
+                        <div class="slash-help-item">
+                            <code>/clear</code>
+                            <span>清空当前会话消息</span>
+                        </div>
+                        <div class="slash-help-item">
+                            <code>/export</code>
+                            <span>导出当前会话为 Markdown</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="slash-help-section">
+                    <h4>⚙️ 设置命令</h4>
+                    <div class="slash-help-list">
+                        <div class="slash-help-item">
+                            <code>/settings</code>
+                            <span>打开 AI 设置</span>
+                        </div>
+                        <div class="slash-help-item">
+                            <code>/model</code>
+                            <span>切换模型</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="slash-help-section">
+                    <h4>💡 提示</h4>
+                    <div class="slash-help-list">
+                        <div class="slash-help-item">
+                            <code>/</code>
+                            <span>在输入框输入 / 即可看到命令提示</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -50,18 +203,277 @@
     position: relative;
 }
 
-/* 仅在页面激活时使用 flex，避免覆盖全局 .page{display:none} */
 #page-ai-chat.active {
     display: flex;
+}
+
+.ai-chat-layout {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* Sidebar Styles */
+.chat-sidebar {
+    width: 220px;
+    min-width: 220px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    transition: width 0.3s ease, min-width 0.3s ease, opacity 0.3s ease;
+    z-index: 10;
+    overflow: hidden;
+}
+
+.chat-sidebar.collapsed {
+    width: 0;
+    min-width: 0;
+    opacity: 0;
+    border-right: none;
+}
+
+.chat-sidebar-header {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sidebar-header-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.new-chat-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
+.new-chat-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.sidebar-collapse-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.sidebar-collapse-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.sidebar-collapse-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.chat-search-wrapper {
+    position: relative;
+}
+
+.chat-search-wrapper input {
+    width: 100%;
+    padding: 6px 8px 6px 28px;
+    font-size: 12px;
+    border-radius: 6px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    color: var(--text-primary);
+}
+
+.chat-search-wrapper input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.chat-search-wrapper .search-icon {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    display: flex;
+}
+
+.chat-search-wrapper .search-icon svg {
+    width: 12px;
+    height: 12px;
+}
+
+.chat-history-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px;
+}
+
+.history-item {
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+    transition: background 0.2s;
+    border: 1px solid transparent;
+    position: relative;
+}
+
+.history-item:hover {
+    background: var(--bg-hover);
+}
+
+.history-item.active {
+    background: var(--accent-glow, rgba(99, 102, 241, 0.1));
+    border-color: var(--accent);
+}
+
+.history-item-content {
+    flex: 1;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.history-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 1px;
+}
+
+.history-item.active .history-title {
+    color: var(--accent);
+}
+
+.history-preview {
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-time {
+    font-size: 10px;
+    color: var(--text-tertiary, var(--text-muted));
+    margin-top: 1px;
+}
+
+.history-actions {
+    display: none;
+    align-items: center;
+    gap: 2px;
+}
+
+.history-item:hover .history-actions {
+    display: flex;
+}
+
+.history-action-btn {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.history-action-btn:hover {
+    background: var(--bg-tertiary, var(--bg-hover));
+    color: var(--text-primary);
+}
+
+.history-action-btn.delete:hover {
+    color: var(--danger, #ef4444);
+}
+
+.history-action-btn svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* Chat Main Area */
+.chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .chat-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 24px;
+    padding: 12px 20px;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    background: var(--bg-primary);
+}
+
+.chat-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sidebar-toggle-btn {
+    display: none;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-toggle-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.sidebar-toggle-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.chat-sidebar.collapsed ~ .chat-main .sidebar-toggle-btn {
+    display: flex;
 }
 
 .chat-header-actions {
@@ -71,7 +483,7 @@
 }
 
 .chat-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     margin: 0;
     display: flex;
@@ -80,8 +492,8 @@
 }
 
 .chat-title .title-icon {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     stroke: currentColor;
     stroke-width: 2;
     stroke-linecap: round;
@@ -96,8 +508,8 @@
 }
 
 .chat-header-actions .btn-icon svg {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     stroke: currentColor;
     stroke-width: 2;
     stroke-linecap: round;
@@ -116,10 +528,10 @@
 .chat-messages {
     flex-grow: 1;
     overflow-y: auto;
-    padding: 24px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
 }
 
 /* Message Bubbles */
@@ -129,8 +541,8 @@
 }
 
 .message-content {
-    padding: 12px 18px;
-    border-radius: 18px;
+    padding: 10px 16px;
+    border-radius: 16px;
     line-height: 1.6;
     user-select: text;
     -webkit-user-select: text;
@@ -168,12 +580,12 @@
 
 /* Code Blocks in Messages */
 .message-content pre {
-    margin: 12px 0;
-    padding: 14px;
+    margin: 10px 0;
+    padding: 12px;
     border-radius: 8px;
     background: rgba(0, 0, 0, 0.2);
     font-family: "SF Mono", Monaco, monospace;
-    font-size: 13px;
+    font-size: 12px;
     white-space: pre-wrap;
     word-wrap: break-word;
 }
@@ -203,20 +615,21 @@
 
 /* Input Area */
 .chat-input-area {
-    padding: 16px 24px;
+    padding: 12px 20px;
     border-top: 1px solid var(--border);
     background: var(--bg-primary);
     flex-shrink: 0;
 }
 
 .chat-input-wrapper {
+    position: relative;
     display: flex;
     align-items: flex-end;
-    gap: 12px;
+    gap: 10px;
     background: var(--bg-secondary);
     border-radius: var(--radius);
     border: 1px solid var(--border);
-    padding: 8px;
+    padding: 6px;
     transition: border-color 0.2s;
 }
 
@@ -229,11 +642,11 @@
     border: none;
     background: transparent;
     color: var(--text-primary);
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.5;
-    padding: 8px;
+    padding: 6px;
     resize: none;
-    max-height: 200px;
+    max-height: 180px;
     overflow-y: auto;
 }
 
@@ -241,17 +654,90 @@
     outline: none;
 }
 
-#send-btn {
-    height: 40px;
-    width: 40px;
-    border-radius: 10px;
+/* Send Button - Fixed Icon Display */
+.send-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 8px;
     flex-shrink: 0;
     padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
 }
 
-#send-btn .btn-icon {
-    font-size: 20px;
-    transform: translateX(1px);
+.send-btn:hover {
+    background: var(--accent-hover, var(--accent));
+    transform: scale(1.05);
+}
+
+.send-btn:active {
+    transform: scale(0.95);
+}
+
+.send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.send-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: white;
+    fill: none;
+}
+
+/* Mobile Responsive */
+.chat-sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+@media (max-width: 768px) {
+    .sidebar-toggle-btn {
+        display: flex;
+    }
+
+    .chat-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        transform: translateX(-100%);
+        width: 80%;
+        max-width: 280px;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+        z-index: 100;
+    }
+
+    .chat-sidebar.collapsed {
+        width: 80%;
+        max-width: 280px;
+        opacity: 1;
+    }
+
+    .chat-sidebar.open {
+        transform: translateX(0);
+    }
+
+    .chat-sidebar-overlay.open {
+        display: block;
+        opacity: 1;
+    }
 }
 
 /* Settings Modal (Drawer) */
@@ -260,7 +746,7 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: 650px;
+    width: 600px;
     max-width: 90vw;
     height: 100%;
     border-radius: 0;
@@ -279,10 +765,343 @@
 }
 
 #ai-settings-drawer-content .page-header {
-    padding: 20px 24px;
+    padding: 16px 20px;
 }
 
 #ai-settings-drawer-content .ai-modal-body {
     flex-grow: 1;
+}
+
+/* Empty State */
+.chat-history-empty {
+    padding: 20px 12px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.chat-history-empty svg {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+/* Input Toolbar */
+.chat-input-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.toolbar-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-glow);
+}
+
+.toolbar-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    flex-shrink: 0;
+}
+
+/* 毛玻璃效果适配 */
+[data-glass="true"] .toolbar-btn {
+    background: rgba(30, 41, 59, 0.4);
+    border-color: rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+}
+
+[data-glass="true"] .toolbar-btn:hover {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: var(--accent);
+}
+
+/* 亮色主题毛玻璃 */
+[data-theme="light"][data-glass="true"] .toolbar-btn,
+[data-theme="cute"][data-glass="true"] .toolbar-btn,
+[data-theme="office"][data-glass="true"] .toolbar-btn,
+[data-theme="neon-light"][data-glass="true"] .toolbar-btn,
+[data-theme="cyberpunk-light"][data-glass="true"] .toolbar-btn {
+    background: rgba(255, 255, 255, 0.5);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Template Selector in Chat */
+.template-search-box {
+    margin-bottom: 12px;
+}
+
+.template-search-box input {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 13px;
+    border-radius: 6px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+}
+
+.template-search-box input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.chat-template-list {
+    max-height: 400px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.chat-template-item {
+    padding: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.chat-template-item:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.chat-template-item.favorite {
+    border-color: var(--warning, #f59e0b);
+}
+
+.chat-template-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.chat-template-item-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.chat-template-item-star {
+    color: var(--warning, #f59e0b);
+    font-size: 14px;
+}
+
+.chat-template-item-preview {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    max-height: 40px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.chat-template-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+
+.chat-template-empty svg {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+/* Template Variables Form */
+#chat-template-vars-form .form-group {
+    margin-bottom: 14px;
+}
+
+#chat-template-vars-form label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+#chat-template-vars-form input,
+#chat-template-vars-form textarea {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 13px;
+    border-radius: 6px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+}
+
+#chat-template-vars-form input:focus,
+#chat-template-vars-form textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* ========== 快捷命令样式 ========== */
+.slash-command-popup {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    margin-bottom: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px var(--shadow-color, rgba(0,0,0,0.15));
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+[data-glass="true"] .slash-command-popup {
+    background: rgba(30, 41, 59, 0.85);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+}
+
+[data-theme="light"][data-glass="true"] .slash-command-popup,
+[data-theme="cute"][data-glass="true"] .slash-command-popup,
+[data-theme="office"][data-glass="true"] .slash-command-popup {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.slash-command-list {
+    padding: 6px;
+}
+
+.slash-cmd-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.slash-cmd-item:hover,
+.slash-cmd-item.active {
+    background: var(--bg-hover);
+}
+
+.slash-cmd-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-glow, rgba(99, 102, 241, 0.15));
+    color: var(--accent);
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.slash-cmd-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.slash-cmd-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.slash-cmd-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.slash-cmd-name code {
+    background: var(--bg-secondary);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: var(--font-mono, monospace);
+    font-size: 12px;
+    margin-right: 6px;
+}
+
+.slash-cmd-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.slash-cmd-hint {
+    font-size: 11px;
+    color: var(--text-tertiary, var(--text-secondary));
+    opacity: 0.7;
+}
+
+/* 命令帮助弹窗 */
+.slash-help-section {
+    margin-bottom: 20px;
+}
+
+.slash-help-section h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+}
+
+.slash-help-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.slash-help-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+}
+
+.slash-help-item code {
+    background: var(--accent-glow, rgba(99, 102, 241, 0.15));
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono, monospace);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.slash-help-item span {
+    font-size: 13px;
+    color: var(--text-secondary);
 }
 </style>

@@ -33,6 +33,7 @@ class DatabaseManager:
         """获取数据库连接"""
         conn = sqlite3.connect(str(self.db_path))
         conn.row_factory = sqlite3.Row  # 返回字典格式
+        conn.execute("PRAGMA foreign_keys = ON")  # 启用外键约束
         return conn
 
     def _init_database(self):
@@ -201,6 +202,98 @@ class DatabaseManager:
                     value TEXT NOT NULL,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
+            """)
+
+            # 11. 聊天会话表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS chat_sessions (
+                    id TEXT PRIMARY KEY,
+                    title TEXT,
+                    mode TEXT NOT NULL DEFAULT 'chat',
+                    provider_id TEXT,
+                    system_prompt TEXT,
+                    message_count INTEGER NOT NULL DEFAULT 0,
+                    last_message_at TIMESTAMP,
+                    pinned INTEGER NOT NULL DEFAULT 0,
+                    archived INTEGER NOT NULL DEFAULT 0,
+                    metadata TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_chat_sessions_last_message
+                ON chat_sessions(last_message_at DESC)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_chat_sessions_archived
+                ON chat_sessions(archived)
+            """)
+
+            # 12. 聊天消息表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS chat_messages (
+                    id TEXT PRIMARY KEY,
+                    session_id TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    content_type TEXT DEFAULT 'text/markdown',
+                    sequence INTEGER NOT NULL,
+                    provider_id TEXT,
+                    token_count INTEGER,
+                    meta TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY(session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
+                )
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_chat_messages_session_seq
+                ON chat_messages(session_id, sequence)
+            """)
+
+            # 13. Prompt 模板分类表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS prompt_categories (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL UNIQUE,
+                    icon TEXT,
+                    order_index INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_prompt_categories_order
+                ON prompt_categories(order_index)
+            """)
+
+            # 14. Prompt 模板表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS prompt_templates (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    category_id TEXT,
+                    description TEXT,
+                    tags TEXT,
+                    variables TEXT,
+                    is_favorite INTEGER DEFAULT 0,
+                    is_system INTEGER DEFAULT 0,
+                    usage_count INTEGER DEFAULT 0,
+                    order_index INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY(category_id) REFERENCES prompt_categories(id) ON DELETE SET NULL
+                )
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_prompt_templates_category
+                ON prompt_templates(category_id)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_prompt_templates_favorite
+                ON prompt_templates(is_favorite)
             """)
 
             # 设置数据库版本
@@ -426,7 +519,7 @@ class DatabaseManager:
         """将 JSON 字符串字段反序列化为字典/列表"""
         result = dict(data)
         json_fields = ['config', 'capabilities', 'stats', 'compatibility',
-                      'features', 'data', 'commands', 'tags', 'extra']
+                      'features', 'data', 'commands', 'tags', 'extra', 'meta', 'metadata', 'variables']
 
         for field in json_fields:
             if field in result and isinstance(result[field], str):

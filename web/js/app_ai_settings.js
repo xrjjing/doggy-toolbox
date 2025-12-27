@@ -13,11 +13,10 @@ let toolAIConfig = null;
 
 // 初始化 AI 配置页面
 async function initAISettingsPage() {
-    await loadProviders();
-    initProviderTypeListeners();
-    // 预加载功能开关数据（但不渲染，等用户切换到该 Tab 时再渲染）
     // 等待 API 就绪后再加载
     await waitForAPIReady();
+    await loadProviders();
+    initProviderTypeListeners();
     await loadToolAIData();
 }
 
@@ -368,7 +367,12 @@ function switchProviderCategory(category) {
 // 加载 Provider 列表
 async function loadProviders() {
     try {
-        const providers = await pywebview.api.get_ai_providers();
+        const api = window.pywebview && window.pywebview.api;
+        if (!api || typeof api.get_ai_providers !== 'function') {
+            console.warn('PyWebView API 未就绪，稍后重试');
+            return;
+        }
+        const providers = await api.get_ai_providers();
         renderProviders(providers);
     } catch (error) {
         console.error('加载 Provider 列表失败:', error);

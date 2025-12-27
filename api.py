@@ -9,6 +9,8 @@ from typing import List
 from services import ComputerUsageService, NodeConverterService
 from services.http_collections import HttpCollectionsService
 from services.ai_manager import AIManager
+from services.chat_history import ChatHistoryService
+from services.prompt_template import PromptTemplateService
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +47,22 @@ class Api:
 
         # AI Manager - 使用独立的 AI配置 文件夹
         self.ai_manager = AIManager(self.data_dir / "AI配置")
+
+        # 聊天历史服务
+        self.chat_history = None
+        try:
+            if self.ai_manager.db:
+                self.chat_history = ChatHistoryService(self.ai_manager.db)
+        except Exception as e:
+            logger.warning(f"聊天历史服务初始化失败: {e}")
+
+        # Prompt 模板服务
+        self.prompt_template = None
+        try:
+            if self.ai_manager.db:
+                self.prompt_template = PromptTemplateService(self.ai_manager.db)
+        except Exception as e:
+            logger.warning(f"Prompt 模板服务初始化失败: {e}")
 
         self._window = None
 
@@ -1139,7 +1157,7 @@ class Api:
             logger.info(f"清理了 {len(expired_ids)} 个超时的聊天会话")
 
     def ai_chat_stream(self, message: str, history: list = None, provider_id: str = None,
-                        mode: str = 'chat', tool_recommend: bool = True):
+                        mode: str = 'chat', tool_recommend: bool = True, conversation_id: str = None):
         """
         AI 流式对话接口（适配 PyWebView）
 
@@ -1154,9 +1172,10 @@ class Api:
             provider_id: Provider ID（可选，默认使用当前启用的）
             mode: 对话模式 ('chat' 普通对话, 'explain' 解释模式)
             tool_recommend: 是否启用工具推荐
+            conversation_id: 持久化会话 ID（可选，不传则创建新会话）
 
         Returns:
-            {"success": True, "session_id": "...", "tool_recommendations": {...}}
+            {"success": True, "session_id": "...", "conversation_id": "...", "tool_recommendations": {...}}
         """
         import asyncio
         import threading
@@ -1164,7 +1183,7 @@ class Api:
         import uuid
         from collections import deque
 
-        # 生成会话 ID
+        # 生成流式会话 ID（临时，用于轮询）
         session_id = str(uuid.uuid4())
 
         # 初始化会话字典和线程锁
@@ -1189,11 +1208,24 @@ class Api:
             except Exception as e:
                 logger.warning(f"工具推荐失败: {e}")
 
+        # 持久化：创建或复用会话
+        if self.chat_history:
+            if not conversation_id:
+                system_prompt = self.ai_manager.EXPLAINER_SYSTEM_PROMPT if mode == 'explain' else None
+                create_res = self.chat_history.create_session(
+                    title=None, mode=mode, provider_id=pid, system_prompt=system_prompt
+                )
+                conversation_id = (create_res.get("session") or {}).get("id")
+            if conversation_id:
+                self.chat_history.append_message(conversation_id, "user", message, provider_id=pid)
+
         # 创建新会话（带时间戳）
         now = time.monotonic()
         with self._chat_sessions_lock:
             self._chat_sessions[session_id] = {
                 'chunks': deque(),  # 存储增量内容
+                'buffer': [],       # 完整内容用于落库
+                'conversation_id': conversation_id,
                 'done': False,
                 'error': None,
                 'last_access': now  # 记录最后访问时间
@@ -1213,6 +1245,7 @@ class Api:
         messages.append({'role': 'user', 'content': message})
 
         # 后台任务
+        chat_history_ref = self.chat_history
         def stream_task():
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
@@ -1228,15 +1261,23 @@ class Api:
                                 if session is None:  # 会话已被清理
                                     break
                                 session['chunks'].append(chunk)
+                                session['buffer'].append(chunk)
                                 session['last_access'] = time.monotonic()
 
                 loop.run_until_complete(run_stream())
-                # 标记完成
+                # 标记完成并落库
                 with self._chat_sessions_lock:
                     session = self._chat_sessions.get(session_id)
                     if session is not None:
                         session['done'] = True
                         session['last_access'] = time.monotonic()
+                        # 持久化助手消息
+                        if chat_history_ref and session.get('conversation_id'):
+                            content = "".join(session.get('buffer') or [])
+                            if content:
+                                chat_history_ref.append_message(
+                                    session['conversation_id'], "assistant", content, provider_id=pid
+                                )
             except Exception as e:
                 logger.error(f"AI 流式对话失败: {e}")
                 # 记录错误
@@ -1256,6 +1297,7 @@ class Api:
         return {
             'success': True,
             'session_id': session_id,
+            'conversation_id': conversation_id,
             'web_search_enabled': web_search_enabled,
             'tool_recommendations': tool_recommendations
         }
@@ -1333,3 +1375,184 @@ class Api:
     def set_global_ai_enabled(self, enabled: bool):
         """设置全局 AI 功能开关"""
         return self.ai_manager.set_global_ai_enabled(enabled)
+
+    # ========== 聊天历史管理 ==========
+
+    def create_chat_session(self, title: str = None, mode: str = "chat",
+                            provider_id: str = None, system_prompt: str = None):
+        """创建新的聊天会话"""
+        if not self.chat_history:
+            return {"success": False, "error": "聊天历史服务不可用"}
+        return self.chat_history.create_session(title, mode, provider_id, system_prompt)
+
+    def list_chat_sessions(self, keyword: str = None, limit: int = 50,
+                           offset: int = 0, include_archived: bool = False):
+        """获取聊天会话列表"""
+        if not self.chat_history:
+            return {"success": False, "error": "聊天历史服务不可用"}
+        sessions = self.chat_history.list_sessions(keyword, limit, offset, include_archived)
+        return {"success": True, "sessions": sessions}
+
+    def get_chat_session(self, session_id: str):
+        """获取单个聊天会话详情"""
+        if not self.chat_history:
+            return {"success": False, "error": "聊天历史服务不可用"}
+        session = self.chat_history.get_session(session_id)
+        return {"success": True, "session": session}
+
+    def get_chat_messages(self, session_id: str, limit: int = None, offset: int = 0):
+        """获取聊天会话的消息列表"""
+        if not self.chat_history:
+            return {"success": False, "error": "聊天历史服务不可用"}
+        messages = self.chat_history.get_messages(session_id, limit, offset)
+        return {"success": True, "messages": messages}
+
+    def rename_chat_session(self, session_id: str, title: str):
+        """重命名聊天会话"""
+        if not self.chat_history:
+            return {"success": False, "error": "聊天历史服务不可用"}
+        ok = self.chat_history.update_session_title(session_id, title)
+        return {"success": ok}
+
+    def archive_chat_session(self, session_id: str, archived: bool = True):
+        """归档/取消归档聊天会话"""
+        if not self.chat_history:
+            return {"success": False, "error": "聊天历史服务不可用"}
+        ok = self.chat_history.set_session_archived(session_id, archived)
+        return {"success": ok}
+
+    def delete_chat_session(self, session_id: str):
+        """删除聊天会话"""
+        if not self.chat_history:
+            return {"success": False, "error": "聊天历史服务不可用"}
+        return self.chat_history.delete_session(session_id)
+
+    def search_chat_messages(self, keyword: str, session_id: str = None,
+                             limit: int = 50, offset: int = 0):
+        """搜索聊天消息"""
+        if not self.chat_history:
+            return {"success": False, "error": "聊天历史服务不可用"}
+        results = self.chat_history.search_messages(keyword, session_id, limit, offset)
+        return {"success": True, "results": results}
+
+    def export_chat_session_markdown(self, session_id: str):
+        """导出聊天会话为 Markdown"""
+        if not self.chat_history:
+            return {"success": False, "error": "聊天历史服务不可用"}
+        content = self.chat_history.export_session_markdown(session_id)
+        return {"success": True, "content": content}
+
+    # ========== Prompt 模板管理 ==========
+
+    def list_prompt_categories(self):
+        """获取 Prompt 模板分类列表"""
+        if not self.prompt_template:
+            return {"success": False, "error": "模板服务不可用"}
+        categories = self.prompt_template.list_categories()
+        return {"success": True, "categories": categories}
+
+    def create_prompt_category(self, name: str, icon: str = None):
+        """创建 Prompt 模板分类"""
+        if not self.prompt_template:
+            return {"success": False, "error": "模板服务不可用"}
+        return self.prompt_template.create_category(name, icon)
+
+    def update_prompt_category(self, category_id: str, name: str, icon: str = None):
+        """更新 Prompt 模板分类"""
+        if not self.prompt_template:
+            return {"success": False, "error": "模板服务不可用"}
+        return self.prompt_template.update_category(category_id, name, icon)
+
+    def delete_prompt_category(self, category_id: str):
+        """删除 Prompt 模板分类"""
+        if not self.prompt_template:
+            return {"success": False, "error": "模板服务不可用"}
+        return self.prompt_template.delete_category(category_id)
+
+    def reorder_prompt_categories(self, category_ids: List[str]):
+        """重排 Prompt 模板分类顺序"""
+        if not self.prompt_template:
+            return {"success": False, "error": "模板服务不可用"}
+        return self.prompt_template.reorder_categories(category_ids)
+
+    def list_prompt_templates(self, category_id: str = None, keyword: str = None, favorites_only: bool = False):
+        """获取 Prompt 模板列表"""
+        if not self.prompt_template:
+            return {"success": False, "error": "模板服务不可用"}
+        templates = self.prompt_template.list_templates(category_id, keyword, favorites_only)
+        return {"success": True, "templates": templates}
+
+    def get_prompt_template(self, template_id: str):
+        """获取单个 Prompt 模板"""
+        if not self.prompt_template:
+            return {"success": False, "error": "模板服务不可用"}
+        template = self.prompt_template.get_template(template_id)
+        return {"success": True, "template": template}
+
+    def create_prompt_template(self, title: str, content: str, category_id: str = None,
+                               description: str = None, tags: List[str] = None):
+        """创建 Prompt 模板"""
+        if not self.prompt_template:
+            return {"success": False, "error": "模板服务不可用"}
+        return self.prompt_template.create_template(title, content, category_id, description, tags)
+
+    def update_prompt_template(self, template_id: str, title: str = None, content: str = None,
+                               category_id: str = None, description: str = None, tags: List[str] = None):
+        """更新 Prompt 模板"""
+        if not self.prompt_template:
+            return {"success": False, "error": "模板服务不可用"}
+        kwargs = {}
+        if title is not None:
+            kwargs["title"] = title
+        if content is not None:
+            kwargs["content"] = content
+        if category_id is not None:
+            kwargs["category_id"] = category_id
+        if description is not None:
+            kwargs["description"] = description
+        if tags is not None:
+            kwargs["tags"] = tags
+        return self.prompt_template.update_template(template_id, **kwargs)
+
+    def delete_prompt_template(self, template_id: str):
+        """删除 Prompt 模板"""
+        if not self.prompt_template:
+            return {"success": False, "error": "模板服务不可用"}
+        return self.prompt_template.delete_template(template_id)
+
+    def toggle_prompt_template_favorite(self, template_id: str):
+        """切换 Prompt 模板收藏状态"""
+        if not self.prompt_template:
+            return {"success": False, "error": "模板服务不可用"}
+        return self.prompt_template.toggle_favorite(template_id)
+
+    def use_prompt_template(self, template_id: str, values: dict = None):
+        """使用 Prompt 模板（填充变量并返回内容）"""
+        if not self.prompt_template:
+            return {"success": False, "error": "模板服务不可用"}
+        return self.prompt_template.use_template(template_id, values)
+
+    def parse_prompt_variables(self, content: str):
+        """解析 Prompt 内容中的变量"""
+        if not self.prompt_template:
+            return {"success": False, "error": "模板服务不可用"}
+        variables = self.prompt_template.parse_variables(content)
+        return {"success": True, "variables": variables}
+
+    def save_message_as_template(self, content: str, title: str = None, category_id: str = None):
+        """将消息保存为 Prompt 模板"""
+        if not self.prompt_template:
+            return {"success": False, "error": "模板服务不可用"}
+        return self.prompt_template.save_as_template(content, title, category_id)
+
+    def export_prompt_templates(self, template_ids: List[str] = None, include_categories: bool = True):
+        """导出 Prompt 模板为 JSON"""
+        if not self.prompt_template:
+            return {"success": False, "error": "模板服务不可用"}
+        return self.prompt_template.export_templates(template_ids, include_categories)
+
+    def import_prompt_templates(self, import_data: dict, overwrite: bool = False):
+        """从 JSON 导入 Prompt 模板"""
+        if not self.prompt_template:
+            return {"success": False, "error": "模板服务不可用"}
+        return self.prompt_template.import_templates(import_data, overwrite)

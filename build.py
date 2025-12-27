@@ -53,7 +53,7 @@ def build():
         "--hidden-import", "httpx",
         "--hidden-import", "httpx._client",
         "--hidden-import", "httpx._config",
-        "--hidden-import", "duckduckgo_search",
+        "--hidden-import", "ddgs",
         # 排除不必要的大模块
         "--exclude-module", "PIL",
         "--exclude-module", "Pillow",
