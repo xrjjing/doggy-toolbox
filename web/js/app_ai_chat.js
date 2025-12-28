@@ -85,33 +85,168 @@ async function initAIChatPage() {
 }
 
 /**
- * 加载 AI 设置抽屉内容（简化版，避免 DOM id 冲突）
+ * 加载 AI 设置抽屉内容 - Provider 快速切换
  */
 function loadSettingsDrawer(drawerElement) {
     if (!drawerElement) return;
 
     drawerElement.innerHTML = `
-        <div style="padding:16px 24px">
-            <h3 style="margin:0 0 8px;font-size:18px;font-weight:600">AI 配置</h3>
-            <p style="margin:0 0 12px;opacity:0.85;font-size:14px">
-                AI Provider 的新增/编辑请在左侧导航「AI 管理 → AI 配置」中完成。
-            </p>
-            <button class="ai-btn ai-btn-primary" type="button" id="ai-chat-open-settings-page-btn">
-                打开 AI 配置页面
-            </button>
+        <div class="chat-settings-drawer">
+            <div class="drawer-header">
+                <h3>切换 AI Provider</h3>
+                <button class="drawer-close-btn" onclick="closeAIChatSettings()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="drawer-body">
+                <div class="provider-category-tabs">
+                    <button class="provider-tab active" data-category="openai" onclick="switchDrawerCategory('openai')">OpenAI</button>
+                    <button class="provider-tab" data-category="claude" onclick="switchDrawerCategory('claude')">Claude</button>
+                </div>
+                <div id="chat-provider-list" class="chat-provider-list">
+                    <div class="provider-loading">加载中...</div>
+                </div>
+            </div>
+            <div class="drawer-footer">
+                <button class="ai-btn ai-btn-ghost btn-sm" onclick="goToAISettings()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    管理 Provider
+                </button>
+            </div>
         </div>
     `;
 
-    const btn = drawerElement.querySelector('#ai-chat-open-settings-page-btn');
-    if (btn) {
-        btn.addEventListener('click', () => {
-            closeAIChatSettings();
-            // 切换到 AI 配置页面
-            if (typeof window.switchPage === 'function') {
-                window.switchPage('ai-settings');
-            }
-        });
+    // 加载 Provider 列表
+    loadDrawerProviders();
+}
+
+// 抽屉当前分类
+let drawerCategory = 'openai';
+
+/**
+ * 切换抽屉分类
+ */
+function switchDrawerCategory(category) {
+    drawerCategory = category;
+    document.querySelectorAll('.provider-category-tabs .provider-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.category === category);
+    });
+    loadDrawerProviders();
+}
+
+/**
+ * 加载抽屉 Provider 列表
+ */
+async function loadDrawerProviders() {
+    const container = document.getElementById('chat-provider-list');
+    if (!container) return;
+
+    const api = getPywebviewApi();
+    if (!api || typeof api.get_ai_providers !== 'function') {
+        container.innerHTML = '<div class="provider-empty">API 未就绪</div>';
+        return;
     }
+
+    try {
+        const providers = await api.get_ai_providers();
+        renderDrawerProviders(providers, container);
+    } catch (error) {
+        console.error('加载 Provider 列表失败:', error);
+        container.innerHTML = '<div class="provider-empty">加载失败</div>';
+    }
+}
+
+/**
+ * 渲染抽屉 Provider 列表
+ */
+function renderDrawerProviders(providers, container) {
+    if (!providers || providers.length === 0) {
+        container.innerHTML = '<div class="provider-empty">暂无 Provider 配置</div>';
+        return;
+    }
+
+    const filtered = providers.filter(p => {
+        if (drawerCategory === 'openai') {
+            return p.type === 'openai' || p.type === 'openai-compatible';
+        }
+        return p.type === 'claude';
+    });
+
+    if (filtered.length === 0) {
+        const name = drawerCategory === 'openai' ? 'OpenAI' : 'Claude';
+        container.innerHTML = `<div class="provider-empty">暂无 ${name} Provider</div>`;
+        return;
+    }
+
+    container.innerHTML = filtered.map(p => `
+        <div class="chat-provider-item ${p.active ? 'active' : ''}" onclick="selectChatProvider('${p.id.replace(/'/g, "\\'")}', ${p.active})">
+            <div class="provider-item-info">
+                <span class="provider-item-name">${escapeHtmlChat(p.name)}</span>
+                <span class="provider-item-type">${getProviderTypeLabelChat(p.type)}</span>
+            </div>
+            <div class="provider-item-status">
+                ${p.active ? '<span class="provider-active-badge">当前</span>' : '<span class="provider-switch-hint">点击切换</span>'}
+            </div>
+        </div>
+    `).join('');
+}
+
+/**
+ * 选择 Provider
+ */
+async function selectChatProvider(providerId, isActive) {
+    if (isActive) return;
+
+    const api = getPywebviewApi();
+    if (!api || typeof api.switch_ai_provider !== 'function') {
+        showToast('API 未就绪', 'error');
+        return;
+    }
+
+    try {
+        const result = await api.switch_ai_provider(providerId);
+        if (result.success) {
+            showToast('切换成功', 'success');
+            loadDrawerProviders();
+        } else {
+            showToast(`切换失败: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('切换 Provider 失败:', error);
+        showToast('切换失败', 'error');
+    }
+}
+
+/**
+ * 跳转到 AI 配置页面
+ */
+function goToAISettings() {
+    closeAIChatSettings();
+    if (typeof window.switchPage === 'function') {
+        window.switchPage('ai-settings');
+    }
+}
+
+/**
+ * HTML 转义（聊天页面专用）
+ */
+function escapeHtmlChat(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[m]);
+}
+
+/**
+ * Provider 类型标签（聊天页面专用）
+ */
+function getProviderTypeLabelChat(type) {
+    const labels = {
+        'openai': 'OpenAI 官方',
+        'claude': 'Claude',
+        'openai-compatible': '第三方兼容'
+    };
+    return labels[type] || type;
 }
 
 /**
