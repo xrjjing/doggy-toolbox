@@ -601,3 +601,65 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"数据库导出失败: {e}")
             return False
+
+    def get_app_config(self, key: str, default: Any = None) -> Any:
+        """
+        获取应用配置
+
+        Args:
+            key: 配置键
+            default: 默认值
+
+        Returns:
+            配置值（自动反序列化 JSON）
+        """
+        row = self.get_by_id("app_config", key, "key")
+        if not row:
+            return default
+
+        value = row.get("value")
+        if value is None:
+            return default
+
+        # 尝试 JSON 反序列化
+        try:
+            return json.loads(value)
+        except (json.JSONDecodeError, TypeError):
+            # 如果不是 JSON，返回原始字符串
+            return value
+
+    def set_app_config(self, key: str, value: Any) -> bool:
+        """
+        设置应用配置
+
+        Args:
+            key: 配置键
+            value: 配置值（自动序列化为 JSON）
+
+        Returns:
+            是否成功
+        """
+        try:
+            # 统一序列化为 JSON（包括字符串）
+            json_value = json.dumps(value, ensure_ascii=False)
+        except (TypeError, ValueError) as e:
+            logger.error(f"配置值序列化失败 (key={key}): {e}")
+            return False
+
+        # 使用 UPSERT 避免并发问题
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO app_config (key, value, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(key) DO UPDATE SET
+                    value = excluded.value,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (key, json_value))
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            logger.error(f"配置写入失败 (key={key}): {e}")
+            return False

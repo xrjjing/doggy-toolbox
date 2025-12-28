@@ -23,10 +23,16 @@ class Api:
         self.data_dir = data_dir
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
+        # 统一数据库初始化（必须最先完成）
+        from services.db_manager import DatabaseManager
+        db_path = self.data_dir / "doggy_toolbox.db"
+        self.db = DatabaseManager(db_path)
+        logger.info(f"数据库初始化完成: {db_path}")
+
         # 数据布局兼容策略（A 方案）：旧版与新版都能读
         # - 旧版（legacy）：文件在 data_dir 根目录
         # - 新版（structured）：文件在 data_dir/电脑使用 与 data_dir/转化节点
-        # - 混合（hybrid）：按“旧优先、存在优先”逐文件选择
+        # - 混合（hybrid）：按"旧优先、存在优先"逐文件选择
         paths = self._resolve_data_paths(self.data_dir)
         self._data_paths = paths
 
@@ -36,17 +42,19 @@ class Api:
             commands_file=paths["commands_file"],
             credentials_file=paths["credentials_file"],
             tabs_file=paths["tabs_file"],
+            db=self.db,
         )
         self.node_converter = NodeConverterService(
             data_dir=self.data_dir,
             nodes_file=paths["nodes_file"],
         )
         self.http_collections = HttpCollectionsService(
-            data_dir=self.data_dir / "HTTP请求"
+            data_dir=self.data_dir,
+            db=self.db,
         )
 
-        # AI Manager - 使用独立的 AI配置 文件夹
-        self.ai_manager = AIManager(self.data_dir / "AI配置")
+        # AI Manager - 迁移后使用根目录
+        self.ai_manager = AIManager(self.data_dir, db=self.db)
 
         # 聊天历史服务
         self.chat_history = None
@@ -334,153 +342,63 @@ class Api:
     # ========== 系统配置 ==========
     def get_theme(self):
         """获取保存的主题设置"""
-        config_path = self.data_dir / "config.json"
-        if config_path.exists():
-            try:
-                with open(config_path, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-                    return config.get("theme", "dark")
-            except Exception:
-                pass
+        if self.ai_manager.db:
+            return self.ai_manager.db.get_app_config("theme", "dark")
         return "dark"
 
     def save_theme(self, theme: str):
         """保存主题设置"""
-        config_path = self.data_dir / "config.json"
-        config = {}
-        if config_path.exists():
-            try:
-                with open(config_path, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-            except Exception:
-                pass
-        config["theme"] = theme
-        try:
-            with open(config_path, "w", encoding="utf-8") as f:
-                json.dump(config, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception:
-            return False
+        if self.ai_manager.db:
+            return self.ai_manager.db.set_app_config("theme", theme)
+        return False
 
     def get_glass_mode(self):
         """获取毛玻璃模式设置"""
-        config_path = self.data_dir / "config.json"
-        if config_path.exists():
-            try:
-                with open(config_path, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-                    return config.get("glass_mode", False)
-            except Exception:
-                pass
+        if self.ai_manager.db:
+            return self.ai_manager.db.get_app_config("glass_mode", False)
         return False
 
     def save_glass_mode(self, enabled: bool):
         """保存毛玻璃模式设置"""
-        config_path = self.data_dir / "config.json"
-        config = {}
-        if config_path.exists():
-            try:
-                with open(config_path, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-            except Exception:
-                pass
-        config["glass_mode"] = enabled
-        try:
-            with open(config_path, "w", encoding="utf-8") as f:
-                json.dump(config, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception:
-            return False
+        if self.ai_manager.db:
+            return self.ai_manager.db.set_app_config("glass_mode", enabled)
+        return False
 
     def get_glass_opacity(self):
         """获取毛玻璃透明度设置"""
-        config_path = self.data_dir / "config.json"
-        if config_path.exists():
-            try:
-                with open(config_path, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-                    return config.get("glass_opacity", 60)
-            except Exception:
-                pass
+        if self.ai_manager.db:
+            return self.ai_manager.db.get_app_config("glass_opacity", 60)
         return 60
 
     def save_glass_opacity(self, opacity: int):
         """保存毛玻璃透明度设置"""
-        config_path = self.data_dir / "config.json"
-        config = {}
-        if config_path.exists():
-            try:
-                with open(config_path, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-            except Exception:
-                pass
-        config["glass_opacity"] = opacity
-        try:
-            with open(config_path, "w", encoding="utf-8") as f:
-                json.dump(config, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception:
-            return False
+        if self.ai_manager.db:
+            return self.ai_manager.db.set_app_config("glass_opacity", opacity)
+        return False
 
     def get_titlebar_mode(self):
         """获取标题栏模式设置"""
-        config_path = self.data_dir / "config.json"
-        if config_path.exists():
-            try:
-                with open(config_path, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-                    return config.get("titlebar_mode", "fixed")
-            except Exception:
-                pass
+        if self.ai_manager.db:
+            return self.ai_manager.db.get_app_config("titlebar_mode", "fixed")
         return "fixed"
 
     def save_titlebar_mode(self, mode: str):
         """保存标题栏模式设置"""
-        config_path = self.data_dir / "config.json"
-        config = {}
-        if config_path.exists():
-            try:
-                with open(config_path, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-            except Exception:
-                pass
-        config["titlebar_mode"] = mode
-        try:
-            with open(config_path, "w", encoding="utf-8") as f:
-                json.dump(config, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception:
-            return False
+        if self.ai_manager.db:
+            return self.ai_manager.db.set_app_config("titlebar_mode", mode)
+        return False
 
     def get_accent_color(self):
         """获取标题栏颜色设置"""
-        config_path = self.data_dir / "config.json"
-        if config_path.exists():
-            try:
-                with open(config_path, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-                    return config.get("accent_color", "")
-            except Exception:
-                pass
+        if self.ai_manager.db:
+            return self.ai_manager.db.get_app_config("accent_color", "")
         return ""
 
     def save_accent_color(self, color: str):
         """保存标题栏颜色设置"""
-        config_path = self.data_dir / "config.json"
-        config = {}
-        if config_path.exists():
-            try:
-                with open(config_path, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-            except Exception:
-                pass
-        config["accent_color"] = color
-        try:
-            with open(config_path, "w", encoding="utf-8") as f:
-                json.dump(config, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception:
-            return False
+        if self.ai_manager.db:
+            return self.ai_manager.db.set_app_config("accent_color", color)
+        return False
 
     # ========== 数据备份与恢复 ==========
     def export_data(self):
@@ -510,61 +428,83 @@ class Api:
             data = json_data["data"]
             imported = {"tabs": 0, "commands": 0, "credentials": 0, "nodes": 0}
 
-            # 导入页签
+            # 导入页签（使用数据库）
+            tab_id_map = {}  # 旧 id → 新 id 映射
             if "tabs" in data and isinstance(data["tabs"], list):
-                tabs_file = self.computer_usage.tabs_file
-                tabs_file.write_text(json.dumps(data["tabs"], ensure_ascii=False, indent=2), encoding="utf-8")
+                # 先清空现有页签（保留默认页签）
+                existing_tabs = self.computer_usage.get_tabs()
+                for tab in existing_tabs:
+                    if tab.get('id') != '0':  # 保留默认页签
+                        self.computer_usage.delete_tab(tab['id'])
+                # 导入新页签并建立映射
+                for tab in data["tabs"]:
+                    if isinstance(tab, dict):
+                        old_id = tab.get('id', '0')
+                        if old_id == '0':
+                            tab_id_map[old_id] = '0'  # 默认页签直接映射
+                        else:
+                            new_tab = self.computer_usage.add_tab(tab.get('name', '未命名'))
+                            tab_id_map[old_id] = new_tab['id']  # 记录新 id
                 imported["tabs"] = len(data["tabs"])
 
-            # 导入命令
+            # 导入命令（使用数据库）
             if "commands" in data and isinstance(data["commands"], list):
-                cmds_file = self.computer_usage.commands_file
-                cmds_file.write_text(json.dumps(data["commands"], ensure_ascii=False, indent=2), encoding="utf-8")
+                # 先清空现有命令
+                existing_cmds = self.computer_usage.get_commands()
+                for cmd in existing_cmds:
+                    self.computer_usage.delete_command(cmd['id'])
+                # 导入新命令（使用映射后的 tab_id）
+                for cmd in data["commands"]:
+                    if isinstance(cmd, dict):
+                        old_tab_id = cmd.get('tab_id', '0')
+                        new_tab_id = tab_id_map.get(old_tab_id, '0')  # 使用映射，默认回退到 '0'
+                        self.computer_usage.add_command(
+                            title=cmd.get('title', ''),
+                            description=cmd.get('description', ''),
+                            commands=cmd.get('commands', []),
+                            tab_id=new_tab_id,
+                            tags=cmd.get('tags', [])
+                        )
                 imported["commands"] = len(data["commands"])
 
-            # 导入凭证
+            # 导入凭证（使用数据库）
             if "credentials" in data and isinstance(data["credentials"], list):
-                creds_file = self.computer_usage.credentials_file
-                creds_file.write_text(json.dumps(data["credentials"], ensure_ascii=False, indent=2), encoding="utf-8")
+                # 先清空现有凭证
+                existing_creds = self.computer_usage.get_credentials()
+                for cred in existing_creds:
+                    self.computer_usage.delete_credential(cred['id'])
+                # 导入新凭证
+                for cred in data["credentials"]:
+                    if isinstance(cred, dict):
+                        self.computer_usage.add_credential(
+                            service=cred.get('service', ''),
+                            url=cred.get('url', ''),
+                            account=cred.get('account', ''),
+                            password=cred.get('password', ''),
+                            extra=cred.get('extra', [])
+                        )
                 imported["credentials"] = len(data["credentials"])
 
-            # 导入节点（格式与 _save_nodes_md 保持一致）
+            # 导入节点（使用数据库）
             if "nodes" in data and isinstance(data["nodes"], list):
-                nodes = data["nodes"]
-                lines = ["# 代理节点", ""]
-                for node in nodes:
-                    # 类型校验：跳过非 dict 项
-                    if not isinstance(node, dict):
-                        continue
-                    # 安全处理：移除换行符防止 Markdown 注入
-                    name = str(node.get('name', 'Unknown')).replace('\n', ' ').replace('\r', '')
-                    node_type = str(node.get('type', '')).replace('\n', ' ')
-                    server = str(node.get('server', '')).replace('\n', ' ')
-                    port = str(node.get('port', '')).replace('\n', ' ')
-                    raw_link = str(node.get('raw_link', '')).replace('\n', ' ').replace('`', '')
-
-                    lines.append(f"## {name}")
-                    lines.append("")
-                    lines.append(f"- **类型**: {node_type}")
-                    lines.append(f"- **服务器**: {server}")
-                    lines.append(f"- **端口**: {port}")
-                    if raw_link:
-                        lines.append(f"- **链接**: `{raw_link}`")
-
-                    # 安全处理 config/yaml
-                    config = node.get("config")
-                    if isinstance(config, dict):
-                        yaml_content = config.get("yaml")
-                        if isinstance(yaml_content, str) and yaml_content.strip():
-                            # 移除可能破坏代码块的独立 ``` 行
-                            safe_yaml = yaml_content.replace('\n```', '\n` ` `')
-                            lines.append("")
-                            lines.append("```yaml")
-                            lines.append(safe_yaml)
-                            lines.append("```")
-                    lines.append("")
-                self.node_converter.nodes_file.write_text("\n".join(lines), encoding="utf-8")
-                imported["nodes"] = len([n for n in nodes if isinstance(n, dict)])
+                # 先清空现有节点
+                existing_nodes = self.node_converter.get_nodes()
+                for node in existing_nodes:
+                    self.node_converter.delete_node(node['id'])
+                # 导入新节点
+                for node in data["nodes"]:
+                    if isinstance(node, dict):
+                        config = node.get('config', {})
+                        yaml_config = config.get('yaml', '') if isinstance(config, dict) else ''
+                        self.node_converter.save_node(
+                            name=node.get('name', 'Unknown'),
+                            node_type=node.get('type', ''),
+                            server=node.get('server', ''),
+                            port=node.get('port', 0),
+                            raw_link=node.get('raw_link', ''),
+                            yaml_config=yaml_config
+                        )
+                imported["nodes"] = len([n for n in data["nodes"] if isinstance(n, dict)])
 
             # 导入主题
             if "theme" in data:

@@ -132,9 +132,10 @@ class DataMigration:
                 config = json.load(f)
 
             for key, value in config.items():
+                # 使用 JSON 序列化保持类型
                 self.db.insert('app_config', {
                     'key': key,
-                    'value': str(value)
+                    'value': json.dumps(value, ensure_ascii=False)
                 })
 
             self.migration_log.append('应用配置')

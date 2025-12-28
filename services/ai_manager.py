@@ -135,26 +135,18 @@ class AIManager:
         ]
     }
 
-    def __init__(self, data_dir: Path):
+    def __init__(self, data_dir: Path, db: DatabaseManager | None = None):
         self.data_dir = data_dir
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        self.config_path = self.data_dir / "providers.json"
-        self.tool_ai_config_path = self.data_dir / "tool_ai_config.json"
 
-        # 数据库支持
-        # 如果 data_dir 是子目录（如 AI配置/），则向上找到根数据目录
-        # 如果 data_dir 就是根目录（如 ~/.dog_toolbox/），则直接使用
-        if self.data_dir.name in ["电脑使用", "AI配置", "HTTP请求", "转化节点"]:
-            self.db_path = self.data_dir.parent / "doggy_toolbox.db"
+        # 数据库支持（优先使用传入的 db，否则创建新实例）
+        if db is not None:
+            self.db = db
+            logger.info("AIManager 使用共享数据库实例")
         else:
             self.db_path = self.data_dir / "doggy_toolbox.db"
-        self.db = None
-        try:
             self.db = DatabaseManager(self.db_path)
-            logger.info(f"使用 SQLite 数据库: {self.db_path}")
-        except Exception as e:
-            logger.error(f"初始化数据库失败: {e}，回退到 JSON 模式")
-            self.db = None
+            logger.info(f"AIManager 使用独立数据库: {self.db_path}")
 
         self.providers = {}
         self.active_provider_id = None
@@ -162,17 +154,10 @@ class AIManager:
         self.tool_ai_config_cache = None
         self.load_config()
 
-    def _use_db(self) -> bool:
-        """是否使用数据库"""
-        return self.db is not None
-
     def load_config(self):
-        """从配置文件或数据库加载 AI 提供商"""
+        """从数据库加载 AI 提供商"""
         try:
-            if self._use_db():
-                self._load_from_database()
-            else:
-                self._load_from_json()
+            self._load_from_database()
         except Exception as e:
             logger.error(f"加载配置失败: {e}")
 
@@ -217,47 +202,6 @@ class AIManager:
         except Exception as e:
             logger.error(f"从数据库加载配置失败: {e}")
             raise
-
-    def _load_from_json(self):
-        """从 JSON 文件加载配置"""
-        if not self.config_path.exists():
-            logger.warning(f"配置文件不存在: {self.config_path}")
-            return
-
-        with open(self.config_path, 'r', encoding='utf-8') as f:
-            config = json.load(f)
-
-        providers_config = config.get('providers', [])
-
-        # 清空现有 providers
-        self.providers = {}
-
-        # 加载启用的 providers
-        for provider_config in providers_config:
-            if not provider_config.get('enabled', True):
-                continue
-
-            try:
-                provider_id = provider_config['id']
-                self.providers[provider_id] = create_provider(provider_config)
-                logger.info(f"加载 Provider: {provider_id}")
-            except Exception as e:
-                logger.error(f"加载 Provider 失败: {e}")
-
-        # 设置活跃 provider
-        self.active_provider_id = config.get('active_provider')
-
-        # 加载统计缓存
-        for provider_config in providers_config:
-            provider_id = provider_config['id']
-            self.stats_cache[provider_id] = provider_config.get('stats', {
-                'total_requests': 0,
-                'failed_requests': 0,
-                'total_latency': 0,
-                'avg_latency': 0
-            })
-
-        logger.info(f"AI Manager 初始化完成，活跃 Provider: {self.active_provider_id}")
 
     def get_provider(self, provider_id: Optional[str] = None):
         """获取指定或当前活跃的 Provider"""
@@ -340,24 +284,10 @@ class AIManager:
     def _get_provider_config(self, provider_id: str) -> Dict[str, Any]:
         """获取指定 Provider 的配置"""
         try:
-            # 优先从数据库获取
-            if self._use_db():
-                provider = self.db.get_by_id('ai_providers', provider_id)
-                return provider or {}
-
-            # 回退到 JSON
-            if not self.config_path.exists():
-                return {}
-
-            with open(self.config_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-
-            for p in config.get('providers', []):
-                if p.get('id') == provider_id:
-                    return p
+            provider = self.db.get_by_id('ai_providers', provider_id)
+            return provider or {}
         except Exception as e:
             logger.error(f"获取 Provider 配置失败: {e}")
-
         return {}
 
     def switch_provider(self, provider_id: str):
@@ -377,18 +307,7 @@ class AIManager:
         result = []
 
         try:
-            # 从数据库获取
-            if self._use_db():
-                providers_config = self.db.get_all('ai_providers', where="enabled = 1", order_by="updated_at DESC")
-            else:
-                # 从 JSON 获取
-                if not self.config_path.exists():
-                    return result
-
-                with open(self.config_path, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-
-                providers_config = config.get('providers', [])
+            providers_config = self.db.get_all('ai_providers', where="enabled = 1", order_by="updated_at DESC")
 
             for provider_config in providers_config:
                 if not provider_config.get('enabled', True):
@@ -624,65 +543,29 @@ class AIManager:
         try:
             provider_id = provider_config['id']
 
-            # 数据库模式
-            if self._use_db():
-                data = {
-                    'id': provider_id,
-                    'type': provider_config.get('type', ''),
-                    'name': provider_config.get('name', provider_id),
-                    'enabled': 1 if provider_config.get('enabled', True) else 0,
-                    'config': provider_config.get('config', {}),
-                    'capabilities': provider_config.get('capabilities', {}),
-                    'stats': provider_config.get('stats', {}),
-                    'compatibility': provider_config.get('compatibility')
-                }
+            data = {
+                'id': provider_id,
+                'type': provider_config.get('type', ''),
+                'name': provider_config.get('name', provider_id),
+                'enabled': 1 if provider_config.get('enabled', True) else 0,
+                'config': provider_config.get('config', {}),
+                'capabilities': provider_config.get('capabilities', {}),
+                'stats': provider_config.get('stats', {}),
+                'compatibility': provider_config.get('compatibility')
+            }
 
-                existing = self.db.get_by_id('ai_providers', provider_id)
-                if existing:
-                    self.db.update('ai_providers', data, 'id = ?', (provider_id,))
-                else:
-                    self.db.insert('ai_providers', data)
-                    # 如果是第一个 provider，自动设为活跃
-                    all_providers = self.db.get_all('ai_providers', order_by="")
-                    if len(all_providers) == 1:
-                        self._save_active_provider(provider_id)
-
-                # 重新加载配置
-                self.load_config()
-                return {'success': True}
-
-            # JSON 模式
-            config = {'providers': [], 'active_provider': None}
-            if self.config_path.exists():
-                with open(self.config_path, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-
-            providers = config.get('providers', [])
-
-            # 查找是否已存在
-            existing_idx = None
-            for i, p in enumerate(providers):
-                if p['id'] == provider_id:
-                    existing_idx = i
-                    break
-
-            if existing_idx is not None:
-                providers[existing_idx] = provider_config
+            existing = self.db.get_by_id('ai_providers', provider_id)
+            if existing:
+                self.db.update('ai_providers', data, 'id = ?', (provider_id,))
             else:
-                providers.append(provider_config)
-
-            config['providers'] = providers
-
-            # 如果是第一个 provider，自动设为活跃
-            if len(providers) == 1:
-                config['active_provider'] = provider_id
-
-            with open(self.config_path, 'w', encoding='utf-8') as f:
-                json.dump(config, f, indent=2, ensure_ascii=False)
+                self.db.insert('ai_providers', data)
+                # 如果是第一个 provider，自动设为活跃
+                all_providers = self.db.get_all('ai_providers', order_by="")
+                if len(all_providers) == 1:
+                    self._save_active_provider(provider_id)
 
             # 重新加载配置
             self.load_config()
-
             return {'success': True}
 
         except Exception as e:
@@ -692,42 +575,18 @@ class AIManager:
     def delete_provider(self, provider_id: str) -> Dict[str, Any]:
         """删除 Provider"""
         try:
-            # 数据库模式
-            if self._use_db():
-                if not self.db.get_by_id('ai_providers', provider_id):
-                    return {'success': False, 'error': 'Provider 不存在'}
+            if not self.db.get_by_id('ai_providers', provider_id):
+                return {'success': False, 'error': 'Provider 不存在'}
 
-                self.db.delete('ai_providers', 'id = ?', (provider_id,))
-
-                # 如果删除的是活跃 provider，清空活跃状态
-                active_record = self.db.get_by_id('active_config', 'active_ai_provider', 'key')
-                if active_record and active_record.get('value') == provider_id:
-                    self.db.delete('active_config', 'key = ?', ('active_ai_provider',))
-
-                # 重新加载配置
-                self.load_config()
-                return {'success': True}
-
-            # JSON 模式
-            if not self.config_path.exists():
-                return {'success': False, 'error': '配置文件不存在'}
-
-            with open(self.config_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-
-            providers = config.get('providers', [])
-            config['providers'] = [p for p in providers if p['id'] != provider_id]
+            self.db.delete('ai_providers', 'id = ?', (provider_id,))
 
             # 如果删除的是活跃 provider，清空活跃状态
-            if config.get('active_provider') == provider_id:
-                config['active_provider'] = None
-
-            with open(self.config_path, 'w', encoding='utf-8') as f:
-                json.dump(config, f, indent=2, ensure_ascii=False)
+            active_record = self.db.get_by_id('active_config', 'active_ai_provider', 'key')
+            if active_record and active_record.get('value') == provider_id:
+                self.db.delete('active_config', 'key = ?', ('active_ai_provider',))
 
             # 重新加载配置
             self.load_config()
-
             return {'success': True}
 
         except Exception as e:
@@ -758,56 +617,20 @@ class AIManager:
             self._save_stats(provider_id, stats)
 
     def _save_stats(self, provider_id: str, stats: Dict[str, Any]):
-        """保存统计到配置文件或数据库"""
+        """保存统计到数据库"""
         try:
-            # 数据库模式
-            if self._use_db():
-                self.db.update('ai_providers', {'stats': stats}, 'id = ?', (provider_id,))
-                return
-
-            # JSON 模式
-            if not self.config_path.exists():
-                return
-
-            with open(self.config_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-
-            providers = config.get('providers', [])
-
-            for provider in providers:
-                if provider['id'] == provider_id:
-                    provider['stats'] = stats
-                    break
-
-            with open(self.config_path, 'w', encoding='utf-8') as f:
-                json.dump(config, f, indent=2, ensure_ascii=False)
-
+            self.db.update('ai_providers', {'stats': stats}, 'id = ?', (provider_id,))
         except Exception as e:
             logger.error(f"保存统计失败: {e}")
 
     def _save_active_provider(self, provider_id: str):
         """保存活跃 Provider"""
         try:
-            # 数据库模式
-            if self._use_db():
-                existing = self.db.get_by_id('active_config', 'active_ai_provider', 'key')
-                if existing:
-                    self.db.update('active_config', {'value': provider_id}, 'key = ?', ('active_ai_provider',))
-                else:
-                    self.db.insert('active_config', {'key': 'active_ai_provider', 'value': provider_id})
-                return
-
-            # JSON 模式
-            config = {'providers': [], 'active_provider': None}
-            if self.config_path.exists():
-                with open(self.config_path, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-
-            config['active_provider'] = provider_id
-
-            with open(self.config_path, 'w', encoding='utf-8') as f:
-                json.dump(config, f, indent=2, ensure_ascii=False)
-
+            existing = self.db.get_by_id('active_config', 'active_ai_provider', 'key')
+            if existing:
+                self.db.update('active_config', {'value': provider_id}, 'key = ?', ('active_ai_provider',))
+            else:
+                self.db.insert('active_config', {'key': 'active_ai_provider', 'value': provider_id})
         except Exception as e:
             logger.error(f"保存活跃 Provider 失败: {e}")
 
@@ -823,20 +646,8 @@ class AIManager:
             return self.tool_ai_config_cache
 
         try:
-            # 数据库模式
-            if self._use_db():
-                self.tool_ai_config_cache = self._load_tool_ai_config_from_db()
-                return self.tool_ai_config_cache
-
-            # JSON 模式
-            if self.tool_ai_config_path.exists():
-                with open(self.tool_ai_config_path, 'r', encoding='utf-8') as f:
-                    self.tool_ai_config_cache = json.load(f)
-            else:
-                self.tool_ai_config_cache = self._get_default_tool_ai_config()
-
+            self.tool_ai_config_cache = self._load_tool_ai_config_from_db()
             return self.tool_ai_config_cache
-
         except Exception as e:
             logger.error(f"加载工具 AI 配置失败: {e}")
             return self._get_default_tool_ai_config()
@@ -884,40 +695,30 @@ class AIManager:
     def save_tool_ai_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """保存工具 AI 功能配置"""
         try:
-            # 数据库模式
-            if self._use_db():
-                global_enabled = config.get('global_enabled', True)
-                existing = self.db.get_by_id('active_config', 'tool_ai_global_enabled', 'key')
-                if existing:
-                    self.db.update('active_config', {'value': 'true' if global_enabled else 'false'}, 'key = ?', ('tool_ai_global_enabled',))
+            global_enabled = config.get('global_enabled', True)
+            existing = self.db.get_by_id('active_config', 'tool_ai_global_enabled', 'key')
+            if existing:
+                self.db.update('active_config', {'value': 'true' if global_enabled else 'false'}, 'key = ?', ('tool_ai_global_enabled',))
+            else:
+                self.db.insert('active_config', {'key': 'tool_ai_global_enabled', 'value': 'true' if global_enabled else 'false'})
+
+            tools = config.get('tools', {})
+            existing_tools = self.db.get_all('tool_ai_config', order_by="")
+            existing_ids = {row.get('tool_id') for row in existing_tools if row.get('tool_id')}
+
+            for tool_id in existing_ids - set(tools.keys()):
+                self.db.delete('tool_ai_config', 'tool_id = ?', (tool_id,))
+
+            for tool_id, tool_config in tools.items():
+                data = {
+                    'tool_id': tool_id,
+                    'enabled': 1 if tool_config.get('enabled', True) else 0,
+                    'features': tool_config.get('features', {})
+                }
+                if tool_id in existing_ids:
+                    self.db.update('tool_ai_config', data, 'tool_id = ?', (tool_id,))
                 else:
-                    self.db.insert('active_config', {'key': 'tool_ai_global_enabled', 'value': 'true' if global_enabled else 'false'})
-
-                tools = config.get('tools', {})
-                existing_tools = self.db.get_all('tool_ai_config', order_by="")
-                existing_ids = {row.get('tool_id') for row in existing_tools if row.get('tool_id')}
-
-                for tool_id in existing_ids - set(tools.keys()):
-                    self.db.delete('tool_ai_config', 'tool_id = ?', (tool_id,))
-
-                for tool_id, tool_config in tools.items():
-                    data = {
-                        'tool_id': tool_id,
-                        'enabled': 1 if tool_config.get('enabled', True) else 0,
-                        'features': tool_config.get('features', {})
-                    }
-                    if tool_id in existing_ids:
-                        self.db.update('tool_ai_config', data, 'tool_id = ?', (tool_id,))
-                    else:
-                        self.db.insert('tool_ai_config', data)
-
-                self.tool_ai_config_cache = config
-                logger.info("工具 AI 配置保存成功")
-                return {'success': True}
-
-            # JSON 模式
-            with open(self.tool_ai_config_path, 'w', encoding='utf-8') as f:
-                json.dump(config, f, indent=2, ensure_ascii=False)
+                    self.db.insert('tool_ai_config', data)
 
             self.tool_ai_config_cache = config
             logger.info("工具 AI 配置保存成功")

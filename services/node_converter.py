@@ -24,15 +24,13 @@ class ProxyNode:
 
 class NodeConverterService:
     def __init__(self, data_dir: Path, nodes_file: Path | None = None):
-        # 允许显式指定 nodes.md 路径，以兼容旧版根目录与新版子目录布局
         self.data_dir = data_dir
         self.nodes_file = nodes_file or (data_dir / "nodes.md")
         self._ensure_files()
 
     def _ensure_files(self):
-        self.nodes_file.parent.mkdir(parents=True, exist_ok=True)
-        if not self.nodes_file.exists():
-            self.nodes_file.write_text("# 代理节点\n\n", encoding="utf-8")
+        """已废弃：迁移到数据库后不再创建 nodes.md 文件"""
+        pass
 
     # ========== 链接解析 ==========
     @staticmethod
@@ -273,6 +271,8 @@ class NodeConverterService:
 
     # ========== 节点管理 ==========
     def _parse_nodes_md(self) -> List[ProxyNode]:
+        if not self.nodes_file.exists():
+            return []
         content = self.nodes_file.read_text(encoding="utf-8")
         nodes = []
         current_node = None
@@ -319,6 +319,7 @@ class NodeConverterService:
         return nodes
 
     def _save_nodes_md(self, nodes: List[ProxyNode]):
+        self.nodes_file.parent.mkdir(parents=True, exist_ok=True)
         lines = ["# 代理节点", ""]
         for node in nodes:
             lines.append(f"## {node.name}")

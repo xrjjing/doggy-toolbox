@@ -1,5 +1,4 @@
 {
-  "glass_opacity": 60,
-  "theme": "neon-light",
-  "titlebar_mode": "fixed"
+  "titlebar_mode": "fixed",
+  "theme": "neon-light"
 }
