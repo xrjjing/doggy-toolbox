@@ -816,7 +816,7 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: 600px;
+    width: 420px;
     max-width: 90vw;
     height: 100%;
     border-radius: 0;
@@ -842,8 +842,8 @@
     flex-grow: 1;
 }
 
-/* Provider Drawer Styles */
-.chat-settings-drawer {
+/* Settings Drawer Container */
+#ai-chat-settings-modal .chat-settings-drawer {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -851,11 +851,12 @@
     color: var(--text-primary);
 }
 
-.drawer-header {
+#ai-chat-settings-modal .drawer-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 20px 24px;
+    margin: 0;
     border-bottom: 1px solid var(--border);
     background: var(--bg-primary);
     position: sticky;
@@ -863,7 +864,7 @@
     z-index: 10;
 }
 
-.drawer-header h3 {
+#ai-chat-settings-modal .drawer-header h3 {
     margin: 0;
     font-size: 20px;
     font-weight: 600;
@@ -918,7 +919,7 @@
 }
 
 /* Category Tabs */
-.provider-category-tabs {
+#ai-chat-settings-modal .provider-category-tabs {
     display: flex;
     gap: 8px;
     margin-bottom: 24px;
@@ -928,7 +929,7 @@
     border: 1px solid var(--border);
 }
 
-.provider-tab {
+#ai-chat-settings-modal .provider-tab {
     flex: 1;
     padding: 8px 16px;
     border: none;
@@ -942,12 +943,12 @@
     text-align: center;
 }
 
-.provider-tab:hover {
+#ai-chat-settings-modal .provider-tab:hover {
     color: var(--text-primary);
     background: rgba(128, 128, 128, 0.1);
 }
 
-.provider-tab.active {
+#ai-chat-settings-modal .provider-tab.active {
     background: var(--bg-card);
     color: var(--accent);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -956,24 +957,27 @@
 
 /* Provider List */
 .chat-provider-list {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
 }
 
 .chat-provider-item {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    padding: 12px 14px;
+    justify-content: center;
+    padding: 12px 10px;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-    gap: 10px;
+    min-height: 80px;
+    max-height: 100px;
+    text-align: center;
 }
 
 .chat-provider-item::before {
@@ -989,8 +993,8 @@
 }
 
 .chat-provider-item:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.1);
     border-color: var(--accent-hover, var(--accent));
 }
 
@@ -1007,66 +1011,39 @@
 .provider-item-info {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
     gap: 6px;
 }
 
 .provider-item-name {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text-primary);
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    margin: 0;
 }
 
 .provider-item-type {
-    font-size: 11px;
+    font-size: 9px;
     color: var(--text-secondary);
     background: var(--bg-tertiary, var(--bg-hover));
-    padding: 3px 8px;
+    padding: 3px 6px;
     border-radius: 4px;
-    width: fit-content;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 
-.provider-item-status {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-}
-
-.provider-active-badge {
-    padding: 4px 10px;
-    background: rgba(var(--accent-rgb, 99, 102, 241), 0.1);
-    color: var(--accent);
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.provider-active-badge::before {
-    content: '';
-    display: block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-}
-
-.provider-switch-hint {
-    font-size: 11px;
-    color: var(--text-tertiary, var(--text-muted));
-    opacity: 0;
-    transform: translateX(10px);
-    transition: all 0.2s;
-}
-
-.chat-provider-item:hover .provider-switch-hint {
-    opacity: 1;
-    transform: translateX(0);
-}
+/* Provider status styles removed for compact design */
 
 .provider-empty,
 .provider-loading {

@@ -184,9 +184,6 @@ function renderDrawerProviders(providers, container) {
                 <span class="provider-item-name">${escapeHtmlChat(p.name)}</span>
                 <span class="provider-item-type">${getProviderTypeLabelChat(p.type)}</span>
             </div>
-            <div class="provider-item-status">
-                ${p.active ? '<span class="provider-active-badge">当前</span>' : '<span class="provider-switch-hint">点击切换</span>'}
-            </div>
         </div>
     `).join('');
 }
