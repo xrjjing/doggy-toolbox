@@ -578,6 +578,20 @@
     color: white;
 }
 
+/* Glass Effect for User Messages */
+[data-glass="true"] .user-message .message-content {
+    background: rgba(99, 102, 241, 0.55) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    backdrop-filter: blur(12px) saturate(150%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .user-message .message-content {
+    background: rgba(99, 102, 241, 0.45) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
 /* Code Blocks in Messages */
 .message-content pre {
     margin: 10px 0;
@@ -602,15 +616,15 @@
 
 /* Frosted Glass Effect for Messages */
 [data-glass="true"] .ai-message .message-content {
-    background: rgba(30, 41, 59, 0.45);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(30, 41, 59, 0.45) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
 }
 
 :is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .ai-message .message-content {
-    background: rgba(255, 255, 255, 0.45);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.45) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
 /* Frosted Glass Effect for Chat Sidebar */
@@ -642,31 +656,33 @@
 }
 
 [data-glass="true"] .history-item {
-    background: rgba(255, 255, 255, 0.03);
-    border-color: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 [data-glass="true"] .history-item:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.08) !important;
 }
 
 [data-glass="true"] .history-item.active {
-    background: rgba(99, 102, 241, 0.2);
-    border-color: rgba(99, 102, 241, 0.3);
+    background: rgba(99, 102, 241, 0.2) !important;
+    border-color: rgba(99, 102, 241, 0.3) !important;
 }
 
 :is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .history-item {
-    background: rgba(0, 0, 0, 0.02);
-    border-color: rgba(0, 0, 0, 0.04);
+    background: rgba(0, 0, 0, 0.02) !important;
+    border-color: rgba(0, 0, 0, 0.04) !important;
 }
 
 :is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .history-item:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: rgba(0, 0, 0, 0.05) !important;
 }
 
 :is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .history-item.active {
-    background: rgba(99, 102, 241, 0.12);
-    border-color: rgba(99, 102, 241, 0.2);
+    background: rgba(99, 102, 241, 0.12) !important;
+    border-color: rgba(99, 102, 241, 0.2) !important;
 }
 
 [data-glass="true"] .new-chat-btn {
@@ -674,13 +690,76 @@
 }
 
 [data-glass="true"] .chat-search-wrapper input {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 :is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .chat-search-wrapper input {
-    background: rgba(0, 0, 0, 0.03);
-    border-color: rgba(0, 0, 0, 0.06);
+    background: rgba(0, 0, 0, 0.03) !important;
+    border-color: rgba(0, 0, 0, 0.06) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* Glass Effect for Chat Header */
+[data-glass="true"] .chat-header {
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .chat-header {
+    background: rgba(255, 255, 255, 0.7);
+    border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+/* Glass Effect for Messages Container */
+[data-glass="true"] .chat-messages {
+    background: rgba(15, 23, 42, 0.2);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .chat-messages {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Glass Effect for Input Area */
+[data-glass="true"] .chat-input-area {
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .chat-input-area {
+    background: rgba(255, 255, 255, 0.7);
+    border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+/* Glass Effect for Input Wrapper */
+[data-glass="true"] .chat-input-wrapper {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+[data-glass="true"] .chat-input-wrapper:focus-within {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: var(--accent) !important;
+}
+
+:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .chat-input-wrapper {
+    background: rgba(0, 0, 0, 0.03) !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .chat-input-wrapper:focus-within {
+    background: rgba(0, 0, 0, 0.05) !important;
 }
 
 /* Input Area */
@@ -1094,21 +1173,29 @@
 [data-glass="true"] .provider-category-tabs {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 [data-glass="true"] .provider-tab.active {
     background: rgba(255, 255, 255, 0.1);
     color: var(--accent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 [data-glass="true"] .chat-provider-item {
     background: rgba(255, 255, 255, 0.03);
     border-color: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 [data-glass="true"] .chat-provider-item:hover {
     background: rgba(255, 255, 255, 0.06);
     border-color: var(--accent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 /* Light Theme Glass Adaptations */
@@ -1123,21 +1210,29 @@
 :is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .provider-category-tabs {
     background: rgba(0, 0, 0, 0.03);
     border-color: rgba(0, 0, 0, 0.06);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 :is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .provider-tab.active {
     background: rgba(255, 255, 255, 0.6);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 :is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .chat-provider-item {
     background: rgba(255, 255, 255, 0.4);
     border-color: rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 :is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .chat-provider-item:hover {
     background: rgba(255, 255, 255, 0.7);
     border-color: var(--accent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 /* Empty State */
@@ -1465,5 +1560,61 @@
 .slash-help-item span {
     font-size: 13px;
     color: var(--text-secondary);
+}
+
+/* 毛玻璃效果 - 模板搜索框 */
+[data-glass="true"] .template-search-box input {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+[data-glass="true"] .template-search-box input:focus {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: var(--accent) !important;
+}
+
+:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .template-search-box input {
+    background: rgba(0, 0, 0, 0.03) !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .template-search-box input:focus {
+    background: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* 毛玻璃效果 - 模板项 */
+[data-glass="true"] .chat-template-item {
+    background: rgba(30, 41, 59, 0.35) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+[data-glass="true"] .chat-template-item:hover {
+    background: rgba(99, 102, 241, 0.2) !important;
+    border-color: var(--accent) !important;
+}
+
+:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .chat-template-item {
+    background: rgba(255, 255, 255, 0.4) !important;
+    border-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .chat-template-item:hover {
+    background: rgba(255, 255, 255, 0.7) !important;
+    border-color: var(--accent) !important;
+}
+
+/* 毛玻璃效果 - 斜杠命令帮助项 */
+[data-glass="true"] .slash-help-item {
+    background: rgba(30, 41, 59, 0.35) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .slash-help-item {
+    background: rgba(255, 255, 255, 0.4) !important;
 }
 </style>
