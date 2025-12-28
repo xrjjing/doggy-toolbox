@@ -614,15 +614,15 @@
 }
 
 /* Frosted Glass Effect for Chat Sidebar */
-[data-glass="true"] .chat-sidebar {
-    background: rgba(15, 23, 42, 0.65) !important;
+#page-ai-chat[data-glass="true"] .chat-sidebar {
+    background: rgba(15, 23, 42, 0.65);
     border-right: 1px solid rgba(255, 255, 255, 0.08);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     backdrop-filter: blur(20px) saturate(180%);
 }
 
-:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .chat-sidebar {
-    background: rgba(248, 250, 252, 0.7) !important;
+#page-ai-chat:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .chat-sidebar {
+    background: rgba(248, 250, 252, 0.7);
     border-right: 1px solid rgba(0, 0, 0, 0.06);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     backdrop-filter: blur(20px) saturate(180%);
@@ -1059,14 +1059,14 @@
 }
 
 /* Glass Morphism Adaptations */
-[data-glass="true"] #ai-chat-settings-modal .modal-content {
-    background: rgba(var(--bg-primary-rgb, 15, 23, 42), 0.75) !important;
+#ai-chat-settings-modal[data-glass="true"] .modal-content {
+    background: rgba(var(--bg-primary-rgb, 15, 23, 42), 0.75);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
-:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] #ai-chat-settings-modal .modal-content {
-    background: rgba(255, 255, 255, 0.85) !important;
+#ai-chat-settings-modal:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .modal-content {
+    background: rgba(255, 255, 255, 0.85);
 }
 
 [data-glass="true"] .chat-settings-drawer {
