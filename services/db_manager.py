@@ -176,6 +176,7 @@ class DatabaseManager:
                     title TEXT NOT NULL,
                     content TEXT NOT NULL,
                     category TEXT,
+                    tags TEXT,
                     order_index INTEGER DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -193,6 +194,22 @@ class DatabaseManager:
                     value TEXT NOT NULL,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
+            """)
+
+            # 9.5 HTTP 环境变量表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS http_environments (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    variables TEXT,
+                    is_active INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_http_environments_active
+                ON http_environments(is_active)
             """)
 
             # 10. 数据库元信息表
@@ -296,6 +313,15 @@ class DatabaseManager:
                 ON prompt_templates(is_favorite)
             """)
 
+            # 数据库迁移：为现有表添加新列
+            self._migrate_add_column(cursor, 'conversion_nodes', 'tags', 'TEXT')
+
+            # 迁移后建索引（确保列存在后再建索引）
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_conversion_nodes_tags
+                ON conversion_nodes(tags)
+            """)
+
             # 设置数据库版本
             cursor.execute("""
                 INSERT OR REPLACE INTO db_metadata (key, value, updated_at)
@@ -311,6 +337,14 @@ class DatabaseManager:
             raise
         finally:
             conn.close()
+
+    def _migrate_add_column(self, cursor, table: str, column: str, col_type: str):
+        """安全地为表添加新列（如果不存在）"""
+        cursor.execute(f"PRAGMA table_info({table})")
+        columns = [row[1] for row in cursor.fetchall()]
+        if column not in columns:
+            cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+            logger.info(f"迁移：为 {table} 表添加 {column} 列")
 
     # ========== 通用增删改查方法 ==========
 

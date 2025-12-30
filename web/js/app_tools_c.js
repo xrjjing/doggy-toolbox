@@ -1984,7 +1984,7 @@ function getHttpHeaders() {
 
 async function sendHttpRequest() {
     const method = document.getElementById('http-method').value;
-    const url = document.getElementById('http-url').value.trim();
+    let url = document.getElementById('http-url').value.trim();
     const responseBodyEl = document.getElementById('http-response-body');
     const responseHeadersEl = document.getElementById('http-response-headers-text');
     const responseMetaEl = document.getElementById('http-response-meta');
@@ -1995,17 +1995,38 @@ async function sendHttpRequest() {
     }
 
     try {
+        // 应用环境变量替换
+        if (typeof replaceVariablesInText === 'function') {
+            url = replaceVariablesInText(url);
+        }
+
         // 构建完整 URL（带参数）
         const params = getHttpParams();
+        // 替换参数中的环境变量
+        if (typeof replaceVariablesInText === 'function') {
+            Object.keys(params).forEach(key => {
+                params[key] = replaceVariablesInText(params[key]);
+            });
+        }
         const fullUrl = DogToolboxM24Utils.buildUrl(url, params);
 
         // 构建请求头
         const headers = getHttpHeaders();
+        // 替换请求头中的环境变量
+        if (typeof replaceVariablesInText === 'function') {
+            Object.keys(headers).forEach(key => {
+                headers[key] = replaceVariablesInText(headers[key]);
+            });
+        }
 
         // 构建请求体
         let body = null;
         if (httpBodyType !== 'none' && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
             body = document.getElementById('http-body-text').value || null;
+            // 替换请求体中的环境变量
+            if (body && typeof replaceVariablesInText === 'function') {
+                body = replaceVariablesInText(body);
+            }
         }
 
         // 显示发送中状态
@@ -2040,6 +2061,20 @@ async function sendHttpRequest() {
                 <span style="margin-left: 16px;">Time: ${DogToolboxM24Utils.formatResponseTime(result.duration || 0)}</span>
                 <span style="margin-left: 16px;">Size: ${DogToolboxM24Utils.formatResponseSize(size)}</span>
             `;
+
+            // 保存请求历史
+            if (typeof saveHttpRequestHistory === 'function') {
+                saveHttpRequestHistory(method, fullUrl, headers, body, {
+                    status: result.status,
+                    body: result.body,
+                    duration: result.duration
+                });
+            }
+
+            // 更新 JSON 树形视图
+            if (typeof updateHttpResponseTree === 'function') {
+                updateHttpResponseTree();
+            }
         } else {
             // 回退到前端 fetch（可能有 CORS 限制）
             const config = {
@@ -2087,6 +2122,20 @@ async function sendHttpRequest() {
                 <span style="margin-left: 16px;">Time: ${DogToolboxM24Utils.formatResponseTime(duration)}</span>
                 <span style="margin-left: 16px;">Size: ${DogToolboxM24Utils.formatResponseSize(size)}</span>
             `;
+
+            // 保存请求历史
+            if (typeof saveHttpRequestHistory === 'function') {
+                saveHttpRequestHistory(method, fullUrl, headers, body, {
+                    status: response.status,
+                    body: responseBody,
+                    duration: duration
+                });
+            }
+
+            // 更新 JSON 树形视图
+            if (typeof updateHttpResponseTree === 'function') {
+                updateHttpResponseTree();
+            }
         }
 
     } catch (e) {
@@ -2915,6 +2964,87 @@ function initJsonSchemaTool() {
     if (!inputEl) return;
     inputEl.addEventListener('input', updateJsonSchemaTool);
     updateJsonSchemaTool();
+}
+
+// ========== JSON Schema 工具联动 ==========
+
+/**
+ * 发送 JSON Schema 到 Mock 工具
+ */
+function sendSchemaToMock() {
+    const outputEl = document.getElementById('jsonschema-output');
+    if (!outputEl?.value) {
+        showToast('请先生成 JSON Schema', 'warning');
+        return;
+    }
+    try {
+        const schema = JSON.parse(outputEl.value);
+        transferDataToTool('tool-mock', schema, 'json-schema');
+    } catch (e) {
+        showToast('Schema 解析失败', 'error');
+    }
+}
+
+/**
+ * 从 JSON Schema 填充 Mock 工具
+ * @param {object} schema - JSON Schema
+ */
+function populateMockFromSchema(schema) {
+    if (!schema) return;
+
+    // 根据 schema 生成示例数据
+    const mockData = generateMockFromSchema(schema);
+    const outputEl = document.getElementById('mock-output');
+    if (outputEl) {
+        outputEl.value = JSON.stringify(mockData, null, 2);
+    }
+}
+
+/**
+ * 根据 JSON Schema 生成 Mock 数据
+ * @param {object} schema - JSON Schema
+ * @param {number} depth - 递归深度
+ * @returns {any} 生成的 Mock 数据
+ */
+function generateMockFromSchema(schema, depth = 0) {
+    if (depth > 10 || !schema) return null;
+
+    const type = schema.type;
+
+    switch (type) {
+        case 'object': {
+            const obj = {};
+            if (schema.properties) {
+                for (const [key, propSchema] of Object.entries(schema.properties)) {
+                    obj[key] = generateMockFromSchema(propSchema, depth + 1);
+                }
+            }
+            return obj;
+        }
+        case 'array':
+            if (schema.items) {
+                return [generateMockFromSchema(schema.items, depth + 1)];
+            }
+            return [];
+        case 'string':
+            if (schema.enum) return schema.enum[0];
+            if (schema.format === 'email') return 'example@email.com';
+            if (schema.format === 'date') return '2024-01-01';
+            if (schema.format === 'date-time') return '2024-01-01T00:00:00Z';
+            if (schema.format === 'uri') return 'https://example.com';
+            if (schema.format === 'uuid') return '550e8400-e29b-41d4-a716-446655440000';
+            return 'string';
+        case 'number':
+            return schema.minimum ?? schema.maximum ?? 0;
+        case 'integer':
+            return schema.minimum ?? schema.maximum ?? 0;
+        case 'boolean':
+            return true;
+        case 'null':
+            return null;
+        default:
+            return null;
+    }
 }
 
 // ==================== M29 Mock 数据生成器初始化 ====================

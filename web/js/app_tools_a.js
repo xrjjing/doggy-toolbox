@@ -1,12 +1,75 @@
 // ==================== 工具箱：Base64 编解码（M2） ====================
+const B64_HISTORY_KEY = 'base64_history';
+const B64_HISTORY_MAX = 20;
+
 function initBase64Tool() {
     const input = document.getElementById('b64-input');
     const batch = document.getElementById('b64-batch');
     if (!input) return;
     input.addEventListener('input', updateBase64Tool);
     batch?.addEventListener('change', updateBase64Tool);
+
+    // 拖拽支持
+    initBase64DragDrop(input);
+
     // 默认编码模式
     setBase64Mode('encode');
+
+    // 渲染历史记录
+    renderBase64History();
+}
+
+function initBase64DragDrop(textarea) {
+    if (!textarea) return;
+
+    textarea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        textarea.classList.add('drag-over');
+    });
+
+    textarea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        textarea.classList.remove('drag-over');
+    });
+
+    textarea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        textarea.classList.remove('drag-over');
+
+        const files = e.dataTransfer?.files;
+        if (files && files.length > 0) {
+            readFileAsText(files[0], (text) => {
+                textarea.value = text;
+                autoDetectBase64Mode(text);
+                updateBase64Tool();
+            });
+        }
+    });
+}
+
+function readFileAsText(file, callback) {
+    if (!file) return;
+    const MAX_SIZE = 1024 * 1024; // 1MB
+    if (file.size > MAX_SIZE) {
+        showToast?.('文件过大，最大支持 1MB', 'error');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => callback(e.target.result);
+    reader.onerror = () => showToast?.('文件读取失败', 'error');
+    reader.readAsText(file);
+}
+
+function autoDetectBase64Mode(text) {
+    if (!window.DogToolboxM2Utils?.detectBase64Encoded) return;
+    const detection = window.DogToolboxM2Utils.detectBase64Encoded(text);
+    if (detection.isBase64 && detection.confidence >= 0.7) {
+        setBase64Mode('decode');
+        showToast?.('检测到 Base64 编码，已切换到解码模式', 'info');
+    }
 }
 
 function setBase64Mode(mode) {
@@ -22,11 +85,13 @@ function updateBase64Tool() {
     const outputEl = document.getElementById('b64-output');
     const errorsEl = document.getElementById('b64-errors');
     const batchEl = document.getElementById('b64-batch');
+    const jumpBtnsEl = document.getElementById('b64-jump-buttons');
     if (!inputEl || !outputEl || !errorsEl) return;
 
     const inputText = inputEl.value || '';
     const batch = !!batchEl?.checked;
     errorsEl.innerHTML = '';
+    if (jumpBtnsEl) jumpBtnsEl.innerHTML = '';
 
     if (!inputText.trim()) {
         outputEl.value = '';
@@ -38,6 +103,7 @@ function updateBase64Tool() {
             throw new Error('工具模块未加载：tools_m2_utils.js');
         }
 
+        let outputText = '';
         if (base64Mode === 'encode') {
             if (batch) {
                 const lines = inputText.split(/\r?\n/);
@@ -45,9 +111,9 @@ function updateBase64Tool() {
                     if (line === '') return '';
                     return window.DogToolboxM2Utils.base64EncodeTextUtf8(line);
                 });
-                outputEl.value = outLines.join('\n');
+                outputText = outLines.join('\n');
             } else {
-                outputEl.value = window.DogToolboxM2Utils.base64EncodeTextUtf8(inputText);
+                outputText = window.DogToolboxM2Utils.base64EncodeTextUtf8(inputText);
             }
         } else {
             if (batch) {
@@ -57,11 +123,22 @@ function updateBase64Tool() {
                     if (!normalized) return '';
                     return window.DogToolboxM2Utils.base64DecodeToTextUtf8(normalized);
                 });
-                outputEl.value = outLines.join('\n');
+                outputText = outLines.join('\n');
             } else {
                 const normalized = inputText.replace(/\s+/g, '');
-                outputEl.value = window.DogToolboxM2Utils.base64DecodeToTextUtf8(normalized);
+                outputText = window.DogToolboxM2Utils.base64DecodeToTextUtf8(normalized);
             }
+
+            // 解码模式下检测内容类型并显示跳转按钮
+            if (outputText && jumpBtnsEl && !batch) {
+                renderBase64JumpButtons(outputText, jumpBtnsEl);
+            }
+        }
+        outputEl.value = outputText;
+
+        // 保存历史记录（防抖：仅在有有效输出时保存）
+        if (outputText && !batch) {
+            saveBase64History(inputText, outputText, base64Mode);
         }
     } catch (e) {
         outputEl.value = '';
@@ -69,19 +146,135 @@ function updateBase64Tool() {
     }
 }
 
+/**
+ * 渲染 Base64 解码后的内容类型跳转按钮
+ */
+function renderBase64JumpButtons(decodedText, container) {
+    if (!window.DogToolboxM2Utils?.detectBase64ContentType) return;
+
+    const detection = window.DogToolboxM2Utils.detectBase64ContentType(decodedText);
+    if (!detection.targetTool || detection.confidence < 0.7) return;
+
+    const typeLabels = {
+        json: 'JSON 工具',
+        url: 'URL 编解码',
+        html: 'HTML 实体',
+        jwt: 'JWT 解析',
+        image: '图片 Base64'
+    };
+
+    const label = typeLabels[detection.type] || detection.type;
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-sm btn-secondary b64-jump-btn';
+    btn.innerHTML = `<span class="jump-icon">→</span> 跳转到 ${label}`;
+    btn.title = `检测到 ${detection.type} 内容 (置信度: ${Math.round(detection.confidence * 100)}%)`;
+    btn.onclick = () => {
+        if (typeof transferDataToTool === 'function') {
+            transferDataToTool(detection.targetTool, decodedText, detection.type);
+        } else {
+            navigateTo(detection.targetTool);
+        }
+    };
+
+    container.innerHTML = '';
+    const hint = document.createElement('span');
+    hint.className = 'b64-type-hint';
+    hint.textContent = `检测到: ${detection.type.toUpperCase()}`;
+    container.appendChild(hint);
+    container.appendChild(btn);
+}
+
 function clearBase64Tool() {
     const inputEl = document.getElementById('b64-input');
     const outputEl = document.getElementById('b64-output');
     const errorsEl = document.getElementById('b64-errors');
+    const jumpBtnsEl = document.getElementById('b64-jump-buttons');
     if (inputEl) inputEl.value = '';
     if (outputEl) outputEl.value = '';
     if (errorsEl) errorsEl.innerHTML = '';
+    if (jumpBtnsEl) jumpBtnsEl.innerHTML = '';
 }
 
 function copyBase64Output(btn) {
     const outputEl = document.getElementById('b64-output');
     const text = outputEl?.value || '';
     copyToolText(btn, text);
+}
+
+function saveBase64History(input, output, mode) {
+    if (!input?.trim() || !output?.trim()) return;
+    try {
+        const raw = localStorage.getItem(B64_HISTORY_KEY);
+        const data = raw ? JSON.parse(raw) : { entries: [] };
+        const entry = {
+            input: input.slice(0, 200),
+            output: output.slice(0, 200),
+            mode,
+            timestamp: Date.now()
+        };
+        // 去重：相同 input+mode 只保留最新
+        data.entries = data.entries.filter(e => !(e.input === entry.input && e.mode === entry.mode));
+        data.entries.unshift(entry);
+        if (data.entries.length > B64_HISTORY_MAX) {
+            data.entries = data.entries.slice(0, B64_HISTORY_MAX);
+        }
+        localStorage.setItem(B64_HISTORY_KEY, JSON.stringify(data));
+        renderBase64History();
+    } catch (e) { /* ignore */ }
+}
+
+function loadBase64History() {
+    try {
+        const raw = localStorage.getItem(B64_HISTORY_KEY);
+        return raw ? JSON.parse(raw).entries || [] : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function renderBase64History() {
+    const container = document.getElementById('b64-history');
+    if (!container) return;
+
+    const entries = loadBase64History();
+    if (!entries.length) {
+        container.innerHTML = '<div class="history-empty">暂无历史记录</div>';
+        return;
+    }
+
+    container.innerHTML = entries.map((e, i) => `
+        <div class="history-item" onclick="applyBase64History(${i})">
+            <span class="history-mode">${e.mode === 'encode' ? '编码' : '解码'}</span>
+            <span class="history-text">${escapeHtml(e.input.slice(0, 50))}${e.input.length > 50 ? '...' : ''}</span>
+            <span class="history-time">${formatHistoryTime(e.timestamp)}</span>
+        </div>
+    `).join('');
+}
+
+function applyBase64History(index) {
+    const entries = loadBase64History();
+    const entry = entries[index];
+    if (!entry) return;
+
+    const inputEl = document.getElementById('b64-input');
+    if (inputEl) inputEl.value = entry.input;
+    setBase64Mode(entry.mode);
+}
+
+function clearBase64History() {
+    localStorage.removeItem(B64_HISTORY_KEY);
+    renderBase64History();
+    showToast?.('历史记录已清空', 'info');
+}
+
+function formatHistoryTime(ts) {
+    const d = new Date(ts);
+    const now = new Date();
+    const diff = now - d;
+    if (diff < 60000) return '刚刚';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`;
+    return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 // ==================== 工具箱：UUID 生成器（M2） ====================
@@ -282,6 +475,229 @@ function copyJwtAll(btn) {
     if (header.trim()) parts.push(header.trim());
     if (payload.trim()) parts.push(payload.trim());
     copyToolText(btn, parts.join('\n\n'));
+}
+
+// ==================== JWT 生成与验证（M43） ====================
+
+let currentJwtMode = 'decode';
+
+function switchJwtMode(mode) {
+    currentJwtMode = mode;
+    const scenes = ['decode', 'generate', 'verify'];
+    scenes.forEach(s => {
+        const el = document.getElementById(`jwt-scene-${s}`);
+        if (el) el.style.display = s === mode ? '' : 'none';
+    });
+    document.querySelectorAll('#page-tool-jwt .tool-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.mode === mode);
+    });
+}
+
+function updateJwtKeyInput() {
+    const algorithm = document.getElementById('jwt-gen-algorithm')?.value || 'HS256';
+    const secretGroup = document.getElementById('jwt-gen-secret-group');
+    const privkeyGroup = document.getElementById('jwt-gen-privkey-group');
+    const isHmac = algorithm.startsWith('HS');
+    if (secretGroup) secretGroup.style.display = isHmac ? '' : 'none';
+    if (privkeyGroup) privkeyGroup.style.display = isHmac ? 'none' : '';
+}
+
+function updateJwtVerifyKeyInput() {
+    const algorithm = document.getElementById('jwt-verify-algorithm')?.value || 'auto';
+    const secretGroup = document.getElementById('jwt-verify-secret-group');
+    const pubkeyGroup = document.getElementById('jwt-verify-pubkey-group');
+    const isHmac = algorithm === 'auto' || algorithm.startsWith('HS');
+    if (secretGroup) secretGroup.style.display = isHmac ? '' : 'none';
+    if (pubkeyGroup) pubkeyGroup.style.display = isHmac ? 'none' : '';
+}
+
+function applyJwtPreset() {
+    const presetName = document.getElementById('jwt-gen-preset')?.value;
+    if (!presetName || !window.DogToolboxM43Utils) return;
+    const preset = window.DogToolboxM43Utils.getPreset(presetName);
+    if (preset && preset.claims) {
+        const payloadEl = document.getElementById('jwt-gen-payload');
+        if (payloadEl) {
+            payloadEl.value = JSON.stringify(preset.claims, null, 2);
+        }
+    }
+}
+
+function generateJwtSecret() {
+    if (!window.DogToolboxM43Utils) return;
+    const secret = window.DogToolboxM43Utils.generateHmacSecret(256);
+    const secretEl = document.getElementById('jwt-gen-secret');
+    if (secretEl) secretEl.value = secret;
+}
+
+async function generateJwtKeyPair() {
+    if (!window.DogToolboxM43Utils) return;
+    const algorithm = document.getElementById('jwt-gen-algorithm')?.value || 'RS256';
+    const privkeyEl = document.getElementById('jwt-gen-privkey');
+    const pubkeyEl = document.getElementById('jwt-gen-pubkey');
+    const pubkeyPanel = document.getElementById('jwt-gen-pubkey-panel');
+    const errorsEl = document.getElementById('jwt-gen-errors');
+
+    if (errorsEl) errorsEl.innerHTML = '';
+
+    let result;
+    if (algorithm.startsWith('RS') || algorithm.startsWith('PS')) {
+        result = await window.DogToolboxM43Utils.generateRsaKeyPair(algorithm, 2048);
+    } else if (algorithm.startsWith('ES')) {
+        result = await window.DogToolboxM43Utils.generateEcdsaKeyPair(algorithm);
+    }
+
+    if (result?.error) {
+        if (errorsEl) errorsEl.innerHTML = `<div>⚠ ${escapeHtml(result.error)}</div>`;
+        return;
+    }
+
+    if (privkeyEl) privkeyEl.value = result.privateKey;
+    if (pubkeyEl) pubkeyEl.value = result.publicKey;
+    if (pubkeyPanel) pubkeyPanel.style.display = '';
+}
+
+async function generateJwtToken() {
+    const payloadEl = document.getElementById('jwt-gen-payload');
+    const algorithmEl = document.getElementById('jwt-gen-algorithm');
+    const secretEl = document.getElementById('jwt-gen-secret');
+    const privkeyEl = document.getElementById('jwt-gen-privkey');
+    const outputEl = document.getElementById('jwt-gen-output');
+    const errorsEl = document.getElementById('jwt-gen-errors');
+
+    if (errorsEl) errorsEl.innerHTML = '';
+    if (outputEl) outputEl.value = '';
+
+    if (!window.DogToolboxM43Utils) {
+        if (errorsEl) errorsEl.innerHTML = '<div>⚠ 工具模块未加载：tools_m43_utils.js</div>';
+        return;
+    }
+
+    const algorithm = algorithmEl?.value || 'HS256';
+    const isHmac = algorithm.startsWith('HS');
+    const secret = isHmac ? secretEl?.value : privkeyEl?.value;
+
+    if (!secret) {
+        if (errorsEl) errorsEl.innerHTML = '<div>⚠ 请输入密钥</div>';
+        return;
+    }
+
+    let payload;
+    try {
+        payload = JSON.parse(payloadEl?.value || '{}');
+    } catch (e) {
+        if (errorsEl) errorsEl.innerHTML = `<div>⚠ Payload JSON 格式错误: ${escapeHtml(e.message)}</div>`;
+        return;
+    }
+
+    const result = await window.DogToolboxM43Utils.generateJwt(payload, secret, { algorithm });
+
+    if (result.error) {
+        if (errorsEl) errorsEl.innerHTML = `<div>⚠ ${escapeHtml(result.error)}</div>`;
+        return;
+    }
+
+    if (outputEl) outputEl.value = result.token;
+}
+
+async function verifyJwtToken() {
+    const inputEl = document.getElementById('jwt-verify-input');
+    const algorithmEl = document.getElementById('jwt-verify-algorithm');
+    const secretEl = document.getElementById('jwt-verify-secret');
+    const pubkeyEl = document.getElementById('jwt-verify-pubkey');
+    const ignoreExpEl = document.getElementById('jwt-verify-ignore-exp');
+    const resultEl = document.getElementById('jwt-verify-result');
+    const errorsEl = document.getElementById('jwt-verify-errors');
+
+    if (errorsEl) errorsEl.innerHTML = '';
+    if (resultEl) resultEl.innerHTML = '';
+
+    if (!window.DogToolboxM43Utils) {
+        if (errorsEl) errorsEl.innerHTML = '<div>⚠ 工具模块未加载：tools_m43_utils.js</div>';
+        return;
+    }
+
+    const token = inputEl?.value?.trim();
+    if (!token) {
+        if (errorsEl) errorsEl.innerHTML = '<div>⚠ 请输入 JWT Token</div>';
+        return;
+    }
+
+    let algorithm = algorithmEl?.value;
+    if (algorithm === 'auto') {
+        try {
+            const parts = token.split('.');
+            if (parts.length >= 2) {
+                const header = JSON.parse(window.DogToolboxM43Utils.base64UrlDecodeToString(parts[0]));
+                algorithm = header.alg;
+                if (algorithmEl) algorithmEl.value = algorithm;
+                updateJwtVerifyKeyInput();
+            }
+        } catch (e) {
+            algorithm = 'HS256';
+        }
+    }
+
+    const isHmac = algorithm?.startsWith('HS');
+    const secret = isHmac ? secretEl?.value : pubkeyEl?.value;
+
+    if (!secret) {
+        if (errorsEl) errorsEl.innerHTML = '<div>⚠ 请输入密钥或公钥</div>';
+        return;
+    }
+
+    const options = {
+        algorithm: algorithm !== 'auto' ? algorithm : undefined,
+        ignoreExpiration: !!ignoreExpEl?.checked
+    };
+
+    const result = await window.DogToolboxM43Utils.verifyJwt(token, secret, options);
+
+    if (resultEl) {
+        if (result.valid) {
+            resultEl.innerHTML = `
+                <div class="jwt-verify-success">✓ 签名验证通过</div>
+                <div class="jwt-verify-details">
+                    <div class="jwt-verify-section">
+                        <strong>Header:</strong>
+                        <pre>${escapeHtml(JSON.stringify(result.header, null, 2))}</pre>
+                    </div>
+                    <div class="jwt-verify-section">
+                        <strong>Payload:</strong>
+                        <pre>${escapeHtml(JSON.stringify(result.payload, null, 2))}</pre>
+                    </div>
+                </div>
+            `;
+        } else {
+            resultEl.innerHTML = `
+                <div class="jwt-verify-failure">✗ 验证失败: ${escapeHtml(result.error || '未知错误')}</div>
+                ${result.header ? `
+                <div class="jwt-verify-details">
+                    <div class="jwt-verify-section">
+                        <strong>Header:</strong>
+                        <pre>${escapeHtml(JSON.stringify(result.header, null, 2))}</pre>
+                    </div>
+                    ${result.payload ? `
+                    <div class="jwt-verify-section">
+                        <strong>Payload:</strong>
+                        <pre>${escapeHtml(JSON.stringify(result.payload, null, 2))}</pre>
+                    </div>
+                    ` : ''}
+                </div>
+                ` : ''}
+            `;
+        }
+    }
+}
+
+function copyJwtGenOutput(btn) {
+    const el = document.getElementById('jwt-gen-output');
+    copyToolText(btn, el?.value || '');
+}
+
+function copyJwtGenPubkey(btn) {
+    const el = document.getElementById('jwt-gen-pubkey');
+    copyToolText(btn, el?.value || '');
 }
 
 // ==================== 工具箱：时间戳转换（M3） ====================

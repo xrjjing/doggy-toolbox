@@ -1,65 +1,256 @@
 <!-- 自动拆分自 web/index.html：tool-jwt -->
 <section id="page-tool-jwt" class="page">
-		                <div class="page-header">
-		                    <div class="page-title">
-		                        <h1>JWT 解码</h1>
-		                        <p class="subtitle">支持 base64url 解码与 JSON 输出</p>
-		                    </div>
-		                    <div class="page-actions">
-		                        <label class="tool-check">
-		                            <input type="checkbox" id="jwt-show-header" checked onchange="updateJwtTool()">
-		                            显示 Header
-		                        </label>
-		                        <label class="tool-check">
-		                            <input type="checkbox" id="jwt-show-payload" checked onchange="updateJwtTool()">
-		                            显示 Payload
-		                        </label>
-		                    </div>
-		                </div>
-		                <div class="converter-layout jwt-layout">
-		                    <div class="converter-panel">
-		                        <div class="panel-header">
-		                            <h3>输入</h3>
-		                            <div class="panel-actions">
-		                                <select id="jwt-input-type" onchange="updateJwtTool()">
-		                                    <option value="auto">自动识别</option>
-		                                    <option value="jwt">JWT（header.payload[.signature]）</option>
-		                                    <option value="header_payload">Header+Payload（两段）</option>
-		                                    <option value="header">仅 Header（base64url）</option>
-		                                    <option value="payload">仅 Payload（base64url）</option>
-		                                </select>
-		                                <button class="btn btn-sm btn-ghost" onclick="clearJwtTool()">清空</button>
-		                            </div>
-		                        </div>
-		                        <div class="panel-body">
-		                            <textarea id="jwt-input" placeholder="粘贴 JWT（支持 Bearer 前缀）..."></textarea>
-		                            <div id="jwt-errors" class="error-list"></div>
-		                        </div>
-		                    </div>
-		                    <div class="converter-panel">
-		                        <div class="panel-header">
-		                            <h3>输出</h3>
-		                            <div class="panel-actions">
-		                                <button class="btn btn-sm btn-ghost" onclick="copyJwtAll(this)">复制全部</button>
-		                            </div>
-		                        </div>
-		                        <div class="panel-body jwt-output">
-		                            <div class="jwt-section" id="jwt-header-section">
-		                                <div class="jwt-section-header">
-		                                    <div class="jwt-section-title">Header（JSON）</div>
-		                                    <button class="btn btn-sm btn-ghost" onclick="copyJwtPart(this, 'header')">复制</button>
-		                                </div>
-		                                <textarea id="jwt-header-output" readonly placeholder="Header JSON..."></textarea>
-		                            </div>
-		                            <div class="jwt-section" id="jwt-payload-section">
-		                                <div class="jwt-section-header">
-		                                    <div class="jwt-section-title">Payload（JSON）</div>
-		                                    <button class="btn btn-sm btn-ghost" onclick="copyJwtPart(this, 'payload')">复制</button>
-		                                </div>
-		                                <textarea id="jwt-payload-output" readonly placeholder="Payload JSON..."></textarea>
-		                            </div>
-		                            <div class="jwt-warning" id="jwt-warning"></div>
-		                        </div>
-		                    </div>
-		                </div>
-		            </section>
+    <div class="page-header">
+        <div class="page-title">
+            <h1>JWT 工具</h1>
+            <p class="subtitle">JWT 解码、生成与验证</p>
+        </div>
+        <div class="page-actions">
+            <button class="btn btn-ghost" onclick="clearJwtTool()">清空</button>
+        </div>
+    </div>
+
+    <!-- Tab 切换 -->
+    <div class="tool-tabs-modern" role="tablist">
+        <button class="tool-tab tool-tab-modern active" onclick="switchJwtMode('decode')" data-mode="decode">
+            <span class="tab-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 15l-2-2m0 0l2-2m-2 2h9m-9 0H3m9 9a9 9 0 110-18 9 9 0 010 18z"/></svg>
+            </span>
+            <span class="tab-label">解码</span>
+        </button>
+        <button class="tool-tab tool-tab-modern" onclick="switchJwtMode('generate')" data-mode="generate">
+            <span class="tab-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+            </span>
+            <span class="tab-label">生成</span>
+        </button>
+        <button class="tool-tab tool-tab-modern" onclick="switchJwtMode('verify')" data-mode="verify">
+            <span class="tab-icon">
+                <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </span>
+            <span class="tab-label">验证</span>
+        </button>
+    </div>
+
+    <!-- 解码场景 -->
+    <div id="jwt-scene-decode" class="jwt-scene">
+        <div class="converter-layout jwt-layout">
+            <div class="converter-panel">
+                <div class="panel-header">
+                    <h3>输入</h3>
+                    <div class="panel-actions">
+                        <select id="jwt-input-type" class="tool-select" onchange="updateJwtTool()">
+                            <option value="auto">自动识别</option>
+                            <option value="jwt">JWT（header.payload[.signature]）</option>
+                            <option value="header_payload">Header+Payload（两段）</option>
+                            <option value="header">仅 Header（base64url）</option>
+                            <option value="payload">仅 Payload（base64url）</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <textarea id="jwt-input" placeholder="粘贴 JWT（支持 Bearer 前缀）..." oninput="updateJwtTool()"></textarea>
+                    <div id="jwt-errors" class="error-list"></div>
+                </div>
+            </div>
+            <div class="converter-panel">
+                <div class="panel-header">
+                    <h3>输出</h3>
+                    <div class="panel-actions">
+                        <label class="tool-check">
+                            <input type="checkbox" id="jwt-show-header" checked onchange="updateJwtTool()">
+                            Header
+                        </label>
+                        <label class="tool-check">
+                            <input type="checkbox" id="jwt-show-payload" checked onchange="updateJwtTool()">
+                            Payload
+                        </label>
+                        <button class="btn btn-sm btn-ghost" onclick="copyJwtAll(this)">复制全部</button>
+                    </div>
+                </div>
+                <div class="panel-body jwt-output">
+                    <div class="jwt-section" id="jwt-header-section">
+                        <div class="jwt-section-header">
+                            <div class="jwt-section-title">Header（JSON）</div>
+                            <button class="btn btn-sm btn-ghost" onclick="copyJwtPart(this, 'header')">复制</button>
+                        </div>
+                        <textarea id="jwt-header-output" readonly placeholder="Header JSON..."></textarea>
+                    </div>
+                    <div class="jwt-section" id="jwt-payload-section">
+                        <div class="jwt-section-header">
+                            <div class="jwt-section-title">Payload（JSON）</div>
+                            <button class="btn btn-sm btn-ghost" onclick="copyJwtPart(this, 'payload')">复制</button>
+                        </div>
+                        <textarea id="jwt-payload-output" readonly placeholder="Payload JSON..."></textarea>
+                    </div>
+                    <div class="jwt-warning" id="jwt-warning"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 生成场景 -->
+    <div id="jwt-scene-generate" class="jwt-scene" style="display:none">
+        <div class="converter-layout jwt-layout">
+            <div class="converter-panel">
+                <div class="panel-header">
+                    <h3>Payload</h3>
+                    <div class="panel-actions">
+                        <select id="jwt-gen-preset" class="tool-select" onchange="applyJwtPreset()">
+                            <option value="">选择预设...</option>
+                            <option value="access_token">Access Token</option>
+                            <option value="refresh_token">Refresh Token</option>
+                            <option value="id_token">ID Token (OIDC)</option>
+                            <option value="api_key">API Key Token</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <textarea id="jwt-gen-payload" placeholder='{"sub": "user123", "exp": 3600, "iat": true}'></textarea>
+                </div>
+            </div>
+            <div class="converter-panel">
+                <div class="panel-header">
+                    <h3>签名配置</h3>
+                </div>
+                <div class="panel-body jwt-config-body">
+                    <div class="form-group">
+                        <label>算法</label>
+                        <select id="jwt-gen-algorithm" class="tool-select" onchange="updateJwtKeyInput()">
+                            <optgroup label="HMAC">
+                                <option value="HS256" selected>HS256 (HMAC-SHA256)</option>
+                                <option value="HS384">HS384 (HMAC-SHA384)</option>
+                                <option value="HS512">HS512 (HMAC-SHA512)</option>
+                            </optgroup>
+                            <optgroup label="RSA">
+                                <option value="RS256">RS256 (RSA-SHA256)</option>
+                                <option value="RS384">RS384 (RSA-SHA384)</option>
+                                <option value="RS512">RS512 (RSA-SHA512)</option>
+                            </optgroup>
+                            <optgroup label="RSA-PSS">
+                                <option value="PS256">PS256 (RSA-PSS-SHA256)</option>
+                                <option value="PS384">PS384 (RSA-PSS-SHA384)</option>
+                                <option value="PS512">PS512 (RSA-PSS-SHA512)</option>
+                            </optgroup>
+                            <optgroup label="ECDSA">
+                                <option value="ES256">ES256 (ECDSA P-256)</option>
+                                <option value="ES384">ES384 (ECDSA P-384)</option>
+                                <option value="ES512">ES512 (ECDSA P-521)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-group" id="jwt-gen-secret-group">
+                        <label>密钥</label>
+                        <div class="input-with-btn">
+                            <input type="text" id="jwt-gen-secret" placeholder="your-secret-key">
+                            <button class="btn btn-sm btn-ghost" onclick="generateJwtSecret()">生成</button>
+                        </div>
+                    </div>
+                    <div class="form-group" id="jwt-gen-privkey-group" style="display:none">
+                        <label>私钥 (PEM)</label>
+                        <textarea id="jwt-gen-privkey" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
+                        <button class="btn btn-sm btn-ghost jwt-keygen-btn" onclick="generateJwtKeyPair()">生成密钥对</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="converter-panel jwt-output-panel">
+            <div class="panel-header">
+                <h3>生成的 JWT</h3>
+                <div class="panel-actions">
+                    <button class="btn btn-sm btn-primary" onclick="generateJwtToken()">生成</button>
+                    <button class="btn btn-sm btn-ghost" onclick="copyJwtGenOutput(this)">复制</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <textarea id="jwt-gen-output" readonly placeholder="生成的 JWT 将显示在这里..."></textarea>
+                <div id="jwt-gen-errors" class="error-list"></div>
+            </div>
+        </div>
+        <!-- 生成的公钥显示区 -->
+        <div class="converter-panel jwt-output-panel" id="jwt-gen-pubkey-panel" style="display:none">
+            <div class="panel-header">
+                <h3>公钥 (PEM)</h3>
+                <div class="panel-actions">
+                    <button class="btn btn-sm btn-ghost" onclick="copyJwtGenPubkey(this)">复制</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <textarea id="jwt-gen-pubkey" readonly placeholder="生成的公钥将显示在这里..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- 验证场景 -->
+    <div id="jwt-scene-verify" class="jwt-scene" style="display:none">
+        <div class="converter-layout jwt-layout">
+            <div class="converter-panel">
+                <div class="panel-header">
+                    <h3>JWT Token</h3>
+                </div>
+                <div class="panel-body">
+                    <textarea id="jwt-verify-input" placeholder="粘贴要验证的 JWT..."></textarea>
+                </div>
+            </div>
+            <div class="converter-panel">
+                <div class="panel-header">
+                    <h3>验证配置</h3>
+                </div>
+                <div class="panel-body jwt-config-body">
+                    <div class="form-group">
+                        <label>算法</label>
+                        <select id="jwt-verify-algorithm" class="tool-select" onchange="updateJwtVerifyKeyInput()">
+                            <option value="auto">自动检测</option>
+                            <optgroup label="HMAC">
+                                <option value="HS256">HS256</option>
+                                <option value="HS384">HS384</option>
+                                <option value="HS512">HS512</option>
+                            </optgroup>
+                            <optgroup label="RSA">
+                                <option value="RS256">RS256</option>
+                                <option value="RS384">RS384</option>
+                                <option value="RS512">RS512</option>
+                            </optgroup>
+                            <optgroup label="RSA-PSS">
+                                <option value="PS256">PS256</option>
+                                <option value="PS384">PS384</option>
+                                <option value="PS512">PS512</option>
+                            </optgroup>
+                            <optgroup label="ECDSA">
+                                <option value="ES256">ES256</option>
+                                <option value="ES384">ES384</option>
+                                <option value="ES512">ES512</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-group" id="jwt-verify-secret-group">
+                        <label>密钥</label>
+                        <input type="text" id="jwt-verify-secret" placeholder="your-secret-key">
+                    </div>
+                    <div class="form-group" id="jwt-verify-pubkey-group" style="display:none">
+                        <label>公钥 (PEM)</label>
+                        <textarea id="jwt-verify-pubkey" placeholder="-----BEGIN PUBLIC KEY-----"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="tool-check">
+                            <input type="checkbox" id="jwt-verify-ignore-exp">
+                            忽略过期检查
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="converter-panel jwt-output-panel">
+            <div class="panel-header">
+                <h3>验证结果</h3>
+                <div class="panel-actions">
+                    <button class="btn btn-sm btn-primary" onclick="verifyJwtToken()">验证</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div id="jwt-verify-result" class="jwt-verify-result"></div>
+                <div id="jwt-verify-errors" class="error-list"></div>
+            </div>
+        </div>
+    </div>
+</section>

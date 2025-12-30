@@ -407,12 +407,145 @@
         return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
     }
 
+    /**
+     * 获取 cURL 常用模板
+     * @returns {Array<{name: string, command: string, description: string, category: string}>}
+     */
+    function getCurlTemplates() {
+        return [
+            // 基础请求
+            {
+                name: 'GET JSON',
+                command: 'curl -X GET -H "Accept: application/json" "https://api.example.com/data"',
+                description: '获取 JSON 数据',
+                category: '基础请求'
+            },
+            {
+                name: 'POST JSON',
+                command: 'curl -X POST -H "Content-Type: application/json" -d \'{"key":"value"}\' "https://api.example.com/data"',
+                description: '发送 JSON 数据',
+                category: '基础请求'
+            },
+            {
+                name: 'PUT 更新',
+                command: 'curl -X PUT -H "Content-Type: application/json" -d \'{"id":1,"name":"updated"}\' "https://api.example.com/data/1"',
+                description: '更新资源',
+                category: '基础请求'
+            },
+            {
+                name: 'DELETE 删除',
+                command: 'curl -X DELETE "https://api.example.com/data/1"',
+                description: '删除资源',
+                category: '基础请求'
+            },
+            // 认证
+            {
+                name: 'Bearer Token',
+                command: 'curl -H "Authorization: Bearer YOUR_TOKEN" "https://api.example.com/protected"',
+                description: '带 Bearer Token 请求',
+                category: '认证'
+            },
+            {
+                name: 'Basic Auth',
+                command: 'curl -u username:password "https://api.example.com/auth"',
+                description: 'HTTP Basic 认证',
+                category: '认证'
+            },
+            {
+                name: 'API Key Header',
+                command: 'curl -H "X-API-Key: YOUR_API_KEY" "https://api.example.com/data"',
+                description: 'API Key 认证',
+                category: '认证'
+            },
+            // 文件操作
+            {
+                name: '上传文件',
+                command: 'curl -X POST -F "file=@/path/to/file.txt" "https://api.example.com/upload"',
+                description: '上传单个文件',
+                category: '文件操作'
+            },
+            {
+                name: '上传多文件',
+                command: 'curl -X POST -F "file1=@/path/to/file1.txt" -F "file2=@/path/to/file2.txt" "https://api.example.com/upload"',
+                description: '上传多个文件',
+                category: '文件操作'
+            },
+            {
+                name: '下载文件',
+                command: 'curl -o output.file "https://example.com/file.zip"',
+                description: '下载文件到本地',
+                category: '文件操作'
+            },
+            {
+                name: '下载并重命名',
+                command: 'curl -O -J -L "https://example.com/file.zip"',
+                description: '下载并使用服务器文件名',
+                category: '文件操作'
+            },
+            // 调试
+            {
+                name: '显示响应头',
+                command: 'curl -I "https://api.example.com/data"',
+                description: '仅获取响应头',
+                category: '调试'
+            },
+            {
+                name: '详细输出',
+                command: 'curl -v "https://api.example.com/data"',
+                description: '显示详细请求/响应信息',
+                category: '调试'
+            },
+            {
+                name: '静默模式',
+                command: 'curl -s "https://api.example.com/data"',
+                description: '静默模式，不显示进度',
+                category: '调试'
+            },
+            // 高级
+            {
+                name: '设置超时',
+                command: 'curl --connect-timeout 10 --max-time 30 "https://api.example.com/data"',
+                description: '设置连接和最大超时',
+                category: '高级'
+            },
+            {
+                name: '跟随重定向',
+                command: 'curl -L "https://example.com/redirect"',
+                description: '自动跟随 HTTP 重定向',
+                category: '高级'
+            },
+            {
+                name: '使用代理',
+                command: 'curl -x http://proxy:8080 "https://api.example.com/data"',
+                description: '通过代理服务器请求',
+                category: '高级'
+            },
+            {
+                name: '自定义 User-Agent',
+                command: 'curl -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" "https://api.example.com/data"',
+                description: '设置自定义 User-Agent',
+                category: '高级'
+            }
+        ];
+    }
+
+    /**
+     * 获取模板分类
+     * @returns {string[]}
+     */
+    function getCurlTemplateCategories() {
+        const templates = getCurlTemplates();
+        return [...new Set(templates.map(t => t.category))];
+    }
+
     return {
         parseCurl,
         generateCurl,
         parseUrlParams,
         buildUrl,
         formatResponseTime,
-        formatResponseSize
+        formatResponseSize,
+        getCurlTemplates,
+        getCurlTemplateCategories
     };
 });

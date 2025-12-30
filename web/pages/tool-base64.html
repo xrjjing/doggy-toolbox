@@ -3,7 +3,7 @@
 		                <div class="page-header">
 		                    <div class="page-title">
 		                        <h1>Base64 编解码</h1>
-		                        <p class="subtitle">文本（UTF-8）与 Base64 互相转换</p>
+		                        <p class="subtitle">文本（UTF-8）与 Base64 互相转换，支持拖拽文件</p>
 		                    </div>
 		                </div>
 		                <div class="converter-layout">
@@ -19,7 +19,7 @@
 		                            </div>
 		                        </div>
 		                        <div class="panel-body">
-		                            <textarea id="b64-input" placeholder="输入内容..."></textarea>
+		                            <textarea id="b64-input" placeholder="输入内容或拖拽文件到此处..."></textarea>
 		                            <div class="tool-options-row">
 		                                <label class="tool-check" title="按行处理输入/输出">
 		                                    <input type="checkbox" id="b64-batch" onchange="updateBase64Tool()">
@@ -38,7 +38,17 @@
 		                        </div>
 		                        <div class="panel-body">
 		                            <textarea id="b64-output" readonly placeholder="输出结果..."></textarea>
+		                            <div id="b64-jump-buttons" class="b64-jump-buttons"></div>
 		                        </div>
 		                    </div>
+		                </div>
+		                <div class="tool-history-panel">
+		                    <div class="panel-header">
+		                        <h3>历史记录</h3>
+		                        <div class="panel-actions">
+		                            <button class="btn btn-sm btn-ghost" onclick="clearBase64History()">清空</button>
+		                        </div>
+		                    </div>
+		                    <div id="b64-history" class="history-list"></div>
 		                </div>
 		            </section>

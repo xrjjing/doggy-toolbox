@@ -269,11 +269,40 @@ class Api:
     def get_nodes(self):
         return self.node_converter.get_nodes()
 
-    def save_node(self, name: str, node_type: str, server: str, port: int, raw_link: str, yaml_config: str):
-        return self.node_converter.save_node(name, node_type, server, port, raw_link, yaml_config)
+    def save_node(self, name: str, node_type: str, server: str, port: int, raw_link: str, yaml_config: str, tags: list = None):
+        return self.node_converter.save_node(name, node_type, server, port, raw_link, yaml_config, tags)
 
     def delete_node(self, id: str):
         return self.node_converter.delete_node(id)
+
+    def update_node_tags(self, node_id: str, tags: list):
+        """更新节点标签"""
+        return self.node_converter.update_node_tags(node_id, tags)
+
+    def get_nodes_by_tag(self, tag: str):
+        """根据标签筛选节点"""
+        return self.node_converter.get_nodes_by_tag(tag)
+
+    def get_all_node_tags(self):
+        """获取所有节点标签"""
+        return self.node_converter.get_all_tags()
+
+    def batch_import_subscriptions(self, urls: list):
+        """批量导入订阅链接"""
+        return self.node_converter.batch_import_subscriptions(urls)
+
+    def validate_node(self, node: dict):
+        """验证节点配置"""
+        return self.node_converter.validate_node(node)
+
+    def validate_all_nodes(self, nodes: list):
+        """批量验证节点"""
+        return self.node_converter.validate_all_nodes(nodes)
+
+    def generate_node_share_link(self, node: dict):
+        """生成节点分享链接"""
+        link = self.node_converter.generate_share_link(node)
+        return {"success": True, "link": link} if link else {"success": False, "error": "不支持的节点类型"}
 
     # ========== HTTP 请求集合管理 ==========
     def get_http_collections(self):
@@ -305,6 +334,57 @@ class Api:
 
     def import_openapi_collection(self, openapi_data: dict):
         return self.http_collections.import_openapi(openapi_data)
+
+    def export_openapi_collection(self, collection_id: str = None):
+        """导出 HTTP 集合为 OpenAPI 3.0 格式"""
+        try:
+            result = self.http_collections.export_openapi(collection_id)
+            if isinstance(result, dict) and result.get("error"):
+                return {"success": False, "error": result["error"]}
+            return {"success": True, "data": result}
+        except Exception as e:
+            logger.error(f"导出 OpenAPI 失败: {e}")
+            return {"success": False, "error": str(e)}
+
+    def export_postman_collection(self, collection_id: str = None):
+        """导出 HTTP 集合为 Postman Collection v2.1 格式"""
+        try:
+            result = self.http_collections.export_postman(collection_id)
+            if isinstance(result, dict) and result.get("error"):
+                return {"success": False, "error": result["error"]}
+            return {"success": True, "data": result}
+        except Exception as e:
+            logger.error(f"导出 Postman 失败: {e}")
+            return {"success": False, "error": str(e)}
+
+    # ========== HTTP 环境变量 ==========
+    def get_http_environments(self):
+        """获取所有 HTTP 环境变量"""
+        return self.http_collections.get_environments()
+
+    def get_active_http_environment(self):
+        """获取当前活跃的 HTTP 环境"""
+        return self.http_collections.get_active_environment()
+
+    def create_http_environment(self, name: str, variables: list = None):
+        """创建 HTTP 环境"""
+        return self.http_collections.create_environment(name, variables)
+
+    def update_http_environment(self, env_id: str, name: str = None, variables: list = None):
+        """更新 HTTP 环境"""
+        return self.http_collections.update_environment(env_id, name, variables)
+
+    def delete_http_environment(self, env_id: str):
+        """删除 HTTP 环境"""
+        return self.http_collections.delete_environment(env_id)
+
+    def set_active_http_environment(self, env_id: str = None):
+        """设置活跃的 HTTP 环境"""
+        return self.http_collections.set_active_environment(env_id)
+
+    def replace_http_variables(self, text: str, env_id: str = None):
+        """替换文本中的环境变量"""
+        return self.http_collections.replace_variables(text, env_id)
 
     def open_collection_file_dialog(self):
         """打开文件选择对话框，选择集合 JSON 文件"""
@@ -386,6 +466,18 @@ class Api:
         """保存标题栏模式设置"""
         if self.ai_manager.db:
             return self.ai_manager.db.set_app_config("titlebar_mode", mode)
+        return False
+
+    def get_ui_scale(self):
+        """获取 UI 缩放设置"""
+        if self.ai_manager.db:
+            return self.ai_manager.db.get_app_config("ui_scale", None)
+        return None
+
+    def save_ui_scale(self, scale: int):
+        """保存 UI 缩放设置"""
+        if self.ai_manager.db:
+            return self.ai_manager.db.set_app_config("ui_scale", scale)
         return False
 
     def get_accent_color(self):

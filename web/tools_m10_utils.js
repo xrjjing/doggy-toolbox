@@ -247,6 +247,193 @@
     }
 
     /**
+     * 高级 JSON 修复
+     * @param {string} text - 可能格式不正确的 JSON
+     * @returns {{result: string, fixes: string[], error: string|null}}
+     */
+    function advancedFixJson(text) {
+        let s = String(text ?? '').trim();
+        if (!s) return { result: s, fixes: [], error: null };
+
+        const fixes = [];
+
+        // 1. 移除单行注释 (// ...)
+        if (/\/\/.*$/m.test(s)) {
+            s = s.replace(/\/\/.*$/gm, '');
+            fixes.push('移除单行注释');
+        }
+
+        // 2. 移除块注释 (/* ... */)
+        if (/\/\*[\s\S]*?\*\//.test(s)) {
+            s = s.replace(/\/\*[\s\S]*?\*\//g, '');
+            fixes.push('移除块注释');
+        }
+
+        // 3. 移除尾部逗号
+        if (/,(\s*[}\]])/.test(s)) {
+            s = s.replace(/,(\s*[}\]])/g, '$1');
+            fixes.push('移除尾部逗号');
+        }
+
+        // 4. 修复单引号为双引号（在字符串值中）
+        // 匹配单引号包裹的字符串
+        if (/'[^']*'/.test(s)) {
+            s = s.replace(/'([^'\\]*(\\.[^'\\]*)*)'/g, '"$1"');
+            fixes.push('单引号转双引号');
+        }
+
+        // 5. 为无引号的键名添加引号
+        // 匹配 {key: 或 ,key: 格式
+        const unquotedKeyPattern = /([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)(\s*:)/g;
+        if (unquotedKeyPattern.test(s)) {
+            s = s.replace(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)(\s*:)/g, '$1"$2"$3');
+            fixes.push('为键名添加引号');
+        }
+
+        // 6. 替换 undefined/NaN/Infinity 为 null
+        if (/:\s*(undefined|NaN|Infinity|-Infinity)\b/.test(s)) {
+            s = s.replace(/:\s*undefined\b/g, ': null');
+            s = s.replace(/:\s*NaN\b/g, ': null');
+            s = s.replace(/:\s*-?Infinity\b/g, ': null');
+            fixes.push('替换 undefined/NaN/Infinity 为 null');
+        }
+
+        // 7. 补全缺失的括号
+        const openBraces = (s.match(/{/g) || []).length;
+        const closeBraces = (s.match(/}/g) || []).length;
+        if (openBraces > closeBraces) {
+            s += '}'.repeat(openBraces - closeBraces);
+            fixes.push('补全缺失的 }');
+        }
+
+        const openBrackets = (s.match(/\[/g) || []).length;
+        const closeBrackets = (s.match(/]/g) || []).length;
+        if (openBrackets > closeBrackets) {
+            s += ']'.repeat(openBrackets - closeBrackets);
+            fixes.push('补全缺失的 ]');
+        }
+
+        // 8. 修复多余的逗号（连续逗号）
+        if (/,\s*,/.test(s)) {
+            s = s.replace(/,(\s*,)+/g, ',');
+            fixes.push('移除多余逗号');
+        }
+
+        // 9. 修复开头的逗号
+        if (/[{\[]\s*,/.test(s)) {
+            s = s.replace(/([{\[])\s*,/g, '$1');
+            fixes.push('移除开头逗号');
+        }
+
+        // 清理多余空白
+        s = s.trim();
+
+        // 验证修复结果
+        try {
+            JSON.parse(s);
+            return { result: s, fixes, error: null };
+        } catch (e) {
+            return { result: s, fixes, error: e.message };
+        }
+    }
+
+    /**
+     * 诊断 JSON 错误
+     * @param {string} text - JSON 字符串
+     * @returns {Array<{line: number, column: number, message: string, suggestion: string}>}
+     */
+    function diagnoseJsonError(text) {
+        const s = String(text ?? '').trim();
+        if (!s) return [];
+
+        const issues = [];
+        const lines = s.split('\n');
+
+        // 检查常见问题
+        lines.forEach((line, idx) => {
+            const lineNum = idx + 1;
+
+            // 检查单引号
+            const singleQuoteMatch = line.match(/'/);
+            if (singleQuoteMatch) {
+                issues.push({
+                    line: lineNum,
+                    column: singleQuoteMatch.index + 1,
+                    message: '使用了单引号',
+                    suggestion: '将单引号替换为双引号'
+                });
+            }
+
+            // 检查无引号的键名
+            const unquotedKeyMatch = line.match(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)(\s*:)/);
+            if (unquotedKeyMatch) {
+                issues.push({
+                    line: lineNum,
+                    column: unquotedKeyMatch.index + unquotedKeyMatch[1].length + 1,
+                    message: `键名 "${unquotedKeyMatch[2]}" 缺少引号`,
+                    suggestion: `将 ${unquotedKeyMatch[2]} 改为 "${unquotedKeyMatch[2]}"`
+                });
+            }
+
+            // 检查尾部逗号
+            if (/,\s*[}\]]/.test(line)) {
+                issues.push({
+                    line: lineNum,
+                    column: line.indexOf(',') + 1,
+                    message: '存在尾部逗号',
+                    suggestion: '移除最后一个元素后的逗号'
+                });
+            }
+
+            // 检查注释
+            if (/\/\//.test(line)) {
+                issues.push({
+                    line: lineNum,
+                    column: line.indexOf('//') + 1,
+                    message: 'JSON 不支持注释',
+                    suggestion: '移除注释'
+                });
+            }
+
+            // 检查 undefined/NaN/Infinity
+            const invalidValueMatch = line.match(/:\s*(undefined|NaN|Infinity|-Infinity)\b/);
+            if (invalidValueMatch) {
+                issues.push({
+                    line: lineNum,
+                    column: invalidValueMatch.index + 1,
+                    message: `无效的值: ${invalidValueMatch[1]}`,
+                    suggestion: '使用 null 或有效的 JSON 值'
+                });
+            }
+        });
+
+        // 检查括号匹配
+        const openBraces = (s.match(/{/g) || []).length;
+        const closeBraces = (s.match(/}/g) || []).length;
+        if (openBraces !== closeBraces) {
+            issues.push({
+                line: lines.length,
+                column: 1,
+                message: `括号不匹配: { 有 ${openBraces} 个，} 有 ${closeBraces} 个`,
+                suggestion: openBraces > closeBraces ? '添加缺失的 }' : '移除多余的 }'
+            });
+        }
+
+        const openBrackets = (s.match(/\[/g) || []).length;
+        const closeBrackets = (s.match(/]/g) || []).length;
+        if (openBrackets !== closeBrackets) {
+            issues.push({
+                line: lines.length,
+                column: 1,
+                message: `方括号不匹配: [ 有 ${openBrackets} 个，] 有 ${closeBrackets} 个`,
+                suggestion: openBrackets > closeBrackets ? '添加缺失的 ]' : '移除多余的 ]'
+            });
+        }
+
+        return issues;
+    }
+
+    /**
      * 对 JSON 对象的键进行递归排序
      * @param {string} text - JSON 字符串
      * @param {string} order - 排序方式: 'asc' 升序, 'desc' 降序
@@ -359,6 +546,8 @@
         minifyJson,
         validateJson,
         tryFixJson,
+        advancedFixJson,
+        diagnoseJsonError,
         sortJsonFields,
         escapeJson,
         unescapeJson,

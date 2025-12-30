@@ -20,6 +20,11 @@ class ProxyNode:
     port: int
     raw_link: str
     config: Dict
+    tags: List[str] = None
+
+    def __post_init__(self):
+        if self.tags is None:
+            self.tags = []
 
 
 class NodeConverterService:
@@ -273,7 +278,10 @@ class NodeConverterService:
     def _parse_nodes_md(self) -> List[ProxyNode]:
         if not self.nodes_file.exists():
             return []
-        content = self.nodes_file.read_text(encoding="utf-8")
+        try:
+            content = self.nodes_file.read_text(encoding="utf-8")
+        except (IOError, OSError):
+            return []
         nodes = []
         current_node = None
         in_yaml = False
@@ -286,7 +294,7 @@ class NodeConverterService:
                     nodes.append(current_node)
                 name = line[3:].strip()
                 node_id = str(len(nodes))
-                current_node = ProxyNode(id=node_id, name=name, type="", server="", port=0, raw_link="", config={})
+                current_node = ProxyNode(id=node_id, name=name, type="", server="", port=0, raw_link="", config={}, tags=[])
                 yaml_lines = []
                 in_yaml = False
             elif line.startswith("- **链接**:"):
@@ -304,6 +312,10 @@ class NodeConverterService:
                         current_node.port = int(line.split(":", 1)[1].strip())
                     except ValueError:
                         pass
+            elif line.startswith("- **标签**:"):
+                if current_node:
+                    tags_str = line.split(":", 1)[1].strip()
+                    current_node.tags = [t.strip() for t in tags_str.split(",") if t.strip()]
             elif line.strip() == "```yaml":
                 in_yaml = True
             elif line.strip() == "```" and in_yaml:
@@ -327,6 +339,8 @@ class NodeConverterService:
             lines.append(f"- **类型**: {node.type}")
             lines.append(f"- **服务器**: {node.server}")
             lines.append(f"- **端口**: {node.port}")
+            if node.tags:
+                lines.append(f"- **标签**: {', '.join(node.tags)}")
             if node.raw_link:
                 lines.append(f"- **链接**: `{node.raw_link}`")
             if node.config.get("yaml"):
@@ -340,12 +354,12 @@ class NodeConverterService:
     def get_nodes(self) -> List[Dict]:
         return [asdict(n) for n in self._parse_nodes_md()]
 
-    def save_node(self, name: str, node_type: str, server: str, port: int, raw_link: str, yaml_config: str) -> Dict:
+    def save_node(self, name: str, node_type: str, server: str, port: int, raw_link: str, yaml_config: str, tags: List[str] = None) -> Dict:
         all_nodes = self._parse_nodes_md()
         new_id = str(max((int(n.id) for n in all_nodes), default=-1) + 1)
         new_node = ProxyNode(
             id=new_id, name=name, type=node_type, server=server,
-            port=port, raw_link=raw_link, config={"yaml": yaml_config}
+            port=port, raw_link=raw_link, config={"yaml": yaml_config}, tags=tags or []
         )
         all_nodes.append(new_node)
         self._save_nodes_md(all_nodes)
@@ -358,3 +372,204 @@ class NodeConverterService:
             self._save_nodes_md(new_nodes)
             return True
         return False
+
+    # ========== 标签管理 ==========
+    def update_node_tags(self, node_id: str, tags: List[str]) -> Optional[Dict]:
+        """更新节点标签"""
+        all_nodes = self._parse_nodes_md()
+        for node in all_nodes:
+            if node.id == node_id:
+                node.tags = [t.strip() for t in tags if t.strip()]
+                self._save_nodes_md(all_nodes)
+                return asdict(node)
+        return None
+
+    def get_nodes_by_tag(self, tag: str) -> List[Dict]:
+        """根据标签筛选节点"""
+        all_nodes = self._parse_nodes_md()
+        filtered = [n for n in all_nodes if tag in (n.tags or [])]
+        return [asdict(n) for n in filtered]
+
+    def get_all_tags(self) -> List[str]:
+        """获取所有标签"""
+        all_nodes = self._parse_nodes_md()
+        tags_set = set()
+        for node in all_nodes:
+            if node.tags:
+                tags_set.update(node.tags)
+        return sorted(list(tags_set))
+
+    # ========== 批量导入 ==========
+    def batch_import_subscriptions(self, urls: List[str]) -> Dict:
+        """批量导入多个订阅链接"""
+        results = []
+        total_nodes = 0
+        total_errors = []
+
+        for url in urls:
+            url = url.strip()
+            if not url:
+                continue
+
+            result = self.fetch_subscription(url)
+            nodes_count = len(result.get('nodes', []))
+            total_nodes += nodes_count
+
+            results.append({
+                'url': url[:50] + '...' if len(url) > 50 else url,
+                'nodes_count': nodes_count,
+                'errors': result.get('errors', [])
+            })
+
+            if result.get('errors'):
+                total_errors.extend(result['errors'])
+
+        return {
+            'results': results,
+            'total_nodes': total_nodes,
+            'total_errors': total_errors
+        }
+
+    # ========== 节点验证 ==========
+    def validate_node(self, node: Dict) -> Dict:
+        """验证节点配置"""
+        errors = []
+        warnings = []
+
+        # 基础字段验证
+        if not node.get('server'):
+            errors.append("缺少服务器地址")
+
+        # 端口校验（支持字符串和整数）
+        port = node.get('port')
+        if not port:
+            errors.append("缺少端口号")
+        else:
+            try:
+                port_int = int(port)
+                if not (1 <= port_int <= 65535):
+                    errors.append("端口号无效 (1-65535)")
+            except (ValueError, TypeError):
+                errors.append("端口号格式无效")
+
+        node_type = node.get('type', '').lower()
+
+        # 协议特定验证
+        if node_type == 'vless':
+            if not node.get('uuid'):
+                errors.append("VLESS 缺少 UUID")
+            # Reality 检测：通过 reality-opts 或 security 字段判断
+            if node.get('reality-opts') or node.get('security') == 'reality':
+                if not node.get('reality-opts'):
+                    warnings.append("Reality 模式建议配置 reality-opts")
+            if not node.get('client-fingerprint'):
+                warnings.append("建议配置 client-fingerprint")
+
+        elif node_type == 'hysteria2':
+            if not node.get('password'):
+                errors.append("Hysteria2 缺少密码")
+
+        elif node_type == 'ss':
+            if not node.get('cipher'):
+                errors.append("Shadowsocks 缺少加密方式")
+            if not node.get('password'):
+                errors.append("Shadowsocks 缺少密码")
+
+        return {
+            'valid': len(errors) == 0,
+            'errors': errors,
+            'warnings': warnings
+        }
+
+    def validate_all_nodes(self, nodes: List[Dict]) -> List[Dict]:
+        """批量验证节点"""
+        results = []
+        for node in nodes:
+            validation = self.validate_node(node)
+            results.append({
+                'name': node.get('name', '未命名'),
+                'type': node.get('type', ''),
+                **validation
+            })
+        return results
+
+    # ========== 分享链接生成 ==========
+    def generate_share_link(self, node: Dict) -> Optional[str]:
+        """生成节点分享链接"""
+        node_type = node.get('type', '').lower()
+
+        if node_type == 'vless':
+            return self._generate_vless_link(node)
+        elif node_type == 'hysteria2':
+            return self._generate_hysteria2_link(node)
+        elif node_type == 'ss':
+            return self._generate_ss_link(node)
+
+        return None
+
+    def _generate_vless_link(self, node: Dict) -> str:
+        """生成 VLESS 分享链接"""
+        from urllib.parse import urlencode, quote
+
+        uuid = node.get('uuid', '')
+        server = node.get('server', '')
+        port = node.get('port', 443)
+        name = quote(node.get('name', 'vless'))
+
+        params = {
+            'type': node.get('network', 'tcp'),
+            'security': 'tls' if node.get('tls', True) else 'none'
+        }
+
+        if node.get('servername'):
+            params['sni'] = node['servername']
+        if node.get('client-fingerprint'):
+            params['fp'] = node['client-fingerprint']
+        if node.get('flow'):
+            params['flow'] = node['flow']
+
+        reality_opts = node.get('reality-opts')
+        if reality_opts:
+            params['security'] = 'reality'
+            if reality_opts.get('public-key'):
+                params['pbk'] = reality_opts['public-key']
+            if reality_opts.get('short-id'):
+                params['sid'] = reality_opts['short-id']
+
+        query = urlencode(params)
+        return f"vless://{uuid}@{server}:{port}?{query}#{name}"
+
+    def _generate_hysteria2_link(self, node: Dict) -> str:
+        """生成 Hysteria2 分享链接"""
+        from urllib.parse import urlencode, quote
+
+        password = quote(node.get('password', ''), safe='')
+        server = node.get('server', '')
+        port = node.get('port', 443)
+        name = quote(node.get('name', 'hysteria2'))
+
+        params = {}
+        if node.get('sni'):
+            params['sni'] = node['sni']
+
+        query = urlencode(params) if params else ''
+        link = f"hysteria2://{password}@{server}:{port}"
+        if query:
+            link += f"?{query}"
+        link += f"#{name}"
+        return link
+
+    def _generate_ss_link(self, node: Dict) -> str:
+        """生成 Shadowsocks 分享链接"""
+        from urllib.parse import quote
+
+        cipher = node.get('cipher', '')
+        password = node.get('password', '')
+        server = node.get('server', '')
+        port = node.get('port', 443)
+        name = quote(node.get('name', 'ss'))
+
+        # method:password@server:port
+        user_info = f"{cipher}:{password}"
+        encoded = base64.urlsafe_b64encode(user_info.encode()).decode().rstrip('=')
+        return f"ss://{encoded}@{server}:{port}#{name}"

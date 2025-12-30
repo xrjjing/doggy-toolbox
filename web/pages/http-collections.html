@@ -6,6 +6,19 @@
             <p class="subtitle">管理和测试 API 请求集合</p>
         </div>
         <div class="page-actions">
+            <div class="env-selector-wrapper">
+                <select id="env-selector" class="env-selector" onchange="switchHttpEnvironment(this.value)">
+                    <option value="">无环境</option>
+                </select>
+                <button class="btn btn-sm btn-ghost" onclick="openEnvManagerModal()" title="管理环境">⚙️</button>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-ghost dropdown-toggle" onclick="toggleDropdown(this)">导出 ▼</button>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" onclick="exportCollectionOpenAPI()">OpenAPI 3.0</a>
+                    <a class="dropdown-item" onclick="exportCollectionPostman()">Postman Collection</a>
+                </div>
+            </div>
             <button class="btn btn-primary" onclick="showImportCollectionModal()">导入</button>
             <button class="btn btn-primary" onclick="showNewCollectionModal()">新建集合</button>
         </div>
@@ -124,14 +137,22 @@
                         </div>
                         <div class="http-response-tabs">
                             <button class="http-tab active" data-tab="response-body" onclick="switchHttpResponseTab('response-body')">Body</button>
+                            <button class="http-tab" data-tab="response-tree" onclick="switchHttpResponseTab('response-tree')">树形</button>
                             <button class="http-tab" data-tab="response-headers" onclick="switchHttpResponseTab('response-headers')">Headers</button>
+                            <button class="http-tab" data-tab="response-history" onclick="switchHttpResponseTab('response-history')">历史</button>
                         </div>
                         <div class="http-response-content">
                             <div class="http-tab-content active" id="http-tab-response-body">
                                 <textarea id="http-response-body" readonly placeholder="响应内容将显示在这里..." spellcheck="false"></textarea>
                             </div>
+                            <div class="http-tab-content" id="http-tab-response-tree">
+                                <div id="http-response-tree" class="jtree-container"></div>
+                            </div>
                             <div class="http-tab-content" id="http-tab-response-headers">
                                 <textarea id="http-response-headers-text" readonly placeholder="响应头将显示在这里..." spellcheck="false"></textarea>
+                            </div>
+                            <div class="http-tab-content" id="http-tab-response-history">
+                                <div id="http-request-history" class="http-history-list"></div>
                             </div>
                         </div>
                     </div>
@@ -229,6 +250,51 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal('new-request-modal')">取消</button>
             <button class="btn btn-primary" onclick="createNewRequest()">创建</button>
+        </div>
+    </div>
+</div>
+
+<!-- 环境管理弹窗 -->
+<div id="env-manager-modal" class="modal">
+    <div class="modal-content modal-md">
+        <div class="modal-header">
+            <h2>环境管理</h2>
+            <button class="modal-close" onclick="closeEnvManagerModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="env-manager-toolbar">
+                <button class="btn btn-primary btn-sm" onclick="createEnvironment()">+ 新建环境</button>
+            </div>
+            <div id="env-manager-list" class="env-manager-list">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 环境编辑弹窗 -->
+<div id="env-edit-modal" class="modal">
+    <div class="modal-content modal-md">
+        <div class="modal-header">
+            <h2>编辑环境</h2>
+            <button class="modal-close" onclick="closeEnvEditModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="env-edit-id">
+            <div class="form-group">
+                <label>环境名称</label>
+                <input type="text" id="env-edit-name" placeholder="如：开发环境">
+            </div>
+            <div class="form-group">
+                <label>环境变量</label>
+                <div id="env-variables-editor" class="env-variables-editor">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeEnvEditModal()">取消</button>
+            <button class="btn btn-primary" onclick="saveEnvironment()">保存</button>
         </div>
     </div>
 </div>

@@ -563,6 +563,29 @@
         </main>
 	    </div>
 
+    <!-- 全局搜索弹窗 -->
+    <div id="search-modal" class="modal search-modal">
+        <div class="modal-overlay" onclick="closeSearchModal()"></div>
+        <div class="modal-content modal-md">
+            <div class="search-modal-header">
+                <div class="search-input-wrapper">
+                    <span class="search-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                    <input type="text" id="global-search-input" placeholder="搜索工具... (Esc 关闭)" autocomplete="off">
+                </div>
+            </div>
+            <div class="search-modal-body">
+                <div id="search-results" class="search-results-list"></div>
+            </div>
+            <div class="search-modal-footer">
+                <div class="shortcut-hints">
+                    <span class="hint-item"><kbd>↑</kbd> <kbd>↓</kbd> 导航</span>
+                    <span class="hint-item"><kbd>↵</kbd> 选择</span>
+                    <span class="hint-item"><kbd>Esc</kbd> 关闭</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 设置弹窗 -->
     <div id="settings-modal" class="modal settings-modal">
         <div class="modal-overlay" onclick="requestCloseSettingsModal()"></div>
@@ -879,6 +902,8 @@
 	    <script src="tools_m40_utils.js" defer></script>
 	    <script src="tools_m41_utils.js" defer></script>
 	    <script src="tools_m42_utils.js" defer></script>
+	    <script src="tools_m43_utils.js" defer></script>
+	    <script src="tools_m44_utils.js" defer></script>
 	    <script src="tools_m16_utils.js" defer></script>
 	    
 	    <script src="js/app_state.js" defer></script>

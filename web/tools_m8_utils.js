@@ -214,12 +214,48 @@
         };
     }
 
+    /**
+     * 检测输入是否为 URL 编码
+     * @param {string} text - 输入文本
+     * @returns {{isUrlEncoded: boolean, confidence: number}}
+     */
+    function detectUrlEncoded(text) {
+        const s = String(text ?? '').trim();
+        if (!s) return { isUrlEncoded: false, confidence: 0 };
+
+        // 检测 %XX 模式
+        const percentMatches = s.match(/%[0-9A-Fa-f]{2}/g);
+        if (!percentMatches || percentMatches.length === 0) {
+            return { isUrlEncoded: false, confidence: 0 };
+        }
+
+        // 计算编码字符占比
+        const encodedLen = percentMatches.length * 3;
+        const ratio = encodedLen / s.length;
+
+        // 尝试解码验证
+        try {
+            const decoded = decodeURIComponent(s);
+            // 解码后与原文不同，说明确实是编码过的
+            if (decoded !== s) {
+                const confidence = ratio > 0.3 ? 0.95 : (ratio > 0.1 ? 0.8 : 0.6);
+                return { isUrlEncoded: true, confidence };
+            }
+        } catch (e) {
+            // 解码失败，可能是部分编码或非法编码
+            return { isUrlEncoded: false, confidence: 0.3 };
+        }
+
+        return { isUrlEncoded: false, confidence: 0.2 };
+    }
+
     return {
         // URL 编解码
         urlEncode,
         urlDecode,
         urlEncodeBatch,
         urlDecodeBatch,
+        detectUrlEncoded,
         // 进制转换
         detectRadix,
         parseNumber,

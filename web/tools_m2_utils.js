@@ -202,11 +202,108 @@
         };
     }
 
+    /**
+     * 检测解码后内容的类型
+     * @param {string} decoded - 解码后的文本
+     * @returns {{type: string, confidence: number, targetTool: string|null}}
+     */
+    function detectBase64ContentType(decoded) {
+        const text = String(decoded ?? '').trim();
+        if (!text) {
+            return { type: 'empty', confidence: 1, targetTool: null };
+        }
+
+        // JSON 检测
+        if ((text.startsWith('{') && text.endsWith('}')) ||
+            (text.startsWith('[') && text.endsWith(']'))) {
+            try {
+                JSON.parse(text);
+                return { type: 'json', confidence: 0.95, targetTool: 'tool-json' };
+            } catch (e) {
+                // 可能是格式不正确的 JSON
+            }
+        }
+
+        // URL 检测
+        if (/^https?:\/\//i.test(text)) {
+            return { type: 'url', confidence: 0.9, targetTool: 'tool-url' };
+        }
+
+        // HTML 检测
+        if (/^<!DOCTYPE\s+html/i.test(text) || /^<html[\s>]/i.test(text) ||
+            /<\/?(?:div|span|p|a|img|table|form|input|button|head|body|script|style)\b/i.test(text)) {
+            return { type: 'html', confidence: 0.85, targetTool: 'tool-html-entity' };
+        }
+
+        // XML 检测
+        if (/^<\?xml\s/i.test(text) || /^<[a-z_][\w\-.:]*[\s>]/i.test(text)) {
+            return { type: 'xml', confidence: 0.8, targetTool: null };
+        }
+
+        // JWT 检测 (header.payload.signature)
+        if (/^eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(text)) {
+            return { type: 'jwt', confidence: 0.95, targetTool: 'tool-jwt' };
+        }
+
+        // 图片 magic bytes 检测 (解码后的二进制)
+        // PNG: 0x89 0x50 0x4E 0x47 -> \x89PNG
+        // JPEG: 0xFF 0xD8 0xFF
+        // GIF: GIF87a 或 GIF89a
+        if (text.startsWith('\x89PNG') || text.startsWith('\xFF\xD8\xFF') ||
+            text.startsWith('GIF87a') || text.startsWith('GIF89a')) {
+            return { type: 'image', confidence: 0.95, targetTool: 'tool-img-base64' };
+        }
+
+        // 纯文本
+        return { type: 'text', confidence: 0.5, targetTool: null };
+    }
+
+    /**
+     * 检测输入是否为 Base64 编码
+     * @param {string} text - 输入文本
+     * @returns {{isBase64: boolean, confidence: number}}
+     */
+    function detectBase64Encoded(text) {
+        const s = String(text ?? '').trim();
+        if (!s) return { isBase64: false, confidence: 0 };
+
+        // 长度检查：Base64 编码后长度是 4 的倍数（含 padding）
+        const stripped = s.replace(/\s+/g, '');
+        if (stripped.length < 4) return { isBase64: false, confidence: 0.1 };
+
+        // 字符集检查
+        if (!/^[A-Za-z0-9+/=]+$/.test(stripped)) {
+            return { isBase64: false, confidence: 0 };
+        }
+
+        // padding 检查
+        const padMatch = stripped.match(/=+$/);
+        const padLen = padMatch ? padMatch[0].length : 0;
+        if (padLen > 2) return { isBase64: false, confidence: 0.2 };
+
+        // 长度模 4 检查
+        if ((stripped.length - padLen) % 4 !== 0 && stripped.length % 4 !== 0) {
+            return { isBase64: false, confidence: 0.3 };
+        }
+
+        // 尝试解码验证
+        try {
+            base64ToBytes(stripped);
+            // 高置信度：长度合理、字符集正确、可解码
+            const confidence = stripped.length > 20 ? 0.9 : 0.7;
+            return { isBase64: true, confidence };
+        } catch (e) {
+            return { isBase64: false, confidence: 0.2 };
+        }
+    }
+
     return {
         base64EncodeTextUtf8,
         base64DecodeToTextUtf8,
         generateUuidV4,
         toNamingFormats,
+        detectBase64ContentType,
+        detectBase64Encoded,
         // 仅供测试/调试
         _splitWords: splitWords
     };

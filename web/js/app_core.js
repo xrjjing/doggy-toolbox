@@ -474,7 +474,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initTheme();
         await initGlassMode();
         await initTitlebarMode();
+        await initUIScale();
         initShortcut();
+        initGlobalSearch();
         // 页面片段按需加载：默认进入"密码管理"
         await switchPage('credentials');
     } finally {
@@ -606,7 +608,7 @@ function waitForPywebview({ timeoutMs = 3500 } = {}) {
     });
 }
 
-// 同步后端配置：优先使用 localStorage（用户当前选择），否则使用后端保存值
+// 同步后端配置：优先使用后端保存值（数据库为权威），仅在后端不可用时回退到 localStorage
 async function syncSettingsFromBackend() {
     if (!window.pywebview || !window.pywebview.api) return;
 
@@ -614,22 +616,18 @@ async function syncSettingsFromBackend() {
     try {
         const backendTheme = await window.pywebview.api.get_theme();
         const localTheme = localStorage.getItem('theme');
-        const finalTheme = localTheme || backendTheme || 'dark';
+        const finalTheme = backendTheme || localTheme || 'dark';
         setTheme(finalTheme, false);
-        if (localTheme && backendTheme && localTheme !== backendTheme) {
-            window.pywebview.api.save_theme(localTheme).catch(() => {});
-        }
+        // 不回写 localStorage -> 后端，避免启动兜底值污染数据库
     } catch {}
 
     // 毛玻璃开关
     try {
         const backendGlass = await window.pywebview.api.get_glass_mode();
         const localGlass = localStorage.getItem('glass_mode');
-        const finalGlass = localGlass != null ? (localGlass === 'true') : !!backendGlass;
+        const finalGlass = backendGlass != null ? !!backendGlass : (localGlass === 'true');
         setGlassMode(finalGlass, false);
-        if (localGlass != null && finalGlass !== !!backendGlass) {
-            window.pywebview.api.save_glass_mode(finalGlass).catch(() => {});
-        }
+        // 不回写 localStorage -> 后端，避免启动兜底值污染数据库
     } catch {}
 
     // 毛玻璃透明度
@@ -637,26 +635,37 @@ async function syncSettingsFromBackend() {
         const backendOpacity = await window.pywebview.api.get_glass_opacity();
         const localOpacityRaw = localStorage.getItem('glass_opacity');
         const localOpacity = localOpacityRaw != null ? parseInt(localOpacityRaw, 10) : null;
-        const finalOpacity = Number.isFinite(localOpacity) ? localOpacity : backendOpacity;
+        const finalOpacity = Number.isFinite(backendOpacity) ? backendOpacity : (Number.isFinite(localOpacity) ? localOpacity : 60);
         const slider = document.getElementById('glassOpacitySlider');
         if (slider) slider.value = finalOpacity;
         const valueDisplay = document.getElementById('opacityValue');
         if (valueDisplay) valueDisplay.textContent = finalOpacity + '%';
         document.documentElement.style.setProperty('--glass-opacity', finalOpacity / 100);
         localStorage.setItem('glass_opacity', String(finalOpacity));
-        if (localOpacity != null && finalOpacity !== backendOpacity) {
-            window.pywebview.api.save_glass_opacity(finalOpacity).catch(() => {});
-        }
+        // 不回写 localStorage -> 后端，避免启动兜底值污染数据库
     } catch {}
 
     // 标题栏模式
     try {
         const backendMode = await window.pywebview.api.get_titlebar_mode();
         const localMode = localStorage.getItem('titlebar_mode');
-        const finalMode = localMode || backendMode || 'fixed';
+        const finalMode = backendMode || localMode || 'fixed';
         setTitlebarMode(finalMode, false);
-        if (localMode && backendMode && localMode !== backendMode) {
-            window.pywebview.api.save_titlebar_mode(localMode).catch(() => {});
+    } catch {}
+
+    // UI 缩放
+    try {
+        const backendScale = await window.pywebview.api.get_ui_scale();
+        const localScaleRaw = localStorage.getItem('ui_scale');
+        const localScale = localScaleRaw != null ? parseInt(localScaleRaw, 10) : null;
+
+        if (backendScale == null) {
+            // 数据库无记录，首次同步：优先使用本地值并迁移到后端
+            const finalScale = Number.isFinite(localScale) ? localScale : 100;
+            setUIScale(finalScale, true);
+        } else {
+            // 数据库有记录，使用后端值（权威数据源）
+            setUIScale(backendScale, false);
         }
     } catch {}
 }
@@ -690,6 +699,85 @@ function initNavigation() {
             }
         });
     });
+}
+
+// ==================== 工具联动函数 ====================
+
+/**
+ * 将数据传递到目标工具
+ * @param {string} targetToolId - 目标工具 ID
+ * @param {any} data - 要传递的数据
+ * @param {string} dataType - 数据类型标识
+ */
+function transferDataToTool(targetToolId, data, dataType) {
+    // 检查是否有未消费的数据
+    if (toolDataBridge.data !== null && toolDataBridge.status === 'pending') {
+        console.warn('工具联动：覆盖未消费的数据', toolDataBridge);
+    }
+
+    toolDataBridge = {
+        sourceToolId: activePage,
+        targetToolId: targetToolId,
+        data: data,
+        dataType: dataType,
+        timestamp: Date.now(),
+        status: 'pending'
+    };
+    switchPage(targetToolId);
+}
+
+/**
+ * 在目标工具中填充联动数据
+ * @param {string} toolId - 工具 ID
+ */
+function populateToolWithData(toolId) {
+    // 使用 !== null 避免过滤 falsy 值（如空字符串、0）
+    if (toolDataBridge.data === null || toolDataBridge.targetToolId !== toolId) return;
+    if (toolDataBridge.status !== 'pending') return;
+
+    // 防止重复消费（5秒内有效）
+    if (Date.now() - toolDataBridge.timestamp > 5000) {
+        showToast('联动数据已过期', 'warning');
+        toolDataBridge = { sourceToolId: null, targetToolId: null, data: null, dataType: null, timestamp: null, status: null };
+        return;
+    }
+
+    const data = toolDataBridge.data;
+    const dataType = toolDataBridge.dataType;
+    const sourceToolId = toolDataBridge.sourceToolId;
+    let success = false;
+
+    try {
+        switch (toolId) {
+            case 'http-collections':
+                if (dataType === 'http-request' && typeof populateHttpFromCurl === 'function') {
+                    populateHttpFromCurl(data);
+                    success = true;
+                }
+                break;
+            case 'tool-mock':
+                if (dataType === 'json-schema' && typeof populateMockFromSchema === 'function') {
+                    populateMockFromSchema(data);
+                    success = true;
+                }
+                break;
+        }
+
+        if (success) {
+            toolDataBridge.status = 'consumed';
+            showToast(`已从 ${sourceToolId} 导入数据`, 'success');
+        } else {
+            toolDataBridge.status = 'error';
+            showToast('数据导入失败：不支持的数据类型', 'error');
+        }
+    } catch (e) {
+        toolDataBridge.status = 'error';
+        console.error('工具联动数据填充失败:', e);
+        showToast('数据导入失败', 'error');
+    }
+
+    // 清空桥接数据
+    toolDataBridge = { sourceToolId: null, targetToolId: null, data: null, dataType: null, timestamp: null, status: null };
 }
 
 async function switchPage(page) {
@@ -797,6 +885,9 @@ async function handlePageEnter(page) {
         if (page === 'backup') {
             initBackupPage();
         }
+
+        // 检查并填充工具联动数据
+        populateToolWithData(page);
     } catch (e) {
         console.error('页面进入处理失败:', page, e);
     }
@@ -1186,10 +1277,15 @@ function initShortcut() {
         if (e.repeat) return;
         const isMac = /mac/i.test(navigator.platform);
         const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
-        // Ctrl/Cmd + Shift + B
+        // Ctrl/Cmd + Shift + B - 开机自检
         if (cmdOrCtrl && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'b') {
             e.preventDefault();
             toggleDiagnosticsPanel();
+        }
+        // Ctrl/Cmd + K - 全局搜索
+        if (cmdOrCtrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            openSearchModal();
         }
     });
 }
@@ -1513,35 +1609,41 @@ function initSidebarInteraction() {
 document.addEventListener('DOMContentLoaded', () => {
     initSidebarState();
     initSidebarInteraction();
-    initUIScale();
 });
 
 // UI 缩放功能
-function setUIScale(scale) {
+function setUIScale(scale, save = true) {
+    // 范围校验和 NaN 处理
+    let validScale = parseInt(scale, 10);
+    if (isNaN(validScale)) validScale = 100;
+    validScale = Math.max(50, Math.min(200, validScale));
+
     // 更新 CSS 变量
-    document.documentElement.style.setProperty('--ui-scale', scale / 100);
+    document.documentElement.style.setProperty('--ui-scale', validScale / 100);
 
     // 更新显示值
     const scaleValue = document.getElementById('scaleValue');
     if (scaleValue) {
-        scaleValue.textContent = `${scale}%`;
+        scaleValue.textContent = `${validScale}%`;
     }
 
     // 更新按钮激活状态
     document.querySelectorAll('.ui-scale-btn').forEach(btn => {
-        if (parseInt(btn.dataset.scale) === scale) {
+        if (parseInt(btn.dataset.scale) === validScale) {
             btn.classList.add('active');
         } else {
             btn.classList.remove('active');
         }
     });
 
-    // 保存到 localStorage
-    localStorage.setItem('ui_scale', scale.toString());
+    // 始终更新 localStorage（作为本地缓存，确保离线启动时有最新值）
+    localStorage.setItem('ui_scale', validScale.toString());
 
-    // 同步到后端
-    if (window.pywebview?.api?.save_ui_scale) {
-        window.pywebview.api.save_ui_scale(scale).catch(() => {});
+    // save 参数只控制是否同步到后端
+    if (save) {
+        if (window.pywebview?.api?.save_ui_scale) {
+            window.pywebview.api.save_ui_scale(validScale).catch(() => {});
+        }
     }
 }
 
@@ -1559,7 +1661,7 @@ async function initUIScale() {
     try {
         if (window.pywebview?.api?.get_ui_scale) {
             const backendScale = await window.pywebview.api.get_ui_scale();
-            if (backendScale) {
+            if (backendScale != null) {
                 scale = backendScale;
             }
         }
@@ -1569,4 +1671,292 @@ async function initUIScale() {
 
     // 应用缩放
     setUIScale(scale);
+}
+
+// ==================== 全局搜索 ====================
+
+const TOOLS_REGISTRY = {};
+let searchDebounceTimer = null;
+
+function buildToolsRegistry() {
+    if (Object.keys(TOOLS_REGISTRY).length > 0) return;
+
+    document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+        const id = item.dataset.page;
+        const name = item.querySelector('.nav-text')?.textContent?.trim() || id;
+        const iconSvg = item.querySelector('.nav-icon')?.innerHTML || '';
+        const group = item.closest('.nav-group');
+        const categoryName = group?.querySelector('.nav-group-header .nav-text')?.textContent?.trim() || '';
+
+        TOOLS_REGISTRY[id] = {
+            id,
+            name,
+            icon: iconSvg,
+            category: group?.dataset?.group || '',
+            categoryName,
+            keywords: generateKeywords(name, id)
+        };
+    });
+}
+
+function generateKeywords(name, id) {
+    const keywords = [name.toLowerCase(), id.toLowerCase()];
+    const pinyin = {
+        '密码': ['mima', 'password'], '命令': ['mingling', 'command'], '节点': ['jiedian', 'node'],
+        '编码': ['bianma', 'encode'], '解码': ['jiema', 'decode'], '转换': ['zhuanhuan', 'convert'],
+        '加密': ['jiami', 'encrypt'], '解密': ['jiemi', 'decrypt'], '哈希': ['haxi', 'hash'],
+        '格式': ['geshi', 'format'], '生成': ['shengcheng', 'generate'], '工具': ['gongju', 'tool'],
+        '时间': ['shijian', 'time'], '日期': ['riqi', 'date'], '颜色': ['yanse', 'color'],
+        '文本': ['wenben', 'text'], '对比': ['duibi', 'diff'], '正则': ['zhengze', 'regex'],
+        '数据': ['shuju', 'data'], '备份': ['beifen', 'backup'], '设置': ['shezhi', 'settings']
+    };
+    Object.entries(pinyin).forEach(([cn, pys]) => {
+        if (name.includes(cn)) keywords.push(...pys);
+    });
+    return keywords;
+}
+
+function initGlobalSearch() {
+    buildToolsRegistry();
+    loadSearchPreferences();
+
+    const input = document.getElementById('global-search-input');
+    if (input) {
+        input.addEventListener('input', (e) => {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                globalSearchState.query = e.target.value;
+                globalSearchState.selectedIndex = -1;
+                performSearch();
+            }, 150);
+        });
+
+        input.addEventListener('keydown', handleSearchKeydown);
+    }
+}
+
+function loadSearchPreferences() {
+    try {
+        const favs = localStorage.getItem('tool_favorites');
+        if (favs) globalSearchState.favorites = new Set(JSON.parse(favs));
+
+        const recent = localStorage.getItem('recent_tools');
+        if (recent) globalSearchState.recentTools = JSON.parse(recent);
+
+        const stats = localStorage.getItem('tool_usage_stats');
+        if (stats) globalSearchState.usageStats = new Map(JSON.parse(stats));
+    } catch {}
+}
+
+function saveSearchPreferences() {
+    try {
+        localStorage.setItem('tool_favorites', JSON.stringify([...globalSearchState.favorites]));
+        localStorage.setItem('recent_tools', JSON.stringify(globalSearchState.recentTools));
+        localStorage.setItem('tool_usage_stats', JSON.stringify([...globalSearchState.usageStats]));
+    } catch {}
+}
+
+function openSearchModal() {
+    buildToolsRegistry();
+    const modal = document.getElementById('search-modal');
+    if (!modal) return;
+
+    modal.classList.add('active');
+    globalSearchState.isOpen = true;
+    globalSearchState.query = '';
+    globalSearchState.selectedIndex = -1;
+
+    const input = document.getElementById('global-search-input');
+    if (input) {
+        input.value = '';
+        input.focus();
+    }
+
+    performSearch();
+}
+
+function closeSearchModal() {
+    const modal = document.getElementById('search-modal');
+    if (modal) modal.classList.remove('active');
+    globalSearchState.isOpen = false;
+}
+
+function performSearch() {
+    const query = globalSearchState.query.toLowerCase().trim();
+    const resultsContainer = document.getElementById('search-results');
+    if (!resultsContainer) return;
+
+    let html = '';
+
+    // 收藏工具
+    const favTools = [...globalSearchState.favorites]
+        .map(id => TOOLS_REGISTRY[id])
+        .filter(t => t && (!query || matchTool(t, query)));
+
+    if (favTools.length > 0) {
+        html += '<div class="search-section-title">收藏工具</div>';
+        favTools.forEach(tool => {
+            html += renderSearchItem(tool, true);
+        });
+    }
+
+    // 最近使用
+    if (!query) {
+        const recentTools = globalSearchState.recentTools
+            .slice(0, 5)
+            .map(id => TOOLS_REGISTRY[id])
+            .filter(t => t && !globalSearchState.favorites.has(t.id));
+
+        if (recentTools.length > 0) {
+            html += '<div class="search-section-title">最近使用</div>';
+            recentTools.forEach(tool => {
+                html += renderSearchItem(tool, false);
+            });
+        }
+    }
+
+    // 搜索结果
+    if (query) {
+        const results = Object.values(TOOLS_REGISTRY)
+            .filter(t => !globalSearchState.favorites.has(t.id) && matchTool(t, query))
+            .sort((a, b) => calculateScore(b, query) - calculateScore(a, query))
+            .slice(0, 10);
+
+        if (results.length > 0) {
+            html += '<div class="search-section-title">搜索结果</div>';
+            results.forEach(tool => {
+                html += renderSearchItem(tool, false);
+            });
+        }
+    } else {
+        // 无搜索时显示所有工具（按分类）
+        const categories = {};
+        Object.values(TOOLS_REGISTRY).forEach(tool => {
+            if (globalSearchState.favorites.has(tool.id)) return;
+            if (globalSearchState.recentTools.includes(tool.id)) return;
+            const cat = tool.categoryName || '其他';
+            if (!categories[cat]) categories[cat] = [];
+            categories[cat].push(tool);
+        });
+
+        Object.entries(categories).forEach(([cat, tools]) => {
+            html += `<div class="search-section-title">${escapeHtml(cat)}</div>`;
+            tools.forEach(tool => {
+                html += renderSearchItem(tool, false);
+            });
+        });
+    }
+
+    if (!html) {
+        html = '<div class="search-empty">未找到匹配的工具</div>';
+    }
+
+    resultsContainer.innerHTML = html;
+    globalSearchState.results = resultsContainer.querySelectorAll('.search-result-item');
+    updateSearchSelection();
+}
+
+function matchTool(tool, query) {
+    if (tool.name.toLowerCase().includes(query)) return true;
+    return tool.keywords.some(kw => kw.includes(query));
+}
+
+function calculateScore(tool, query) {
+    let score = 0;
+    if (tool.name.toLowerCase().startsWith(query)) score += 100;
+    else if (tool.name.toLowerCase().includes(query)) score += 50;
+    tool.keywords.forEach(kw => {
+        if (kw.startsWith(query)) score += 30;
+        else if (kw.includes(query)) score += 10;
+    });
+    score += (globalSearchState.usageStats.get(tool.id) || 0) * 2;
+    return score;
+}
+
+function renderSearchItem(tool, isFavorite) {
+    const favClass = isFavorite ? 'is-favorite' : '';
+    return `
+        <div class="search-result-item ${favClass}" data-tool-id="${tool.id}" onclick="selectSearchResult('${tool.id}')">
+            <span class="search-result-icon">${tool.icon}</span>
+            <div class="search-result-content">
+                <div class="search-result-title">${escapeHtml(tool.name)}</div>
+                <div class="search-result-desc">${escapeHtml(tool.categoryName)}</div>
+            </div>
+            <button class="search-favorite-btn" onclick="event.stopPropagation(); toggleToolFavorite('${tool.id}')" title="${isFavorite ? '取消收藏' : '收藏'}">
+                ${isFavorite ? '★' : '☆'}
+            </button>
+        </div>
+    `;
+}
+
+function handleSearchKeydown(e) {
+    if (!globalSearchState.isOpen) return;
+
+    const items = globalSearchState.results;
+    const len = items?.length || 0;
+
+    switch (e.key) {
+        case 'ArrowDown':
+            e.preventDefault();
+            globalSearchState.selectedIndex = Math.min(globalSearchState.selectedIndex + 1, len - 1);
+            updateSearchSelection();
+            break;
+        case 'ArrowUp':
+            e.preventDefault();
+            globalSearchState.selectedIndex = Math.max(globalSearchState.selectedIndex - 1, -1);
+            updateSearchSelection();
+            break;
+        case 'Enter':
+            e.preventDefault();
+            if (globalSearchState.selectedIndex >= 0 && items[globalSearchState.selectedIndex]) {
+                const toolId = items[globalSearchState.selectedIndex].dataset.toolId;
+                selectSearchResult(toolId);
+            }
+            break;
+        case 'Escape':
+            e.preventDefault();
+            closeSearchModal();
+            break;
+    }
+}
+
+function updateSearchSelection() {
+    const items = globalSearchState.results;
+    if (!items) return;
+
+    items.forEach((item, idx) => {
+        item.classList.toggle('active', idx === globalSearchState.selectedIndex);
+        if (idx === globalSearchState.selectedIndex) {
+            item.scrollIntoView({ block: 'nearest' });
+        }
+    });
+}
+
+function selectSearchResult(toolId) {
+    trackToolUsage(toolId);
+    closeSearchModal();
+    switchPage(toolId);
+}
+
+function toggleToolFavorite(toolId) {
+    if (globalSearchState.favorites.has(toolId)) {
+        globalSearchState.favorites.delete(toolId);
+        showToast('已取消收藏', 'info');
+    } else {
+        globalSearchState.favorites.add(toolId);
+        showToast('已添加到收藏', 'success');
+    }
+    saveSearchPreferences();
+    performSearch();
+}
+
+function trackToolUsage(toolId) {
+    const count = globalSearchState.usageStats.get(toolId) || 0;
+    globalSearchState.usageStats.set(toolId, count + 1);
+
+    globalSearchState.recentTools = globalSearchState.recentTools.filter(id => id !== toolId);
+    globalSearchState.recentTools.unshift(toolId);
+    globalSearchState.recentTools = globalSearchState.recentTools.slice(0, 10);
+
+    saveSearchPreferences();
 }

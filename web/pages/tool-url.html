@@ -3,7 +3,7 @@
 		                <div class="page-header">
 		                    <div class="page-title">
 		                        <h1>URL 编解码</h1>
-		                        <p class="subtitle">URL encode / decode，支持批量处理</p>
+		                        <p class="subtitle">URL encode / decode，支持批量处理和拖拽文件</p>
 		                    </div>
 		                </div>
 		                <div class="converter-layout">
@@ -19,7 +19,7 @@
 		                            </div>
 		                        </div>
 		                        <div class="panel-body">
-		                            <textarea id="url-input" placeholder="输入内容..."></textarea>
+		                            <textarea id="url-input" placeholder="输入内容或拖拽文件到此处..."></textarea>
 		                            <div class="tool-options-row">
 		                                <label class="tool-check" title="按行处理输入/输出">
 		                                    <input type="checkbox" id="url-batch" onchange="updateUrlTool()">
@@ -40,5 +40,14 @@
 		                            <textarea id="url-output" readonly placeholder="输出结果..."></textarea>
 		                        </div>
 		                    </div>
+		                </div>
+		                <div class="tool-history-panel">
+		                    <div class="panel-header">
+		                        <h3>历史记录</h3>
+		                        <div class="panel-actions">
+		                            <button class="btn btn-sm btn-ghost" onclick="clearUrlHistory()">清空</button>
+		                        </div>
+		                    </div>
+		                    <div id="url-history" class="history-list"></div>
 		                </div>
 		            </section>

@@ -117,9 +117,9 @@ class AIManager:
                 'id': 'data',
                 'name': '数据处理',
                 'tools': [
-                    {'id': 'tool-mock', 'name': 'Mock 数据生成', 'features': ['generate']},
+                    {'id': 'tool-mock', 'name': 'Mock 数据生成', 'features': ['generate', 'analyze']},
                     {'id': 'tool-json', 'name': 'JSON 格式化', 'features': ['generate', 'fix', 'analyze']},
-                    {'id': 'tool-json-schema', 'name': 'JSON Schema 生成', 'features': ['generate']},
+                    {'id': 'tool-json-schema', 'name': 'JSON Schema 生成', 'features': ['generate', 'fix']},
                 ]
             },
             {
@@ -736,7 +736,7 @@ class AIManager:
         if not config.get('global_enabled', True):
             return {
                 'enabled': False,
-                'features': {'generate': False, 'fix': False}
+                'features': {'generate': False, 'fix': False, 'analyze': False}
             }
 
         # 获取工具配置
@@ -753,7 +753,7 @@ class AIManager:
             # 未知工具，返回禁用
             return {
                 'enabled': False,
-                'features': {'generate': False, 'fix': False}
+                'features': {'generate': False, 'fix': False, 'analyze': False}
             }
 
         return tool_config

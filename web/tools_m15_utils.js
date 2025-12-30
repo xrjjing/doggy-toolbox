@@ -411,8 +411,85 @@
         'INNER JOIN', 'OUTER JOIN', 'ORDER BY', 'GROUP BY', 'HAVING', 'LIMIT',
         'INSERT INTO', 'UPDATE', 'DELETE FROM', 'SET', 'VALUES', 'UNION', 'WITH'];
 
+    function mergeKeywords(base, extra) {
+        const set = new Set(base);
+        extra.forEach(k => set.add(k));
+        return Array.from(set);
+    }
+
+    const SQL_DIALECTS = {
+        generic: {
+            name: '通用 SQL',
+            keywords: SQL_KEYWORDS,
+            identifierQuote: '"'
+        },
+        mysql: {
+            name: 'MySQL',
+            keywords: mergeKeywords(SQL_KEYWORDS, [
+                'AUTO_INCREMENT', 'ENGINE', 'CHARSET', 'COLLATE', 'UNSIGNED',
+                'ZEROFILL', 'BINARY', 'ENUM', 'TINYINT', 'MEDIUMINT', 'BIGINT',
+                'DATETIME', 'TIMESTAMP', 'YEAR', 'TEXT', 'BLOB', 'LONGTEXT',
+                'IF', 'IFNULL', 'COALESCE', 'CONCAT', 'NOW', 'CURDATE',
+                'DATE_FORMAT', 'STRAIGHT_JOIN', 'USE', 'SHOW', 'DESCRIBE', 'EXPLAIN'
+            ]),
+            identifierQuote: '`'
+        },
+        postgresql: {
+            name: 'PostgreSQL',
+            keywords: mergeKeywords(SQL_KEYWORDS, [
+                'RETURNING', 'SERIAL', 'BIGSERIAL', 'SMALLSERIAL', 'ILIKE',
+                'ARRAY', 'JSONB', 'JSON', 'UUID', 'BYTEA', 'BOOLEAN',
+                'COALESCE', 'NULLIF', 'GREATEST', 'LEAST', 'LATERAL',
+                'FETCH', 'ROWS', 'ONLY', 'CONFLICT', 'DO', 'NOTHING',
+                'ARRAY_AGG', 'STRING_AGG', 'CURRENT_TIMESTAMP'
+            ]),
+            identifierQuote: '"'
+        },
+        sqlite: {
+            name: 'SQLite',
+            keywords: mergeKeywords(SQL_KEYWORDS, [
+                'AUTOINCREMENT', 'GLOB', 'PRAGMA', 'VACUUM', 'ATTACH',
+                'DETACH', 'REINDEX', 'ANALYZE', 'REPLACE', 'ABORT',
+                'FAIL', 'IGNORE', 'ROLLBACK', 'TEMP', 'TEMPORARY'
+            ]),
+            identifierQuote: '"'
+        },
+        oracle: {
+            name: 'Oracle',
+            keywords: mergeKeywords(SQL_KEYWORDS, [
+                'ROWNUM', 'ROWID', 'SYSDATE', 'SYSTIMESTAMP', 'NVL', 'NVL2',
+                'DECODE', 'CONNECT', 'START', 'PRIOR', 'LEVEL', 'MERGE',
+                'USING', 'MATCHED', 'DUAL', 'SEQUENCE', 'NEXTVAL', 'CURRVAL',
+                'VARCHAR2', 'NUMBER', 'CLOB', 'NCLOB', 'RAW', 'LONG'
+            ]),
+            identifierQuote: '"'
+        },
+        sqlserver: {
+            name: 'SQL Server',
+            keywords: mergeKeywords(SQL_KEYWORDS, [
+                'TOP', 'IDENTITY', 'GETDATE', 'GETUTCDATE', 'ISNULL',
+                'CONVERT', 'CAST', 'DATEADD', 'DATEDIFF', 'NOLOCK',
+                'CTE', 'PIVOT', 'UNPIVOT', 'OUTPUT', 'INSERTED', 'DELETED',
+                'NVARCHAR', 'NCHAR', 'NTEXT', 'BIT', 'MONEY', 'SMALLMONEY'
+            ]),
+            identifierQuote: '['
+        }
+    };
+
+    function getDialects() {
+        return Object.entries(SQL_DIALECTS).map(([key, val]) => ({
+            key,
+            name: val.name
+        }));
+    }
+
     /**
      * 格式化 SQL
+     * @param {string} sql - SQL 语句
+     * @param {object} options - 选项
+     * @param {string} options.dialect - 方言：generic, mysql, postgresql, sqlite, oracle, sqlserver
+     * @param {string} options.indent - 缩进字符
+     * @param {boolean} options.uppercase - 是否大写关键字
      */
     function formatSQL(sql, options = {}) {
         if (!sql || typeof sql !== 'string') {
@@ -421,6 +498,9 @@
 
         const indent = options.indent || '  ';
         const uppercase = options.uppercase !== false;
+        const dialectKey = (options.dialect || 'generic').toLowerCase();
+        const dialect = SQL_DIALECTS[dialectKey] || SQL_DIALECTS.generic;
+        const keywords = dialect.keywords;
 
         try {
             let result = sql.trim();
@@ -430,7 +510,7 @@
 
             // 关键字大写
             if (uppercase) {
-                SQL_KEYWORDS.forEach(keyword => {
+                keywords.forEach(keyword => {
                     const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
                     result = result.replace(regex, keyword);
                 });
@@ -550,6 +630,7 @@
         // SQL 工具
         formatSQL,
         minifySQL,
-        extractTables
+        extractTables,
+        getDialects
     };
 });

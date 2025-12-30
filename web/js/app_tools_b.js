@@ -44,12 +44,75 @@ function copyCommand(btn, text) {
 }
 
 // ==================== 工具箱：URL 编解码（M8） ====================
+const URL_HISTORY_KEY = 'url_history';
+const URL_HISTORY_MAX = 20;
+
 function initUrlTool() {
     const inputEl = document.getElementById('url-input');
     if (!inputEl) return;
     inputEl.addEventListener('input', updateUrlTool);
     document.getElementById('url-batch')?.addEventListener('change', updateUrlTool);
+
+    // 拖拽支持
+    initUrlDragDrop(inputEl);
+
     setUrlMode('encode');
+
+    // 渲染历史记录
+    renderUrlHistory();
+}
+
+function initUrlDragDrop(textarea) {
+    if (!textarea) return;
+
+    textarea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        textarea.classList.add('drag-over');
+    });
+
+    textarea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        textarea.classList.remove('drag-over');
+    });
+
+    textarea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        textarea.classList.remove('drag-over');
+
+        const files = e.dataTransfer?.files;
+        if (files && files.length > 0) {
+            readFileAsTextUrl(files[0], (text) => {
+                textarea.value = text;
+                autoDetectUrlMode(text);
+                updateUrlTool();
+            });
+        }
+    });
+}
+
+function readFileAsTextUrl(file, callback) {
+    if (!file) return;
+    const MAX_SIZE = 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+        showToast?.('文件过大，最大支持 1MB', 'error');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => callback(e.target.result);
+    reader.onerror = () => showToast?.('文件读取失败', 'error');
+    reader.readAsText(file);
+}
+
+function autoDetectUrlMode(text) {
+    if (!window.DogToolboxM8Utils?.detectUrlEncoded) return;
+    const detection = window.DogToolboxM8Utils.detectUrlEncoded(text);
+    if (detection.isUrlEncoded && detection.confidence >= 0.6) {
+        setUrlMode('decode');
+        showToast?.('检测到 URL 编码，已切换到解码模式', 'info');
+    }
 }
 
 function setUrlMode(mode) {
@@ -81,20 +144,27 @@ function updateUrlTool() {
     const batch = !!batchEl?.checked;
 
     try {
+        let outputText = '';
         if (urlMode === 'encode') {
-            outputEl.value = batch
+            outputText = batch
                 ? window.DogToolboxM8Utils.urlEncodeBatch(inputText)
                 : window.DogToolboxM8Utils.urlEncode(inputText);
         } else {
             if (batch) {
                 const result = window.DogToolboxM8Utils.urlDecodeBatch(inputText);
-                outputEl.value = result.result;
+                outputText = result.result;
                 if (result.errors && result.errors.length) {
                     errorsEl.innerHTML = result.errors.map(e => `<div>⚠ ${escapeHtml(e)}</div>`).join('');
                 }
             } else {
-                outputEl.value = window.DogToolboxM8Utils.urlDecode(inputText);
+                outputText = window.DogToolboxM8Utils.urlDecode(inputText);
             }
+        }
+        outputEl.value = outputText;
+
+        // 保存历史记录
+        if (outputText && !batch) {
+            saveUrlHistory(inputText, outputText, urlMode);
         }
     } catch (e) {
         outputEl.value = '';
@@ -115,6 +185,81 @@ function copyUrlOutput(btn) {
     const outputEl = document.getElementById('url-output');
     const text = outputEl?.value || '';
     copyToolText(btn, text);
+}
+
+function saveUrlHistory(input, output, mode) {
+    if (!input?.trim() || !output?.trim()) return;
+    try {
+        const raw = localStorage.getItem(URL_HISTORY_KEY);
+        const data = raw ? JSON.parse(raw) : { entries: [] };
+        const entry = {
+            input: input.slice(0, 200),
+            output: output.slice(0, 200),
+            mode,
+            timestamp: Date.now()
+        };
+        data.entries = data.entries.filter(e => !(e.input === entry.input && e.mode === entry.mode));
+        data.entries.unshift(entry);
+        if (data.entries.length > URL_HISTORY_MAX) {
+            data.entries = data.entries.slice(0, URL_HISTORY_MAX);
+        }
+        localStorage.setItem(URL_HISTORY_KEY, JSON.stringify(data));
+        renderUrlHistory();
+    } catch (e) { /* ignore */ }
+}
+
+function loadUrlHistory() {
+    try {
+        const raw = localStorage.getItem(URL_HISTORY_KEY);
+        return raw ? JSON.parse(raw).entries || [] : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function renderUrlHistory() {
+    const container = document.getElementById('url-history');
+    if (!container) return;
+
+    const entries = loadUrlHistory();
+    if (!entries.length) {
+        container.innerHTML = '<div class="history-empty">暂无历史记录</div>';
+        return;
+    }
+
+    container.innerHTML = entries.map((e, i) => `
+        <div class="history-item" onclick="applyUrlHistory(${i})">
+            <span class="history-mode">${e.mode === 'encode' ? '编码' : '解码'}</span>
+            <span class="history-text">${escapeHtml(e.input.slice(0, 50))}${e.input.length > 50 ? '...' : ''}</span>
+            <span class="history-time">${formatUrlHistoryTime(e.timestamp)}</span>
+        </div>
+    `).join('');
+}
+
+function applyUrlHistory(index) {
+    const entries = loadUrlHistory();
+    const entry = entries[index];
+    if (!entry) return;
+
+    const inputEl = document.getElementById('url-input');
+    if (inputEl) inputEl.value = entry.input;
+    setUrlMode(entry.mode);
+}
+
+function clearUrlHistory() {
+    localStorage.removeItem(URL_HISTORY_KEY);
+    renderUrlHistory();
+    showToast?.('历史记录已清空', 'info');
+}
+
+function formatUrlHistoryTime(ts) {
+    const d = new Date(ts);
+    const now = new Date();
+    const diff = now - d;
+    if (diff < 60000) return '刚刚';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`;
+    return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 // ==================== 工具箱：进制转换（M8） ====================
@@ -804,11 +949,27 @@ function minifyJsonTool() {
 
 function tryFixJsonTool() {
     const inputEl = document.getElementById('json-input');
+    const errorsEl = document.getElementById('json-errors');
+    const statusEl = document.getElementById('json-status');
     if (!inputEl || !window.DogToolboxM10Utils) return;
 
-    const fixed = window.DogToolboxM10Utils.tryFixJson(inputEl.value);
-    inputEl.value = fixed;
-    updateJsonTool();
+    const result = window.DogToolboxM10Utils.advancedFixJson(inputEl.value);
+
+    if (result.fixes.length > 0) {
+        inputEl.value = result.result;
+        if (statusEl) statusEl.textContent = `✓ 已修复 ${result.fixes.length} 项`;
+        if (errorsEl) {
+            const fixList = result.fixes.map(f => `<div class="fix-item">✓ ${escapeHtml(f)}</div>`).join('');
+            errorsEl.innerHTML = `<div class="fix-summary">${fixList}</div>`;
+            setTimeout(() => { errorsEl.innerHTML = ''; }, 3000);
+        }
+        updateJsonTool();
+    } else if (result.error) {
+        if (errorsEl) errorsEl.innerHTML = `<div>⚠ 无法自动修复: ${escapeHtml(result.error)}</div>`;
+    } else {
+        if (statusEl) statusEl.textContent = '无需修复';
+        setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
+    }
 }
 
 function clearJsonTool() {
@@ -1558,6 +1719,66 @@ function copyCurlCode(btn) {
     copyToolText(btn, codeEl?.value || '');
 }
 
+// ========== cURL 工具联动 ==========
+
+/**
+ * 发送 cURL 解析结果到 HTTP Collections
+ */
+function sendCurlToHttpCollections() {
+    if (!curlState.parsed) {
+        showToast('请先解析 cURL 命令', 'warning');
+        return;
+    }
+    transferDataToTool('http-collections', curlState.parsed, 'http-request');
+}
+
+/**
+ * 从 cURL 解析结果填充 HTTP 请求表单
+ * @param {object} parsedCurl - cURL 解析结果
+ */
+function populateHttpFromCurl(parsedCurl) {
+    if (!parsedCurl) return;
+
+    // 填充 URL
+    const urlEl = document.getElementById('http-url');
+    if (urlEl) urlEl.value = parsedCurl.url || '';
+
+    // 填充 Method
+    const methodEl = document.getElementById('http-method');
+    if (methodEl) methodEl.value = (parsedCurl.method || 'GET').toUpperCase();
+
+    // 清空并填充 Headers
+    const headersContainer = document.getElementById('http-headers-list');
+    if (headersContainer && parsedCurl.headers) {
+        headersContainer.innerHTML = '';
+        const headers = Object.entries(parsedCurl.headers);
+        headers.forEach(([key, value]) => {
+            if (typeof addHttpHeaderRow === 'function') {
+                addHttpHeaderRow(key, value, true);
+            }
+        });
+        // 添加空行供继续添加
+        if (typeof addHttpHeaderRow === 'function') {
+            addHttpHeaderRow('', '', true);
+        }
+    }
+
+    // 填充 Body
+    if (parsedCurl.data) {
+        if (typeof switchHttpBodyType === 'function') {
+            // 尝试判断是否为 JSON
+            try {
+                JSON.parse(parsedCurl.data);
+                switchHttpBodyType('json');
+            } catch {
+                switchHttpBodyType('raw');
+            }
+        }
+        const bodyEl = document.getElementById('http-body-text');
+        if (bodyEl) bodyEl.value = parsedCurl.data;
+    }
+}
+
 // ========== M14: 颜色转换器 ==========
 
 function initColorTool() {
@@ -1944,8 +2165,9 @@ function updateSqlTool() {
     }
 
     let result;
+    const dialect = document.getElementById('sql-dialect')?.value || 'generic';
     if (sqlMode === 'format') {
-        result = DogToolboxM15Utils.formatSQL(input);
+        result = DogToolboxM15Utils.formatSQL(input, { dialect });
     } else {
         result = DogToolboxM15Utils.minifySQL(input);
     }

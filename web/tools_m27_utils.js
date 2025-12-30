@@ -995,6 +995,173 @@
         return buildResult(parts.join(' '), description);
     }
 
+    /**
+     * 获取 Docker 常用模板
+     * @returns {Array<{name: string, command: string, description: string, category: string}>}
+     */
+    function getDockerTemplates() {
+        return [
+            // 常用服务
+            {
+                name: '运行 Nginx',
+                command: 'docker run -d --name nginx -p 80:80 nginx:alpine',
+                description: '启动 Nginx Web 服务器',
+                category: '常用服务'
+            },
+            {
+                name: '运行 MySQL',
+                command: 'docker run -d --name mysql -e MYSQL_ROOT_PASSWORD=secret -p 3306:3306 mysql:8',
+                description: '启动 MySQL 数据库',
+                category: '常用服务'
+            },
+            {
+                name: '运行 PostgreSQL',
+                command: 'docker run -d --name postgres -e POSTGRES_PASSWORD=secret -p 5432:5432 postgres:15',
+                description: '启动 PostgreSQL 数据库',
+                category: '常用服务'
+            },
+            {
+                name: '运行 Redis',
+                command: 'docker run -d --name redis -p 6379:6379 redis:alpine',
+                description: '启动 Redis 缓存服务',
+                category: '常用服务'
+            },
+            {
+                name: '运行 MongoDB',
+                command: 'docker run -d --name mongo -p 27017:27017 mongo:6',
+                description: '启动 MongoDB 数据库',
+                category: '常用服务'
+            },
+            {
+                name: '运行 RabbitMQ',
+                command: 'docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:management',
+                description: '启动 RabbitMQ 消息队列',
+                category: '常用服务'
+            },
+            // 容器管理
+            {
+                name: '查看运行容器',
+                command: 'docker ps',
+                description: '列出正在运行的容器',
+                category: '容器管理'
+            },
+            {
+                name: '查看所有容器',
+                command: 'docker ps -a',
+                description: '列出所有容器（包括已停止）',
+                category: '容器管理'
+            },
+            {
+                name: '停止容器',
+                command: 'docker stop CONTAINER_NAME',
+                description: '停止指定容器',
+                category: '容器管理'
+            },
+            {
+                name: '启动容器',
+                command: 'docker start CONTAINER_NAME',
+                description: '启动已停止的容器',
+                category: '容器管理'
+            },
+            {
+                name: '重启容器',
+                command: 'docker restart CONTAINER_NAME',
+                description: '重启容器',
+                category: '容器管理'
+            },
+            {
+                name: '删除容器',
+                command: 'docker rm CONTAINER_NAME',
+                description: '删除已停止的容器',
+                category: '容器管理'
+            },
+            // 日志与调试
+            {
+                name: '查看日志',
+                command: 'docker logs -f --tail 100 CONTAINER_NAME',
+                description: '实时查看容器日志',
+                category: '日志与调试'
+            },
+            {
+                name: '进入容器',
+                command: 'docker exec -it CONTAINER_NAME /bin/sh',
+                description: '进入容器交互式 Shell',
+                category: '日志与调试'
+            },
+            {
+                name: '查看容器详情',
+                command: 'docker inspect CONTAINER_NAME',
+                description: '查看容器详细信息',
+                category: '日志与调试'
+            },
+            {
+                name: '查看容器资源',
+                command: 'docker stats',
+                description: '实时查看容器资源使用',
+                category: '日志与调试'
+            },
+            // 镜像管理
+            {
+                name: '列出镜像',
+                command: 'docker images',
+                description: '列出本地镜像',
+                category: '镜像管理'
+            },
+            {
+                name: '拉取镜像',
+                command: 'docker pull IMAGE_NAME:TAG',
+                description: '从仓库拉取镜像',
+                category: '镜像管理'
+            },
+            {
+                name: '构建镜像',
+                command: 'docker build -t IMAGE_NAME:TAG .',
+                description: '从 Dockerfile 构建镜像',
+                category: '镜像管理'
+            },
+            {
+                name: '删除镜像',
+                command: 'docker rmi IMAGE_NAME:TAG',
+                description: '删除本地镜像',
+                category: '镜像管理'
+            },
+            // 清理
+            {
+                name: '清理未使用资源',
+                command: 'docker system prune -f',
+                description: '清理未使用的容器、网络、镜像',
+                category: '清理'
+            },
+            {
+                name: '清理所有未使用',
+                command: 'docker system prune -a -f',
+                description: '清理所有未使用资源（包括镜像）',
+                category: '清理'
+            },
+            {
+                name: '清理悬空镜像',
+                command: 'docker image prune -f',
+                description: '清理无标签的悬空镜像',
+                category: '清理'
+            },
+            {
+                name: '清理未使用卷',
+                command: 'docker volume prune -f',
+                description: '清理未使用的数据卷',
+                category: '清理'
+            }
+        ];
+    }
+
+    /**
+     * 获取模板分类
+     * @returns {string[]}
+     */
+    function getDockerTemplateCategories() {
+        const templates = getDockerTemplates();
+        return [...new Set(templates.map(t => t.category))];
+    }
+
     // 导出 API
     return {
         generateRunCommand,
@@ -1027,6 +1194,8 @@
         generateVolumeCommand,
         generateSystemPruneCommand,
         generateCpCommand,
+        getDockerTemplates,
+        getDockerTemplateCategories,
         // 仅供测试
         _escapeArg: escapeArg
     };

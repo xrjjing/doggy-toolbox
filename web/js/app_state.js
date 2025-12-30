@@ -16,7 +16,13 @@ function escapeHtml(text) {
 
 function escapeAttr(text) {
     if (text === null || text === undefined) return '';
-    return String(text).replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/`/g, '\\`');
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/`/g, '&#96;');
 }
 
 function openModal(id) {
@@ -101,6 +107,27 @@ let curlState = {
     lang: 'fetch',
 };
 let sqlMode = 'format';
+
+// ==================== 工具联动状态 ====================
+let toolDataBridge = {
+    sourceToolId: null,
+    targetToolId: null,
+    data: null,
+    dataType: null,
+    timestamp: null,
+    status: null  // pending | consumed | error
+};
+
+// ==================== 全局搜索状态 ====================
+let globalSearchState = {
+    isOpen: false,
+    query: '',
+    selectedIndex: -1,
+    results: [],
+    favorites: new Set(),
+    recentTools: [],
+    usageStats: new Map()
+};
 
 // ==================== 拖拽/交互瞬态状态（集中管理） ====================
 let draggedTabId = null;

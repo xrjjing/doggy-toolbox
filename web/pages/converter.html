@@ -26,12 +26,24 @@
                             <button class="btn btn-primary btn-block" onclick="convertLinks()">
                                 <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>转换为 YAML
                             </button>
+
+                            <!-- 批量导入区域 -->
+                            <div class="batch-import-section">
+                                <div class="section-divider">批量导入</div>
+                                <div class="form-group">
+                                    <label>订阅链接（每行一个）</label>
+                                    <textarea id="batch-import-urls" placeholder="https://sub1.example.com/...&#10;https://sub2.example.com/..." rows="3"></textarea>
+                                </div>
+                                <button class="btn btn-secondary btn-block" onclick="batchImportSubscriptions()">批量导入</button>
+                                <div id="batch-import-results" class="batch-import-results"></div>
+                            </div>
                         </div>
                     </div>
                     <div class="converter-panel">
                         <div class="panel-header">
                             <h3>输出</h3>
                             <div class="panel-actions">
+                                <button class="btn btn-sm btn-ghost" onclick="validateAllConvertedNodes()" title="验证节点">🔍 验证</button>
                                 <div class="format-toggle" title="切换输出格式">
                                     <button class="btn btn-sm btn-ghost format-btn" id="format-yaml-btn" onclick="setConvertOutputFormat('yaml')">YAML</button>
                                     <button class="btn btn-sm btn-ghost format-btn" id="format-json-btn" onclick="setConvertOutputFormat('json')">JSON</button>
@@ -43,6 +55,7 @@
                         <div class="panel-body">
                             <textarea id="yaml-output" readonly placeholder="转换结果..."></textarea>
                             <div id="convert-errors" class="error-list"></div>
+                            <div id="validation-results" class="validation-results" style="display: none;"></div>
                         </div>
                     </div>
                 </div>
