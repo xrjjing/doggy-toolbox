@@ -2,6 +2,7 @@
 
 一款实用的开发者工具集桌面应用，集成多种常用开发工具。
 
+![Version](https://img.shields.io/badge/Version-v1.2.0-orange.svg)
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows-lightgrey.svg)
@@ -54,11 +55,21 @@
 - **Docker 命令生成器** (M27) - Docker/Docker Compose 命令生成
 
 ### 🌐 网络工具
+- **HTTP 接口集合** - 接口管理、历史记录、环境变量、批量测试
+- **API 导出** - 支持 Postman、OpenAPI、Apifox、cURL、HTTPie 格式
 - **节点转换** - 代理节点格式转换（SS/SSR/VMess/VLESS/Trojan）
+- **节点标签** - 为节点添加标签，支持按标签筛选
+
+### 🤖 AI 智能辅助
+- **JSON 工具** - AI 生成 JSON、修复语法错误、分析数据结构
+- **SQL 工具** - AI 生成 SQL 查询、修复语法错误
+- **Mock 数据** - AI 生成测试数据、分析数据质量
+- **多 Provider 支持** - OpenAI、Claude、第三方兼容 API
 
 ### 💻 系统工具
 - **电脑使用管理** - 远程命令执行与凭证管理
 - **数据备份** - 应用数据导出与恢复
+- **全局搜索** - 快速搜索所有工具和功能
 
 ### 🎨 界面特性
 - **多主题支持** - 7 种主题（暗色/亮色/可爱/办公/霓虹/赛博朋克/赛博亮色）
@@ -67,6 +78,36 @@
 - **分组导航** - 工具按类别分组管理
 
 ## 🔔 最新更新
+
+### v1.2.0 (2025-12-30)
+
+**🎉 重大新功能**
+- ✅ **HTTP 接口集合** - 完整的接口管理系统（分组、搜索、历史记录）
+- ✅ **AI 智能辅助** - 集成 OpenAI/Claude，支持生成/修复/分析 JSON、SQL、Mock 数据
+- ✅ **API 多格式导出** - 支持 Postman、OpenAPI、Apifox、cURL、HTTPie 格式
+- ✅ **节点标签系统** - 为代理节点添加标签，支持按标签筛选
+- ✅ **全局搜索** - 快速搜索所有工具和功能（Cmd/Ctrl+K）
+
+**🚀 功能增强**
+- ✅ 环境变量管理 - HTTP 集合支持变量替换
+- ✅ 接口历史记录 - 自动保存测试历史，支持快速恢复
+- ✅ 批量接口测试 - 一键执行集合内所有接口
+- ✅ AI Provider 管理 - 支持多个 AI 提供商配置和切换
+
+**💎 界面优化**
+- ✅ AI Provider 切换样式优化
+- ✅ 历史会话样式美化
+- ✅ 移除部分不必要的视觉特效
+
+**🐛 Bug 修复**
+- ✅ 修复数据库依赖注入问题（HttpCollectionsService、ComputerUsageService）
+- ✅ 修复 API 初始化顺序，确保数据库优先创建
+- ✅ 修复 NodeConverter 文件不存在时的崩溃问题
+- ✅ 修复 Tab ID 映射保持外键完整性
+- ✅ 修复父目录不存在导致的写入失败
+- ✅ 修复特效在不应出现的区域显示的问题
+
+---
 
 ### v1.0.1 (2025-12-16)
 
