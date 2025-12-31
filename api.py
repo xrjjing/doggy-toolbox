@@ -19,9 +19,10 @@ class Api:
     # 流式聊天会话超时时间（秒）
     CHAT_SESSION_TTL_SECONDS = 300  # 5 分钟
 
-    def __init__(self, data_dir: Path):
+    def __init__(self, data_dir: Path, debug_mode: bool = False):
         self.data_dir = data_dir
         self.data_dir.mkdir(parents=True, exist_ok=True)
+        self._debug_mode = debug_mode
 
         # 统一数据库初始化（必须最先完成）
         from services.db_manager import DatabaseManager
@@ -198,9 +199,17 @@ class Api:
         if self._window:
             self._window.toggle_fullscreen()
 
+    def is_debug_mode(self):
+        """检查当前是否为调试模式"""
+        return {'debug': self._debug_mode}
+
     def open_devtools(self):
-        """打开开发者工具（macOS 需要以 debug=True 启动）"""
-        return {'success': False, 'message': '请以 debug=True 模式启动应用，然后右键点击窗口选择"检查元素"'}
+        """打开开发者工具"""
+        if not self._debug_mode:
+            return {'success': False, 'message': '请使用 python main.py -d 启动应用以启用调试模式'}
+        if self._window:
+            self._window.evaluate_js('console.log("DevTools opened")')
+        return {'success': True, 'message': '已启用调试模式，请右键点击页面选择"检查元素"'}
 
     # ========== 页签管理 ==========
     def get_tabs(self):

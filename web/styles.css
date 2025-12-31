@@ -662,6 +662,48 @@ body {
     color: white;
 }
 
+/* ========== 开发者工具样式 ========== */
+.devtools-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+}
+
+.devtools-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.devtools-label {
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.devtools-hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.devtools-btn {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.devtools-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.devtools-btn:disabled:hover {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-secondary);
+}
+
 
 .app {
     display: flex;

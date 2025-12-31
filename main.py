@@ -2,6 +2,7 @@
 """狗狗百宝箱 - 主入口"""
 
 import sys
+import argparse
 import logging
 from pathlib import Path
 
@@ -12,6 +13,14 @@ from services.db_manager import DatabaseManager
 from services.data_migration import DataMigration
 
 logger = logging.getLogger(__name__)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="狗狗百宝箱")
+    parser.add_argument(
+        "-d", "--debug", action="store_true", help="启用调试模式（允许打开开发者工具）"
+    )
+    return parser.parse_args()
 
 
 # 判断是否为打包环境
@@ -40,6 +49,9 @@ def get_data_dir():
 
 
 def main():
+    args = parse_args()
+    debug_mode = args.debug
+
     data_dir = get_data_dir()
 
     # 初始化数据库并执行迁移
@@ -54,14 +66,14 @@ def main():
             migration.backup_json_files()
             # 执行迁移
             result = migration.migrate_all()
-            if result['success']:
+            if result["success"]:
                 logger.info("数据迁移成功")
             else:
                 logger.error(f"数据迁移失败: {result.get('message')}")
     except Exception as e:
         logger.error(f"数据库初始化失败: {e}")
 
-    api = Api(data_dir)
+    api = Api(data_dir, debug_mode=debug_mode)
 
     web_dir = get_base_path() / "web"
     window = webview.create_window(
@@ -82,8 +94,8 @@ def main():
     api.set_window(window)  # 传递窗口引用
     # 启用本地 HTTP 服务：
     # - 允许前端通过 fetch()/XHR 加载 web/pages/* 等静态资源（避免 file:// 限制）
-    # - 对“index.html 拆分为页面片段按需注入”的架构是必要条件
-    webview.start(debug=False, http_server=True)
+    # - 对"index.html 拆分为页面片段按需注入"的架构是必要条件
+    webview.start(debug=debug_mode, http_server=True)
     sys.exit()
 
 

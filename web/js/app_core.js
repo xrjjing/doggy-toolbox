@@ -1054,6 +1054,7 @@ function openSettingsModal() {
 
     _applySettingsPreview(snapshot);
     _updateSaveButtonState();
+    initDevToolsButton();
 
     openModal('settings-modal');
 
@@ -1121,6 +1122,39 @@ function settingsPreviewTitlebarMode(mode) {
         btn.classList.toggle('active', btn.dataset.mode === mode);
     });
     _updateSaveButtonState();
+}
+
+async function initDevToolsButton() {
+    const btn = document.getElementById('devtoolsBtn');
+    const hint = document.getElementById('devtoolsHint');
+    if (!btn || !hint) return;
+
+    try {
+        const result = await pywebview.api.is_debug_mode();
+        if (result.debug) {
+            btn.disabled = false;
+            hint.textContent = '检查页面元素和调试';
+        } else {
+            btn.disabled = true;
+            hint.textContent = '使用 python main.py -d 启动以启用';
+        }
+    } catch (e) {
+        btn.disabled = true;
+        hint.textContent = '无法获取调试状态';
+    }
+}
+
+async function openDevTools() {
+    try {
+        const result = await pywebview.api.open_devtools();
+        if (result.success) {
+            showToast(result.message, 'success');
+        } else {
+            showToast(result.message, 'warning');
+        }
+    } catch (e) {
+        showToast('打开开发者工具失败', 'error');
+    }
 }
 
 function requestCloseSettingsModal() {
