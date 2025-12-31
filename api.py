@@ -198,6 +198,27 @@ class Api:
         if self._window:
             self._window.toggle_fullscreen()
 
+    def open_devtools(self):
+        """打开开发者工具"""
+        import webview
+        for w in webview.windows:
+            w.evaluate_js('window.__pywebview_open_devtools = true')
+        if self._window:
+            try:
+                self._window.evaluate_js('')
+                import threading
+                def _open():
+                    import time
+                    time.sleep(0.1)
+                    for w in webview.windows:
+                        try:
+                            w.show_devtools()
+                        except:
+                            pass
+                threading.Thread(target=_open, daemon=True).start()
+            except:
+                pass
+
     # ========== 页签管理 ==========
     def get_tabs(self):
         return self.computer_usage.get_tabs()
@@ -1189,7 +1210,8 @@ class Api:
             logger.info(f"清理了 {len(expired_ids)} 个超时的聊天会话")
 
     def ai_chat_stream(self, message: str, history: list = None, provider_id: str = None,
-                        mode: str = 'chat', tool_recommend: bool = True, conversation_id: str = None):
+                        mode: str = 'chat', tool_recommend: bool = True, conversation_id: str = None,
+                        web_search_enabled: bool = False, thinking_enabled: bool = False):
         """
         AI 流式对话接口（适配 PyWebView）
 
@@ -1205,15 +1227,18 @@ class Api:
             mode: 对话模式 ('chat' 普通对话, 'explain' 解释模式)
             tool_recommend: 是否启用工具推荐
             conversation_id: 持久化会话 ID（可选，不传则创建新会话）
+            web_search_enabled: 是否启用网络搜索（前端控制）
+            thinking_enabled: 是否启用思考模式（前端控制，仅 Claude 有效）
 
         Returns:
-            {"success": True, "session_id": "...", "conversation_id": "...", "tool_recommendations": {...}}
+            {"success": True, "session_id": "...", "conversation_id": "...", "tool_recommendations": {...}, "search_results": [...]}
         """
         import asyncio
         import threading
         import time
         import uuid
         from collections import deque
+        from services import web_search
 
         # 生成流式会话 ID（临时，用于轮询）
         session_id = str(uuid.uuid4())
@@ -1227,10 +1252,22 @@ class Api:
         # 清理超时的旧会话
         self._cleanup_chat_sessions()
 
-        # 获取 Provider 配置，检查是否启用搜索
+        # 获取 Provider 配置
         pid = provider_id or self.ai_manager.active_provider_id
         provider_config = self.ai_manager._get_provider_config(pid)
-        web_search_enabled = provider_config.get('config', {}).get('web_search', False)
+
+        # 网络搜索：直接同步执行，避免事件循环问题
+        search_results = []
+        search_attempted = False
+        search_error = None
+        if web_search_enabled:
+            query = web_search.extract_search_query(message)
+            if query:
+                search_attempted = True
+                try:
+                    search_results = web_search.search_sync(query, max_results=2)
+                except Exception as e:
+                    search_error = str(e)
 
         # 工具推荐（仅在普通对话模式下启用）
         tool_recommendations = None
@@ -1238,7 +1275,8 @@ class Api:
             try:
                 tool_recommendations = self.ai_manager.recommend_tools_sync(message, provider_id)
             except Exception as e:
-                logger.warning(f"工具推荐失败: {e}")
+                error_msg = str(e) or type(e).__name__
+                logger.warning(f"工具推荐失败: {error_msg}")
 
         # 持久化：创建或复用会话
         if self.chat_history:
@@ -1276,6 +1314,26 @@ class Api:
                     messages.append({'role': item['role'], 'content': item['content']})
         messages.append({'role': 'user', 'content': message})
 
+        # 如果有搜索结果，直接注入到 messages 中（避免 Provider 重复搜索）
+        if search_results:
+            search_context = web_search.format_search_results(search_results)
+            # 查找是否有 system prompt
+            has_system = False
+            for i, msg in enumerate(messages):
+                if msg.get('role') == 'system':
+                    messages[i]['content'] = msg['content'] + "\n\n" + search_context
+                    has_system = True
+                    break
+            if not has_system:
+                messages.insert(0, {'role': 'system', 'content': search_context})
+            # 已注入搜索结果，不需要 Provider 再搜索
+            web_search_enabled = False
+
+        # 获取 Provider 配置中的 max_tokens 和 thinking_budget
+        max_tokens = provider_config.get('config', {}).get('max_tokens', 4096)
+        thinking_budget = provider_config.get('config', {}).get('thinking_budget', 32000)
+        provider_type = provider_config.get('type', '')
+
         # 后台任务
         chat_history_ref = self.chat_history
         def stream_task():
@@ -1283,10 +1341,19 @@ class Api:
             asyncio.set_event_loop(loop)
             try:
                 async def run_stream():
-                    provider = self.ai_manager.get_provider(provider_id)
-                    # 让 Provider 自己处理搜索注入
-                    async for chunk in provider.chat_stream(messages, web_search_enabled=web_search_enabled):
+                    provider = self.ai_manager.get_provider(pid)
+                    chunk_count = 0
+                    # 根据 Provider 类型传递不同参数
+                    stream_kwargs = {
+                        'web_search_enabled': web_search_enabled,
+                        'max_tokens': max_tokens
+                    }
+                    if provider_type == 'claude' and thinking_enabled:
+                        stream_kwargs['thinking_enabled'] = True
+                        stream_kwargs['thinking_budget'] = thinking_budget
+                    async for chunk in provider.chat_stream(messages, **stream_kwargs):
                         if chunk:
+                            chunk_count += 1
                             # 线程安全地添加 chunk 并更新访问时间
                             with self._chat_sessions_lock:
                                 session = self._chat_sessions.get(session_id)
@@ -1311,12 +1378,13 @@ class Api:
                                     session['conversation_id'], "assistant", content, provider_id=pid
                                 )
             except Exception as e:
-                logger.error(f"AI 流式对话失败: {e}")
+                error_msg = str(e) or type(e).__name__
+                logger.error(f"AI 流式对话失败: {error_msg}")
                 # 记录错误
                 with self._chat_sessions_lock:
                     session = self._chat_sessions.get(session_id)
                     if session is not None:
-                        session['error'] = str(e)
+                        session['error'] = error_msg
                         session['done'] = True
                         session['last_access'] = time.monotonic()
             finally:
@@ -1331,6 +1399,9 @@ class Api:
             'session_id': session_id,
             'conversation_id': conversation_id,
             'web_search_enabled': web_search_enabled,
+            'search_results': search_results,
+            'search_attempted': search_attempted,
+            'search_error': search_error,
             'tool_recommendations': tool_recommendations
         }
 

@@ -629,17 +629,6 @@ async function editProvider(providerId) {
         if (config.stream !== undefined) {
             document.getElementById('stream-enabled').checked = config.stream;
         }
-        if (config.web_search !== undefined) {
-            document.getElementById('web-search-enabled').checked = config.web_search;
-        }
-        // 思考模式反显
-        if (config.thinking_enabled !== undefined) {
-            document.getElementById('thinking-enabled').checked = config.thinking_enabled;
-            document.getElementById('thinking-budget-group').style.display = config.thinking_enabled ? 'block' : 'none';
-        }
-        if (config.thinking_budget !== undefined) {
-            document.getElementById('thinking-budget').value = config.thinking_budget;
-        }
         if (config.proxy) {
             document.getElementById('proxy').value = config.proxy;
         }
@@ -685,10 +674,6 @@ function resetForm() {
     document.getElementById('pres-penalty').value = 0;
     document.getElementById('max-retries').value = 3;
     document.getElementById('stream-enabled').checked = true;
-    document.getElementById('web-search-enabled').checked = false;
-    document.getElementById('thinking-enabled').checked = false;
-    document.getElementById('thinking-budget').value = 2048;
-    document.getElementById('thinking-budget-group').style.display = 'none';
     document.getElementById('proxy').value = '';
 
     updateRangeValue('temperature', 'temp-value');
@@ -716,7 +701,6 @@ function updateFormFields() {
     document.getElementById('field-organization').style.display = 'none';
     document.getElementById('field-api-version').style.display = 'none';
     document.getElementById('third-party-fields').style.display = 'none';
-    document.getElementById('field-thinking-mode').style.display = 'none';
 
     // 判断是否为编辑模式（有 id 表示编辑）
     const isEditMode = !!currentProviderConfig.id;
@@ -732,11 +716,10 @@ function updateFormFields() {
             document.getElementById('base-url').value = 'https://api.openai.com/v1';
         }
     } else if (type === 'claude') {
-        // Claude：使用 API Key + Base URL + 思考模式
+        // Claude：使用 API Key + Base URL
         document.getElementById('field-api-key').style.display = 'block';
         document.getElementById('field-base-url').style.display = 'block';
         document.getElementById('field-api-version').style.display = 'block';
-        document.getElementById('field-thinking-mode').style.display = 'block';
         // 仅在新建模式或无值时设置默认值
         if (!isEditMode || !currentBaseUrl) {
             document.getElementById('base-url').value = 'https://api.anthropic.com';
@@ -979,7 +962,6 @@ async function saveProvider() {
             timeout: parseInt(document.getElementById('timeout').value),
             max_retries: parseInt(document.getElementById('max-retries').value),
             stream: document.getElementById('stream-enabled').checked,
-            web_search: document.getElementById('web-search-enabled').checked,
             proxy: document.getElementById('proxy').value.trim()
         },
         capabilities: {
@@ -1001,9 +983,6 @@ async function saveProvider() {
         config.config.organization = document.getElementById('organization')?.value.trim();
     } else if (type === 'claude') {
         config.config.api_version = document.getElementById('api-version')?.value;
-        // Claude 专用：思考模式
-        config.config.thinking_enabled = document.getElementById('thinking-enabled').checked;
-        config.config.thinking_budget = parseInt(document.getElementById('thinking-budget').value) || 2048;
     } else if (type === 'openai-compatible') {
         config.compatibility = {
             endpoint: document.getElementById('endpoint').value,
@@ -1109,20 +1088,6 @@ function togglePasswordVisibility() {
         if (eyeClosed) eyeClosed.style.display = 'none';
     }
 }
-
-// 思考模式开关联动
-function toggleThinkingBudget() {
-    const thinkingEnabled = document.getElementById('thinking-enabled').checked;
-    document.getElementById('thinking-budget-group').style.display = thinkingEnabled ? 'block' : 'none';
-}
-
-// 页面加载后绑定事件
-document.addEventListener('DOMContentLoaded', function() {
-    const thinkingCheckbox = document.getElementById('thinking-enabled');
-    if (thinkingCheckbox) {
-        thinkingCheckbox.addEventListener('change', toggleThinkingBudget);
-    }
-});
 
 
 // 显式暴露：供 app_core 的 PAGE_INIT_MAP 调用，并兼容旧的大小写写法

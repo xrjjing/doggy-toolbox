@@ -278,8 +278,9 @@ class AIManager:
         except Exception as e:
             latency = time.time() - start_time
             self._update_stats(pid, success=False, latency=latency)
-            logger.error(f"AI 请求失败: {e}")
-            raise e
+            error_msg = str(e) or type(e).__name__
+            logger.error(f"AI 请求失败: {error_msg}")
+            raise
 
     def _get_provider_config(self, provider_id: str) -> Dict[str, Any]:
         """获取指定 Provider 的配置"""
@@ -833,24 +834,28 @@ class AIManager:
             return {'tools': []}
 
         except Exception as e:
-            logger.warning(f"工具推荐失败: {e}")
+            error_msg = str(e) or type(e).__name__
+            logger.warning(f"工具推荐失败: {error_msg}")
             return {'tools': []}
 
     def recommend_tools_sync(self, user_message: str, provider_id: Optional[str] = None) -> Dict[str, Any]:
         """同步版本的工具推荐（用于非异步上下文）"""
         import asyncio
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # 如果已有事件循环在运行，创建新线程执行
+            # 尝试获取运行中的事件循环
+            try:
+                loop = asyncio.get_running_loop()
+                # 如果成功，说明在异步上下文中，需要创建新线程执行
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     future = executor.submit(
                         lambda: asyncio.run(self.recommend_tools(user_message, provider_id))
                     )
                     return future.result(timeout=30)
-            else:
-                return loop.run_until_complete(self.recommend_tools(user_message, provider_id))
+            except RuntimeError:
+                # 没有运行中的事件循环，直接使用 asyncio.run
+                return asyncio.run(self.recommend_tools(user_message, provider_id))
         except Exception as e:
-            logger.warning(f"同步工具推荐失败: {e}")
+            error_msg = str(e) or type(e).__name__
+            logger.warning(f"同步工具推荐失败: {error_msg}")
             return {'tools': []}

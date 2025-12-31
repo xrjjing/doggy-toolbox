@@ -10,6 +10,8 @@ let currentConversationId = null; // 当前持久化会话 ID
 let pollingInterval = null; // 轮询定时器
 let chatMode = 'chat'; // 对话模式：'chat' 普通对话, 'explain' 解释模式
 let savedConversations = []; // 保存的会话列表
+let webSearchEnabled = false; // 网络搜索开关
+let thinkingEnabled = false; // 思考模式开关
 
 /**
  * 获取 PyWebView API（带检查）
@@ -336,11 +338,13 @@ async function sendMessage() {
             throw new Error('后端接口未就绪（pywebview.api.ai_chat_stream/get_chat_chunk 不可用）');
         }
 
-        // 调用后端流式接口（传递模式、工具推荐开关和会话 ID）
-        const result = await api.ai_chat_stream(text, chatHistory.slice(0, -1), null, chatMode, true, currentConversationId);
+        // 调用后端流式接口（传递模式、工具推荐开关、会话 ID、搜索和思考开关）
+        const result = await api.ai_chat_stream(text, chatHistory.slice(0, -1), null, chatMode, true, currentConversationId, webSearchEnabled, thinkingEnabled);
 
         if (result.success) {
             currentSessionId = result.session_id;
+            console.log('[AI Chat] 请求成功，session_id:', result.session_id);
+            console.log('[AI Chat] search_results:', result.search_results);
             // 更新持久化会话 ID（首次发送消息时后端会创建新会话）
             if (result.conversation_id) {
                 currentConversationId = result.conversation_id;
@@ -354,6 +358,7 @@ async function sendMessage() {
             }
 
             // 如果有搜索结果，显示搜索结果
+            console.log('[AI Chat] 搜索结果:', result.search_results);
             if (result.search_results && result.search_results.length > 0) {
                 addSearchResultsCard(result.search_results);
             }
@@ -380,7 +385,12 @@ async function sendMessage() {
  * 添加搜索结果卡片（可折叠）
  */
 function addSearchResultsCard(searchResults) {
+    console.log('[AI Chat] 添加搜索结果卡片:', searchResults.length, '条结果');
     const messagesContainer = document.getElementById('chat-messages');
+    if (!messagesContainer) {
+        console.error('[AI Chat] chat-messages 容器不存在');
+        return;
+    }
     const cardId = `search-${Date.now()}`;
 
     const card = document.createElement('div');
@@ -401,7 +411,7 @@ function addSearchResultsCard(searchResults) {
     content.innerHTML = searchResults.map((r, i) => `
         <div class="search-result-item">
             <a href="${escapeHtml(r.url)}" target="_blank" class="search-result-title">${escapeHtml(r.title)}</a>
-            <p class="search-result-snippet">${escapeHtml(r.snippet ? r.snippet.substring(0, 150) + '...' : '')}</p>
+            <p class="search-result-snippet">${escapeHtml(r.snippet ? r.snippet.substring(0, 200) + '...' : '')}</p>
         </div>
     `).join('');
 
@@ -884,15 +894,14 @@ style.textContent = `
 
 .search-results-content {
     padding: 12px 14px;
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
-    transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.2s ease;
+    overflow-x: hidden;
 }
 
 .search-results-card.collapsed .search-results-content {
     max-height: 0;
     padding: 0 14px;
-    opacity: 0;
     overflow: hidden;
 }
 
@@ -1745,6 +1754,34 @@ async function exportCurrentChat() {
         if (typeof showToast === 'function') {
             showToast(result.error || '导出失败', 'error');
         }
+    }
+}
+
+/**
+ * 切换网络搜索开关
+ */
+function toggleWebSearch() {
+    webSearchEnabled = !webSearchEnabled;
+    const btn = document.getElementById('web-search-toggle');
+    if (btn) {
+        btn.classList.toggle('active', webSearchEnabled);
+    }
+    if (typeof showToast === 'function') {
+        showToast(webSearchEnabled ? '网络搜索已开启' : '网络搜索已关闭', 'info');
+    }
+}
+
+/**
+ * 切换思考模式开关
+ */
+function toggleThinking() {
+    thinkingEnabled = !thinkingEnabled;
+    const btn = document.getElementById('thinking-toggle');
+    if (btn) {
+        btn.classList.toggle('active', thinkingEnabled);
+    }
+    if (typeof showToast === 'function') {
+        showToast(thinkingEnabled ? '思考模式已开启 (仅 Claude 有效)' : '思考模式已关闭', 'info');
     }
 }
 

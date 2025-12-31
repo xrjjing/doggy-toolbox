@@ -31,13 +31,14 @@ class AIProvider:
         """流式对话接口"""
         raise NotImplementedError("子类必须实现 chat_stream 方法")
 
-    async def _prepare_messages_with_search(self, messages: List[Dict], web_search_enabled: bool) -> List[Dict]:
+    async def _prepare_messages_with_search(self, messages: List[Dict], web_search_enabled: bool, search_results_out: List[Dict] = None) -> List[Dict]:
         """
         如果启用了网络搜索，执行搜索并注入结果到消息中
 
         Args:
             messages: 原始消息列表
             web_search_enabled: 是否启用网络搜索
+            search_results_out: 可选，用于输出搜索结果的列表
 
         Returns:
             处理后的消息列表
@@ -60,16 +61,21 @@ class AIProvider:
         if not query:
             return messages
 
-        logger.info(f"执行网络搜索: {query}")
-        search_results = await web_search.search(query, max_results=5)
+        try:
+            search_results = await web_search.search(query, max_results=5)
+        except Exception as e:
+            logger.warning(f"Provider 内搜索失败: {e}")
+            return messages
 
         if not search_results:
-            logger.warning("搜索无结果")
             return messages
+
+        # 输出搜索结果
+        if search_results_out is not None:
+            search_results_out.extend(search_results)
 
         # 格式化搜索结果
         search_context = web_search.format_search_results(search_results)
-        logger.info(f"搜索到 {len(search_results)} 条结果")
 
         # 注入搜索结果到消息中
         new_messages = []
@@ -77,14 +83,12 @@ class AIProvider:
 
         for msg in messages:
             if msg.get('role') == 'system':
-                # 在现有 system prompt 后追加搜索结果
                 new_content = msg.get('content', '') + "\n\n" + search_context
                 new_messages.append({'role': 'system', 'content': new_content})
                 has_system = True
             else:
                 new_messages.append(msg)
 
-        # 如果没有 system prompt，创建一个
         if not has_system:
             new_messages.insert(0, {'role': 'system', 'content': search_context})
 
@@ -157,8 +161,8 @@ class OpenAIProvider(AIProvider):
 
     async def chat_stream(self, messages: List[Dict], model: Optional[str] = None,
                           web_search_enabled: bool = False, **kwargs) -> AsyncIterator[str]:
-        """流式响应"""
-        # 处理网络搜索
+        """流式响应（带重试）"""
+        logger.debug(f"OpenAI chat_stream: web_search_enabled={web_search_enabled}, messages_count={len(messages)}")
         messages = await self._prepare_messages_with_search(messages, web_search_enabled)
 
         url = f"{self.base_url.rstrip('/')}/chat/completions"
@@ -171,22 +175,40 @@ class OpenAIProvider(AIProvider):
             **kwargs
         }
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            async with client.stream('POST', url, headers=headers, json=payload) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    if line.startswith('data: '):
-                        data_str = line[6:]
-                        if data_str == '[DONE]':
-                            break
-                        try:
-                            import json
-                            data = json.loads(data_str)
-                            delta = data['choices'][0]['delta']
-                            if 'content' in delta:
-                                yield delta['content']
-                        except Exception as e:
-                            logger.warning(f"解析流式数据失败: {e}")
+        stream_timeout = httpx.Timeout(connect=30.0, read=300.0, write=30.0, pool=30.0)
+        max_retries = 3
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                async with httpx.AsyncClient(timeout=stream_timeout) as client:
+                    async with client.stream('POST', url, headers=headers, json=payload) as response:
+                        response.raise_for_status()
+                        async for line in response.aiter_lines():
+                            if line.startswith('data: '):
+                                data_str = line[6:]
+                                if data_str == '[DONE]':
+                                    break
+                                try:
+                                    import json
+                                    data = json.loads(data_str)
+                                    delta = data['choices'][0]['delta']
+                                    if 'content' in delta:
+                                        yield delta['content']
+                                except Exception as e:
+                                    logger.warning(f"解析流式数据失败: {e}")
+                        return
+            except (httpx.ConnectError, httpx.ReadTimeout, httpx.ConnectTimeout) as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    import asyncio
+                    wait_time = (attempt + 1) * 2
+                    logger.warning(f"连接失败，{wait_time}秒后重试 ({attempt + 1}/{max_retries}): {type(e).__name__}")
+                    await asyncio.sleep(wait_time)
+                    continue
+
+        if last_error:
+            raise ValueError(f"连接失败，已重试 {max_retries} 次: {type(last_error).__name__}") from last_error
 
 
 class ClaudeProvider(AIProvider):
@@ -306,12 +328,19 @@ class ClaudeProvider(AIProvider):
             return text_content
 
     async def chat_stream(self, messages: List[Dict], model: Optional[str] = None,
-                          web_search_enabled: bool = False, **kwargs) -> AsyncIterator[str]:
-        """Claude 流式响应"""
-        # 处理网络搜索
+                          web_search_enabled: bool = False, thinking_enabled: bool = False,
+                          thinking_budget: int = 32000, **kwargs) -> AsyncIterator[str]:
+        """Claude 流式响应（带重试）"""
+        logger.debug(f"Claude chat_stream: web_search_enabled={web_search_enabled}, messages_count={len(messages)}")
         messages = await self._prepare_messages_with_search(messages, web_search_enabled)
 
-        url = f"{self.base_url.rstrip('/')}/v1/messages"
+        base = self.base_url.rstrip('/')
+        if base.endswith('/v1/messages') or base.endswith('/messages'):
+            url = base
+        elif base.endswith('/v1'):
+            url = f"{base}/messages"
+        else:
+            url = f"{base}/v1/messages"
 
         headers = {
             'x-api-key': self.api_key,
@@ -331,46 +360,67 @@ class ClaudeProvider(AIProvider):
         if system_prompt:
             payload['system'] = system_prompt
 
+        # 思考模式
+        if thinking_enabled:
+            payload['thinking'] = {
+                'type': 'enabled',
+                'budget_tokens': thinking_budget
+            }
+            logger.info(f"流式请求启用思考模式，预算: {thinking_budget} tokens")
+
         claude_kwargs = {k: v for k, v in kwargs.items() if k in ['temperature', 'top_p', 'max_tokens']}
         payload.update(claude_kwargs)
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            try:
-                async with client.stream('POST', url, headers=headers, json=payload) as response:
-                    # 检查响应状态
-                    if response.status_code >= 400:
-                        # 读取错误响应体
-                        error_body = await response.aread()
-                        error_detail = None
-                        try:
-                            import json
-                            error_data = json.loads(error_body)
-                            if isinstance(error_data, dict):
-                                error_block = error_data.get('error')
-                                if isinstance(error_block, dict):
-                                    error_detail = error_block.get('message') or error_block.get('detail')
-                                if not error_detail:
-                                    error_detail = error_data.get('message') or error_data.get('detail')
-                        except Exception:
-                            pass
-                        if error_detail:
-                            raise ValueError(f"Claude API 错误: {error_detail}")
-                        response.raise_for_status()
+        stream_timeout = httpx.Timeout(connect=30.0, read=300.0, write=30.0, pool=30.0)
+        max_retries = 3
+        last_error = None
 
-                    async for line in response.aiter_lines():
-                        if line.startswith('data: '):
-                            data_str = line[6:]
+        for attempt in range(max_retries):
+            try:
+                async with httpx.AsyncClient(timeout=stream_timeout) as client:
+                    async with client.stream('POST', url, headers=headers, json=payload) as response:
+                        if response.status_code >= 400:
+                            error_body = await response.aread()
+                            error_detail = None
                             try:
                                 import json
-                                data = json.loads(data_str)
-                                if data['type'] == 'content_block_delta':
-                                    delta = data['delta']
-                                    if delta['type'] == 'text_delta':
-                                        yield delta['text']
-                            except Exception as e:
-                                logger.warning(f"解析流式数据失败: {e}")
+                                error_data = json.loads(error_body)
+                                if isinstance(error_data, dict):
+                                    error_block = error_data.get('error')
+                                    if isinstance(error_block, dict):
+                                        error_detail = error_block.get('message') or error_block.get('detail')
+                                    if not error_detail:
+                                        error_detail = error_data.get('message') or error_data.get('detail')
+                            except Exception:
+                                pass
+                            if error_detail:
+                                raise ValueError(f"Claude API 错误: {error_detail}")
+                            response.raise_for_status()
+
+                        async for line in response.aiter_lines():
+                            if line.startswith('data: '):
+                                data_str = line[6:]
+                                try:
+                                    import json
+                                    data = json.loads(data_str)
+                                    event_type = data.get('type', '')
+                                    if event_type == 'content_block_delta':
+                                        delta = data.get('delta', {})
+                                        delta_type = delta.get('type', '')
+                                        if delta_type == 'text_delta':
+                                            yield delta['text']
+                                except Exception as e:
+                                    logger.warning(f"解析流式数据失败: {e}")
+                        return
+            except (httpx.ConnectError, httpx.ReadTimeout, httpx.ConnectTimeout) as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    import asyncio
+                    wait_time = (attempt + 1) * 2
+                    logger.warning(f"连接失败，{wait_time}秒后重试 ({attempt + 1}/{max_retries}): {type(e).__name__}")
+                    await asyncio.sleep(wait_time)
+                    continue
             except httpx.HTTPStatusError as e:
-                # 尝试从响应体提取更详细的错误信息
                 error_detail = None
                 try:
                     error_data = e.response.json()
@@ -387,6 +437,9 @@ class ClaudeProvider(AIProvider):
                 if error_detail:
                     raise ValueError(f"Claude API 错误: {error_detail}") from e
                 raise
+
+        if last_error:
+            raise ValueError(f"连接失败，已重试 {max_retries} 次: {type(last_error).__name__}") from last_error
 
 
 class ThirdPartyProvider(AIProvider):
@@ -446,8 +499,8 @@ class ThirdPartyProvider(AIProvider):
 
     async def chat_stream(self, messages: List[Dict], model: Optional[str] = None,
                           web_search_enabled: bool = False, **kwargs) -> AsyncIterator[str]:
-        """第三方兼容 API 流式响应"""
-        # 处理网络搜索
+        """第三方兼容 API 流式响应（带重试）"""
+        logger.debug(f"ThirdParty chat_stream: web_search_enabled={web_search_enabled}, messages_count={len(messages)}")
         messages = await self._prepare_messages_with_search(messages, web_search_enabled)
 
         url = f"{self.base_url.rstrip('/')}{self.endpoint}"
@@ -465,22 +518,40 @@ class ThirdPartyProvider(AIProvider):
             **kwargs
         }
 
-        async with httpx.AsyncClient(timeout=self.timeout, verify=self.verify_ssl) as client:
-            async with client.stream('POST', url, headers=headers, json=payload) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    if line.startswith('data: '):
-                        data_str = line[6:]
-                        if data_str == '[DONE]':
-                            break
-                        try:
-                            import json
-                            data = json.loads(data_str)
-                            delta = data['choices'][0]['delta']
-                            if 'content' in delta:
-                                yield delta['content']
-                        except Exception as e:
-                            logger.warning(f"解析流式数据失败: {e}")
+        stream_timeout = httpx.Timeout(connect=30.0, read=300.0, write=30.0, pool=30.0)
+        max_retries = 3
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                async with httpx.AsyncClient(timeout=stream_timeout, verify=self.verify_ssl) as client:
+                    async with client.stream('POST', url, headers=headers, json=payload) as response:
+                        response.raise_for_status()
+                        async for line in response.aiter_lines():
+                            if line.startswith('data: '):
+                                data_str = line[6:]
+                                if data_str == '[DONE]':
+                                    break
+                                try:
+                                    import json
+                                    data = json.loads(data_str)
+                                    delta = data['choices'][0]['delta']
+                                    if 'content' in delta:
+                                        yield delta['content']
+                                except Exception as e:
+                                    logger.warning(f"解析流式数据失败: {e}")
+                        return
+            except (httpx.ConnectError, httpx.ReadTimeout, httpx.ConnectTimeout) as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    import asyncio
+                    wait_time = (attempt + 1) * 2
+                    logger.warning(f"连接失败，{wait_time}秒后重试 ({attempt + 1}/{max_retries}): {type(e).__name__}")
+                    await asyncio.sleep(wait_time)
+                    continue
+
+        if last_error:
+            raise ValueError(f"连接失败，已重试 {max_retries} 次: {type(last_error).__name__}") from last_error
 
 
 def create_provider(config: Dict[str, Any]) -> AIProvider:

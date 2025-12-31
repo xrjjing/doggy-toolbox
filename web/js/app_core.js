@@ -1287,6 +1287,13 @@ function initShortcut() {
             e.preventDefault();
             openSearchModal();
         }
+        // F12 - 打开开发者工具
+        if (e.key === 'F12') {
+            e.preventDefault();
+            if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.open_devtools === 'function') {
+                window.pywebview.api.open_devtools();
+            }
+        }
     });
 }
 

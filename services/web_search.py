@@ -18,6 +18,7 @@ def _search_sync(query: str, max_results: int = 5, region: str = 'wt-wt') -> Lis
     try:
         from ddgs import DDGS
         import time
+        import random
 
         for attempt in range(3):
             try:
@@ -34,13 +35,15 @@ def _search_sync(query: str, max_results: int = 5, region: str = 'wt-wt') -> Lis
                     return results
 
                 if attempt < 2:
-                    logger.warning(f"搜索无结果，第 {attempt + 1} 次重试...")
-                    time.sleep(0.5)
+                    delay = 1.0 + random.uniform(0.5, 1.5)
+                    logger.warning(f"搜索无结果，第 {attempt + 1} 次重试，等待 {delay:.1f}s...")
+                    time.sleep(delay)
 
             except Exception as e:
                 if attempt < 2:
-                    logger.warning(f"搜索出错，第 {attempt + 1} 次重试: {e}")
-                    time.sleep(0.5)
+                    delay = 1.5 + random.uniform(0.5, 1.5)
+                    logger.warning(f"搜索出错，第 {attempt + 1} 次重试，等待 {delay:.1f}s: {e}")
+                    time.sleep(delay)
                 else:
                     raise
 
@@ -52,6 +55,21 @@ def _search_sync(query: str, max_results: int = 5, region: str = 'wt-wt') -> Lis
     except Exception as e:
         logger.error(f"搜索失败: {e}")
         return []
+
+
+def search_sync(query: str, max_results: int = 5, region: str = 'wt-wt') -> List[Dict[str, Any]]:
+    """
+    同步执行网络搜索（供外部直接调用）
+
+    Args:
+        query: 搜索关键词
+        max_results: 最大结果数量
+        region: 搜索区域，默认 wt-wt（全球）
+
+    Returns:
+        搜索结果列表，每项包含 title, url, snippet
+    """
+    return _search_sync(query, max_results, region)
 
 
 async def search(query: str, max_results: int = 5, region: str = 'wt-wt') -> List[Dict[str, Any]]:
@@ -68,43 +86,37 @@ async def search(query: str, max_results: int = 5, region: str = 'wt-wt') -> Lis
     """
     import asyncio
     from functools import partial
-    loop = asyncio.get_event_loop()
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return _search_sync(query, max_results, region)
     func = partial(_search_sync, query, max_results, region)
     return await loop.run_in_executor(_executor, func)
 
 
-def format_search_results(results: List[Dict[str, Any]], max_length: int = 2000) -> str:
+def format_search_results(results: List[Dict[str, Any]], max_length: int = 1500) -> str:
     """格式化搜索结果为可注入 prompt 的文本"""
     if not results:
         return ""
 
-    lines = [
-        "# 已提供的参考资料",
-        "",
-        "你无法实时浏览互联网，但已为你提供以下参考资料。请基于这些资料回答用户问题，如资料不足请说明。不要说「我无法搜索」或「我无法联网」。",
-        ""
-    ]
+    lines = ["以下是网络搜索结果，请基于这些信息回答：", ""]
 
     for i, r in enumerate(results, 1):
         title = r.get('title', '无标题')
-        url = r.get('url', '')
         snippet = r.get('snippet', '')
 
         if len(snippet) > 300:
             snippet = snippet[:300] + "..."
 
-        lines.append(f"**资料 {i}**: {title}")
-        if url:
-            lines.append(f"来源: {url}")
+        lines.append(f"{i}. {title}")
         if snippet:
-            lines.append(f"内容: {snippet}")
+            lines.append(f"   {snippet}")
         lines.append("")
 
     text = "\n".join(lines)
 
-    # 如果超过最大长度，截断
     if len(text) > max_length:
-        text = text[:max_length] + "\n...(搜索结果已截断)"
+        text = text[:max_length] + "\n..."
 
     return text
 
