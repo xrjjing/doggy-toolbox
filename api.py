@@ -199,25 +199,8 @@ class Api:
             self._window.toggle_fullscreen()
 
     def open_devtools(self):
-        """打开开发者工具"""
-        import webview
-        for w in webview.windows:
-            w.evaluate_js('window.__pywebview_open_devtools = true')
-        if self._window:
-            try:
-                self._window.evaluate_js('')
-                import threading
-                def _open():
-                    import time
-                    time.sleep(0.1)
-                    for w in webview.windows:
-                        try:
-                            w.show_devtools()
-                        except:
-                            pass
-                threading.Thread(target=_open, daemon=True).start()
-            except:
-                pass
+        """打开开发者工具（macOS 需要以 debug=True 启动）"""
+        return {'success': False, 'message': '请以 debug=True 模式启动应用，然后右键点击窗口选择"检查元素"'}
 
     # ========== 页签管理 ==========
     def get_tabs(self):

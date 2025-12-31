@@ -40,6 +40,7 @@ htmlcov/
 
 AGENTS.md
 CLAUDE.md
+GEMINI.md
 CHANGELOG.md
 /.spec-workflow/
 /.serena/

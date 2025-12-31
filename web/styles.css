@@ -1980,7 +1980,7 @@ textarea:focus {
 }
 
 .tool-single {
-    max-width: 980px;
+    max-width: 100%;
 }
 
 /* ========== 工具箱：UUID（M2） ========== */
