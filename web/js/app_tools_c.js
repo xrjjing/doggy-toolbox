@@ -1776,18 +1776,28 @@ async function downloadJsonSchema() {
 // ==================== M24 HTTP 请求测试 ====================
 
 function initHttpTool() {
-    // 初始化默认请求头
+    // 初始化默认请求头（常用请求头预填充）
     const headersEditor = document.getElementById('http-headers-editor');
     if (headersEditor) {
         headersEditor.innerHTML = `
             <div class="http-kv-row">
-                <input type="text" placeholder="Header Name" class="http-kv-key" value="Content-Type">
-                <input type="text" placeholder="Header Value" class="http-kv-value" value="application/json">
+                <input type="text" placeholder="Header Name" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false" value="Content-Type">
+                <input type="text" placeholder="Header Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false" value="application/json">
                 <button class="btn btn-sm btn-ghost" onclick="removeHttpKvRow(this)">-</button>
             </div>
             <div class="http-kv-row">
-                <input type="text" placeholder="Header Name" class="http-kv-key">
-                <input type="text" placeholder="Header Value" class="http-kv-value">
+                <input type="text" placeholder="Header Name" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false" value="Accept">
+                <input type="text" placeholder="Header Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false" value="application/json, text/plain, */*">
+                <button class="btn btn-sm btn-ghost" onclick="removeHttpKvRow(this)">-</button>
+            </div>
+            <div class="http-kv-row">
+                <input type="text" placeholder="Header Name" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false" value="User-Agent">
+                <input type="text" placeholder="Header Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false" value="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36">
+                <button class="btn btn-sm btn-ghost" onclick="removeHttpKvRow(this)">-</button>
+            </div>
+            <div class="http-kv-row">
+                <input type="text" placeholder="Header Name" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false">
+                <input type="text" placeholder="Header Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false">
                 <button class="btn btn-sm btn-ghost" onclick="addHttpHeader()">+</button>
             </div>
         `;
@@ -1808,8 +1818,8 @@ function clearHttpTool() {
     if (paramsEditor) {
         paramsEditor.innerHTML = `
             <div class="http-kv-row">
-                <input type="text" placeholder="Key" class="http-kv-key">
-                <input type="text" placeholder="Value" class="http-kv-value">
+                <input type="text" placeholder="Key" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false">
+                <input type="text" placeholder="Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false">
                 <button class="btn btn-sm btn-ghost" onclick="addHttpParam()">+</button>
             </div>
         `;
@@ -1874,8 +1884,8 @@ function switchHttpBodyType(type) {
                 formEditorDiv.className = 'http-kv-editor';
                 formEditorDiv.innerHTML = `
                     <div class="http-kv-row">
-                        <input type="text" placeholder="Key" class="http-kv-key">
-                        <input type="text" placeholder="Value" class="http-kv-value">
+                        <input type="text" placeholder="Key" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false">
+                        <input type="text" placeholder="Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false">
                         <label class="http-kv-enable"><input type="checkbox" checked> 启用</label>
                         <button class="btn btn-sm btn-ghost" onclick="addHttpFormRow()">+</button>
                     </div>
@@ -1898,8 +1908,8 @@ function addHttpParam() {
     const newRow = document.createElement('div');
     newRow.className = 'http-kv-row';
     newRow.innerHTML = `
-        <input type="text" placeholder="Key" class="http-kv-key">
-        <input type="text" placeholder="Value" class="http-kv-value">
+        <input type="text" placeholder="Key" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <input type="text" placeholder="Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false" autocapitalize="off" autocorrect="off" spellcheck="false">
         <button class="btn btn-sm btn-ghost" onclick="addHttpParam()">+</button>
     `;
 
@@ -1917,8 +1927,8 @@ function addHttpHeader() {
     const newRow = document.createElement('div');
     newRow.className = 'http-kv-row';
     newRow.innerHTML = `
-        <input type="text" placeholder="Header Name" class="http-kv-key">
-        <input type="text" placeholder="Header Value" class="http-kv-value">
+        <input type="text" placeholder="Header Name" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <input type="text" placeholder="Header Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false" autocapitalize="off" autocorrect="off" spellcheck="false">
         <label class="http-kv-enable"><input type="checkbox" checked> 启用</label>
         <button class="btn btn-sm btn-ghost" onclick="addHttpHeader()">+</button>
     `;
@@ -1939,8 +1949,8 @@ function addHttpFormRow() {
     const newRow = document.createElement('div');
     newRow.className = 'http-kv-row';
     newRow.innerHTML = `
-        <input type="text" placeholder="Key" class="http-kv-key">
-        <input type="text" placeholder="Value" class="http-kv-value">
+        <input type="text" placeholder="Key" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <input type="text" placeholder="Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false" autocapitalize="off" autocorrect="off" spellcheck="false">
         <label class="http-kv-enable"><input type="checkbox" checked> 启用</label>
         <button class="btn btn-sm btn-ghost" onclick="addHttpFormRow()">+</button>
     `;
@@ -2035,11 +2045,17 @@ async function sendHttpRequest() {
         // 优先使用后端代理（解决 CORS 问题）
         let result;
         if (window.pywebview && window.pywebview.api && window.pywebview.api.http_request) {
-            result = await window.pywebview.api.http_request(method, fullUrl, headers, body, 30);
+            // 获取 SSL 验证设置
+            const verifySsl = document.getElementById('http-verify-ssl')?.checked ?? true;
+            console.log('[HTTP] Sending request:', { method, fullUrl, verifySsl });
+            result = await window.pywebview.api.http_request(method, fullUrl, headers, body, 30, verifySsl);
+            console.log('[HTTP] Response:', result);
 
             if (!result.success && result.error) {
+                // 区分 SSL 错误，显示更友好的提示
+                const errorClass = result.error_type === 'SSLError' ? 'ssl-error' : '';
                 responseBodyEl.value = `错误：${result.error}`;
-                responseMetaEl.innerHTML = '<span style="color: #ef4444;">请求失败</span>';
+                responseMetaEl.innerHTML = `<span style="color: #ef4444;" class="${errorClass}">请求失败${result.error_type ? ` (${result.error_type})` : ''}</span>`;
                 return;
             }
 
@@ -2061,6 +2077,21 @@ async function sendHttpRequest() {
                 <span style="margin-left: 16px;">Time: ${DogToolboxM24Utils.formatResponseTime(result.duration || 0)}</span>
                 <span style="margin-left: 16px;">Size: ${DogToolboxM24Utils.formatResponseSize(size)}</span>
             `;
+
+            // 强制刷新 UI（解决 pywebview 异步更新问题）
+            responseBodyEl.dispatchEvent(new Event('input'));
+            responseHeadersEl.dispatchEvent(new Event('input'));
+
+            // 强制重绘响应面板
+            const responsePanel = document.querySelector('.http-response-panel');
+            if (responsePanel) {
+                responsePanel.style.display = 'none';
+                responsePanel.offsetHeight; // 触发重排
+                responsePanel.style.display = '';
+            }
+
+            // 自动切换到 Body 标签
+            switchHttpResponseTab('response-body');
 
             // 保存请求历史
             if (typeof saveHttpRequestHistory === 'function') {
@@ -2167,8 +2198,8 @@ function importCurl() {
             const row = document.createElement('div');
             row.className = 'http-kv-row';
             row.innerHTML = `
-                <input type="text" placeholder="Key" class="http-kv-key" value="${escapeHtml(key)}">
-                <input type="text" placeholder="Value" class="http-kv-value" value="${escapeHtml(config.params[key])}">
+                <input type="text" placeholder="Key" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false" value="${escapeHtml(key)}">
+                <input type="text" placeholder="Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false" value="${escapeHtml(config.params[key])}">
                 <button class="btn btn-sm btn-ghost" onclick="removeHttpKvRow(this)">-</button>
             `;
             paramsEditor.appendChild(row);
@@ -2178,8 +2209,8 @@ function importCurl() {
     const emptyParamRow = document.createElement('div');
     emptyParamRow.className = 'http-kv-row';
     emptyParamRow.innerHTML = `
-        <input type="text" placeholder="Key" class="http-kv-key">
-        <input type="text" placeholder="Value" class="http-kv-value">
+        <input type="text" placeholder="Key" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <input type="text" placeholder="Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false">
         <button class="btn btn-sm btn-ghost" onclick="addHttpParam()">+</button>
     `;
     paramsEditor.appendChild(emptyParamRow);
@@ -2191,8 +2222,8 @@ function importCurl() {
         const row = document.createElement('div');
         row.className = 'http-kv-row';
         row.innerHTML = `
-            <input type="text" placeholder="Header Name" class="http-kv-key" value="${escapeHtml(key)}">
-            <input type="text" placeholder="Header Value" class="http-kv-value" value="${escapeHtml(config.headers[key])}">
+            <input type="text" placeholder="Header Name" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false" value="${escapeHtml(key)}">
+            <input type="text" placeholder="Header Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false" value="${escapeHtml(config.headers[key])}">
             <button class="btn btn-sm btn-ghost" onclick="removeHttpKvRow(this)">-</button>
         `;
         headersEditor.appendChild(row);
@@ -2202,8 +2233,8 @@ function importCurl() {
     const emptyRow = document.createElement('div');
     emptyRow.className = 'http-kv-row';
     emptyRow.innerHTML = `
-        <input type="text" placeholder="Header Name" class="http-kv-key">
-        <input type="text" placeholder="Header Value" class="http-kv-value">
+        <input type="text" placeholder="Header Name" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <input type="text" placeholder="Header Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false">
         <button class="btn btn-sm btn-ghost" onclick="addHttpHeader()">+</button>
     `;
     headersEditor.appendChild(emptyRow);
@@ -2236,8 +2267,8 @@ function importCurl() {
                     const row = document.createElement('div');
                     row.className = 'http-kv-row';
                     row.innerHTML = `
-                        <input type="text" placeholder="Key" class="http-kv-key" value="${escapeHtml(key)}">
-                        <input type="text" placeholder="Value" class="http-kv-value" value="${escapeHtml(value || '')}">
+                        <input type="text" placeholder="Key" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false" value="${escapeHtml(key)}">
+                        <input type="text" placeholder="Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false" value="${escapeHtml(value || '')}">
                         <button class="btn btn-sm btn-ghost" onclick="removeHttpKvRow(this)">-</button>
                     `;
                     formEditor.appendChild(row);
@@ -2247,8 +2278,8 @@ function importCurl() {
             const emptyFormRow = document.createElement('div');
             emptyFormRow.className = 'http-kv-row';
             emptyFormRow.innerHTML = `
-                <input type="text" placeholder="Key" class="http-kv-key">
-                <input type="text" placeholder="Value" class="http-kv-value">
+                <input type="text" placeholder="Key" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false">
+                <input type="text" placeholder="Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false">
                 <button class="btn btn-sm btn-ghost" onclick="addHttpFormField()">+</button>
             `;
             formEditor.appendChild(emptyFormRow);
@@ -2260,7 +2291,9 @@ function importCurl() {
         document.getElementById('http-body-text').value = '';
     }
 
-    alert('cURL 命令已成功导入');
+    // 切换到请求头标签，让用户看到导入的结果
+    switchHttpTab('headers');
+    showToast('cURL 解析成功，已填充到请求表单', 'success');
 }
 
 function exportCurl() {

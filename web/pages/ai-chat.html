@@ -637,14 +637,14 @@
 }
 
 /* Frosted Glass Effect for Chat Sidebar */
-#page-ai-chat[data-glass="true"] .chat-sidebar {
+[data-glass="true"] #page-ai-chat .chat-sidebar {
     background: rgba(15, 23, 42, 0.65);
     border-right: 1px solid rgba(255, 255, 255, 0.08);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     backdrop-filter: blur(20px) saturate(180%);
 }
 
-#page-ai-chat:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] .chat-sidebar {
+:is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] #page-ai-chat .chat-sidebar {
     background: rgba(248, 250, 252, 0.7);
     border-right: 1px solid rgba(0, 0, 0, 0.06);
     -webkit-backdrop-filter: blur(20px) saturate(180%);

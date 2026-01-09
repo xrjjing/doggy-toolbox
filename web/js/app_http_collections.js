@@ -237,8 +237,8 @@ function renderHttpKvEditor(editorId, items, keyPlaceholder, valuePlaceholder, a
     (items || []).forEach(item => {
         html += `
             <div class="http-kv-row">
-                <input type="text" placeholder="${keyPlaceholder}" class="http-kv-key" value="${escapeAttr(item.key || '')}">
-                <input type="text" placeholder="${valuePlaceholder}" class="http-kv-value" value="${escapeAttr(item.value || '')}">
+                <input type="text" placeholder="${keyPlaceholder}" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false" value="${escapeAttr(item.key || '')}">
+                <input type="text" placeholder="${valuePlaceholder}" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false" value="${escapeAttr(item.value || '')}">
                 <label class="http-kv-enable"><input type="checkbox" ${item.enabled !== false ? 'checked' : ''}> 启用</label>
                 <button class="btn btn-sm btn-ghost" onclick="removeHttpKvRow(this)">-</button>
             </div>
@@ -247,8 +247,8 @@ function renderHttpKvEditor(editorId, items, keyPlaceholder, valuePlaceholder, a
 
     html += `
         <div class="http-kv-row">
-            <input type="text" placeholder="${keyPlaceholder}" class="http-kv-key">
-            <input type="text" placeholder="${valuePlaceholder}" class="http-kv-value">
+            <input type="text" placeholder="${keyPlaceholder}" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false">
+            <input type="text" placeholder="${valuePlaceholder}" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false">
             <label class="http-kv-enable"><input type="checkbox" checked> 启用</label>
             <button class="btn btn-sm btn-ghost" onclick="${addHandler}()">+</button>
         </div>

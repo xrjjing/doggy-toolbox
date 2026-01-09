@@ -629,7 +629,8 @@ class Api:
         }
 
     # ========== HTTP 请求代理 ==========
-    def http_request(self, method: str, url: str, headers: dict = None, body: str = None, timeout: int = 30):
+    def http_request(self, method: str, url: str, headers: dict = None, body: str = None,
+                     timeout: int = 30, verify_ssl: bool = True):
         """
         代理 HTTP 请求，解决前端 CORS 限制。
 
@@ -639,77 +640,128 @@ class Api:
             headers: 请求头字典
             body: 请求体字符串
             timeout: 超时时间（秒）
+            verify_ssl: 是否验证 SSL 证书（默认 True）
 
         Returns:
-            dict: {success, status, statusText, headers, body, duration}
+            dict: {success, status, statusText, headers, body, duration, error_type?}
         """
-        import urllib.request
-        import urllib.error
+        import subprocess
+        import json
         import time
+
+        logger.info(f"HTTP Request: {method} {url} (verify_ssl={verify_ssl})")
 
         try:
             start_time = time.time()
 
-            # 构建请求
-            req = urllib.request.Request(url, method=method.upper())
+            # 构建 curl 命令
+            cmd = ['curl', '-s', '-X', method.upper()]
+
+            # SSL 验证
+            if not verify_ssl:
+                cmd.append('-k')
 
             # 添加请求头
             if headers:
                 for key, value in headers.items():
-                    req.add_header(key, value)
+                    cmd.extend(['-H', f'{key}: {value}'])
 
             # 添加请求体
-            data = None
             if body and method.upper() in ('POST', 'PUT', 'PATCH'):
-                data = body.encode('utf-8')
+                cmd.extend(['-d', body])
 
-            # 发送请求
-            with urllib.request.urlopen(req, data=data, timeout=timeout) as response:
-                end_time = time.time()
-                duration = int((end_time - start_time) * 1000)
+            # 超时设置
+            cmd.extend(['--connect-timeout', str(timeout), '--max-time', str(timeout)])
 
-                # 读取响应
-                response_body = response.read().decode('utf-8', errors='replace')
-                response_headers = dict(response.getheaders())
+            # 包含响应头
+            cmd.append('-i')
 
-                return {
-                    "success": True,
-                    "status": response.status,
-                    "statusText": response.reason,
-                    "headers": response_headers,
-                    "body": response_body,
-                    "duration": duration
-                }
+            # URL
+            cmd.append(url)
 
-        except urllib.error.HTTPError as e:
+            logger.info(f"Executing curl command")
+
+            # 执行 curl
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 5)
+
             end_time = time.time()
             duration = int((end_time - start_time) * 1000)
 
-            # HTTP 错误也返回响应内容
-            try:
-                error_body = e.read().decode('utf-8', errors='replace')
-            except Exception:
-                error_body = ""
+            if result.returncode != 0:
+                error_msg = result.stderr or f"curl 返回错误码: {result.returncode}"
+                logger.error(f"curl error: {error_msg}")
+                if 'SSL' in error_msg.upper() or 'certificate' in error_msg.lower():
+                    return {
+                        "success": False,
+                        "error": f"SSL 错误: {error_msg}\n💡 提示：可以尝试取消勾选「验证 SSL 证书」选项",
+                        "error_type": "SSLError"
+                    }
+                return {
+                    "success": False,
+                    "error": error_msg,
+                    "error_type": "CurlError"
+                }
+
+            # 解析 curl 输出（包含响应头和响应体）
+            output = result.stdout
+            lines = output.split('\n')
+
+            # 分离响应头和响应体
+            response_headers = {}
+            response_body = ""
+            header_end = False
+            body_lines = []
+            http_code = 200
+
+            for line in lines:
+                if not header_end:
+                    if line.startswith('HTTP/'):
+                        # 解析状态码
+                        parts = line.split()
+                        if len(parts) >= 2:
+                            try:
+                                http_code = int(parts[1])
+                            except ValueError:
+                                pass
+                    elif line.strip() == '' or line.strip() == '\r':
+                        header_end = True
+                    elif ':' in line:
+                        key, value = line.split(':', 1)
+                        response_headers[key.strip()] = value.strip()
+                else:
+                    body_lines.append(line)
+
+            response_body = '\n'.join(body_lines).strip()
+
+            # 获取状态文本
+            status_text = {
+                200: 'OK', 201: 'Created', 204: 'No Content',
+                400: 'Bad Request', 401: 'Unauthorized', 403: 'Forbidden',
+                404: 'Not Found', 500: 'Internal Server Error'
+            }.get(http_code, 'Unknown')
 
             return {
-                "success": True,  # HTTP 错误也算请求成功
-                "status": e.code,
-                "statusText": e.reason,
-                "headers": dict(e.headers) if e.headers else {},
-                "body": error_body,
+                "success": True,
+                "status": http_code,
+                "statusText": status_text,
+                "headers": response_headers,
+                "body": response_body,
                 "duration": duration
             }
 
-        except urllib.error.URLError as e:
+        except subprocess.TimeoutExpired:
             return {
                 "success": False,
-                "error": f"连接失败: {str(e.reason)}"
+                "error": "请求超时",
+                "error_type": "TimeoutError"
             }
 
         except Exception as e:
+            logger.error(f"HTTP Request Exception: {type(e).__name__}: {str(e)}")
             return {
                 "success": False,
-                "error": str(e)
+                "error": str(e),
+                "error_type": type(e).__name__
             }
 
     # ========== 文件保存对话框 ==========

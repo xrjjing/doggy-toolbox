@@ -67,6 +67,13 @@
                             <button class="btn btn-primary" onclick="sendHttpRequestFromCollection()">发送</button>
                         </div>
 
+                        <div class="http-settings-bar">
+                            <label class="http-setting-item" title="取消勾选可测试自签名证书的接口">
+                                <input type="checkbox" id="http-verify-ssl" checked>
+                                <span>验证 SSL 证书</span>
+                            </label>
+                        </div>
+
                         <div class="http-tabs">
                             <button class="http-tab active" data-tab="params" onclick="switchHttpTab('params')">Query 参数</button>
                             <button class="http-tab" data-tab="headers" onclick="switchHttpTab('headers')">请求头</button>
@@ -77,8 +84,8 @@
                         <div class="http-tab-content active" id="http-tab-params">
                             <div class="http-kv-editor" id="http-params-editor">
                                 <div class="http-kv-row">
-                                    <input type="text" placeholder="Key" class="http-kv-key">
-                                    <input type="text" placeholder="Value" class="http-kv-value">
+                                    <input type="text" placeholder="Key" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false">
+                                    <input type="text" placeholder="Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false">
                                     <label class="http-kv-enable"><input type="checkbox" checked> 启用</label>
                                     <button class="btn btn-sm btn-ghost" onclick="addHttpParam()">+</button>
                                 </div>
@@ -88,8 +95,8 @@
                         <div class="http-tab-content" id="http-tab-headers">
                             <div class="http-kv-editor" id="http-headers-editor">
                                 <div class="http-kv-row">
-                                    <input type="text" placeholder="Header Name" class="http-kv-key">
-                                    <input type="text" placeholder="Header Value" class="http-kv-value">
+                                    <input type="text" placeholder="Header Name" class="http-kv-key" autocapitalize="off" autocorrect="off" spellcheck="false">
+                                    <input type="text" placeholder="Header Value" class="http-kv-value" autocapitalize="off" autocorrect="off" spellcheck="false">
                                     <label class="http-kv-enable"><input type="checkbox" checked> 启用</label>
                                     <button class="btn btn-sm btn-ghost" onclick="addHttpHeader()">+</button>
                                 </div>
@@ -121,10 +128,10 @@
                         </div>
 
                         <div class="http-tab-content" id="http-tab-curl">
-                            <textarea id="http-curl-input" placeholder="粘贴 cURL 命令..." spellcheck="false"></textarea>
+                            <textarea id="http-curl-input" placeholder="粘贴 cURL 命令，点击「解析」按钮将自动填充到请求表单中..." spellcheck="false"></textarea>
                             <div class="http-curl-actions">
-                                <button class="btn btn-sm btn-ghost" onclick="importCurl()">导入</button>
-                                <button class="btn btn-sm btn-ghost" onclick="exportCurl()">导出</button>
+                                <button class="btn btn-sm btn-primary" onclick="importCurl()">解析 cURL</button>
+                                <button class="btn btn-sm btn-ghost" onclick="exportCurl()">生成 cURL</button>
                             </div>
                         </div>
                     </div>

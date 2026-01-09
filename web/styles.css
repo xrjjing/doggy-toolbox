@@ -5808,7 +5808,38 @@ select option {
 .http-url-bar {
     display: flex;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
+}
+
+.http-settings-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+}
+
+.http-setting-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.http-setting-item:hover {
+    color: var(--text-primary);
+}
+
+.http-setting-item input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    accent-color: var(--accent);
 }
 
 .http-url-input {
@@ -7144,7 +7175,7 @@ select option {
 
 .http-response-content textarea {
     flex: 1;
-    min-height: 300px;
+    min-height: 500px;
     resize: vertical;
 }
 
@@ -7781,18 +7812,6 @@ select option {
 .ai-helper-panel .action-btn:hover {
     background: var(--accent-hover);
     transform: translateY(-1px);
-}
-
-/* 毛玻璃效果 */
-[data-glass="true"] .ai-global-helper .ai-helper-panel {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-}
-
-[data-glass="true"] .ai-global-helper .ai-helper-btn {
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
 }
 
 
