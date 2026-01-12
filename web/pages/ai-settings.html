@@ -1530,4 +1530,155 @@
     background: rgba(249, 250, 251, 0.7);
     border-color: rgba(0, 0, 0, 0.06);
 }
+
+/* ========== Void 主题适配 ========== */
+[data-theme="void"] .ai-main-tabs {
+    background: rgba(30, 26, 20, 0.4);
+}
+
+[data-theme="void"] .ai-main-tab {
+    color: var(--text-secondary);
+}
+
+[data-theme="void"] .ai-main-tab:hover {
+    color: var(--text-primary);
+    background: rgba(212, 175, 55, 0.08);
+}
+
+[data-theme="void"] .ai-main-tab.active {
+    background: var(--bg-card);
+    color: var(--accent);
+    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.2);
+}
+
+[data-theme="void"] .global-toggle-card {
+    background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%);
+}
+
+[data-theme="void"] .ai-btn-primary {
+    background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%);
+    color: #000000;
+    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+}
+
+[data-theme="void"] .ai-btn-primary:hover {
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+}
+
+[data-theme="void"] .ai-btn-outline {
+    border-color: rgba(212, 175, 55, 0.3);
+    color: var(--text-primary);
+}
+
+[data-theme="void"] .ai-btn-outline:hover {
+    background: rgba(212, 175, 55, 0.08);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+[data-theme="void"] .list-category-tab.active {
+    color: var(--accent);
+}
+
+[data-theme="void"] .list-category-tab.active::after {
+    background: var(--accent);
+}
+
+[data-theme="void"] .type-tab.active {
+    color: var(--accent);
+}
+
+[data-theme="void"] .tool-toggle input:checked + .tool-toggle-slider {
+    background-color: var(--accent);
+}
+
+[data-theme="void"] .tool-toggle-slider:before {
+    background-color: #000000;
+}
+
+[data-theme="void"] .provider-card.active {
+    border-color: var(--accent);
+    background: rgba(212, 175, 55, 0.08);
+}
+
+[data-theme="void"] .badge-active {
+    color: var(--accent);
+    background: rgba(212, 175, 55, 0.15);
+}
+
+[data-theme="void"] .tool-category-card {
+    background: var(--bg-card);
+    border-color: rgba(212, 175, 55, 0.2);
+}
+
+[data-theme="void"] .category-header {
+    background: rgba(30, 26, 20, 0.3);
+    border-color: rgba(212, 175, 55, 0.15);
+}
+
+[data-theme="void"] .category-header:hover {
+    background: rgba(30, 26, 20, 0.5);
+}
+
+[data-theme="void"] .provider-type-tabs {
+    background: rgba(30, 26, 20, 0.4);
+}
+
+[data-theme="void"] .subtype-option:hover,
+[data-theme="void"] .subtype-option.active {
+    border-color: var(--accent);
+    background: rgba(212, 175, 55, 0.08);
+}
+
+[data-theme="void"] .feature-badge.generate {
+    background: rgba(212, 175, 55, 0.15);
+    color: var(--accent);
+}
+
+[data-theme="void"] .feature-badge.fix {
+    background: rgba(212, 175, 55, 0.1);
+    color: #E5C158;
+}
+
+/* Void 毛玻璃适配 */
+[data-theme="void"][data-glass="true"] .ai-main-tabs {
+    background: rgba(30, 26, 20, 0.3);
+}
+
+[data-theme="void"][data-glass="true"] .ai-main-tab.active {
+    background: rgba(20, 18, 12, 0.5);
+}
+
+[data-theme="void"][data-glass="true"] .tool-category-card {
+    background: rgba(20, 18, 12, 0.4);
+    border-color: rgba(212, 175, 55, 0.25);
+}
+
+[data-theme="void"][data-glass="true"] .category-header {
+    background: rgba(30, 26, 20, 0.35);
+    border-color: rgba(212, 175, 55, 0.2);
+}
+
+[data-theme="void"][data-glass="true"] .provider-card {
+    background: rgba(20, 18, 12, 0.4);
+    border-color: rgba(212, 175, 55, 0.25);
+}
+
+[data-theme="void"][data-glass="true"] .provider-card.active {
+    background: rgba(212, 175, 55, 0.15);
+    border-color: var(--accent);
+}
+
+[data-theme="void"][data-glass="true"] .provider-type-tabs {
+    background: rgba(30, 26, 20, 0.3);
+}
+
+[data-theme="void"][data-glass="true"] .type-tab.active {
+    background: rgba(20, 18, 12, 0.5);
+}
+
+[data-theme="void"][data-glass="true"] .ai-modal-footer {
+    background: rgba(20, 18, 12, 0.5);
+    border-color: rgba(212, 175, 55, 0.2);
+}
 </style>

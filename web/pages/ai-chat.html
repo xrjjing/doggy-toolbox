@@ -636,12 +636,222 @@
     border: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
+/* Void 主题 AI 聊天适配 */
+[data-theme="void"] .ai-message .message-content {
+    background: var(--bg-card);
+    border-color: rgba(212, 175, 55, 0.2);
+}
+
+[data-theme="void"] .user-message .message-content {
+    background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%);
+    color: #000000;
+}
+
+[data-theme="void"][data-glass="true"] .ai-message .message-content {
+    background: rgba(20, 18, 12, 0.4) !important;
+    border-color: rgba(212, 175, 55, 0.25) !important;
+}
+
+[data-theme="void"][data-glass="true"] .user-message .message-content {
+    background: rgba(212, 175, 55, 0.55) !important;
+    border: 1px solid rgba(212, 175, 55, 0.4) !important;
+    color: #000000;
+}
+
+/* Void 主题侧边栏和输入区适配 */
+[data-theme="void"] .chat-sidebar {
+    background: var(--bg-secondary);
+    border-right-color: rgba(212, 175, 55, 0.2);
+}
+
+[data-theme="void"] .history-item {
+    background: rgba(30, 26, 20, 0.4);
+    border-color: rgba(212, 175, 55, 0.1);
+}
+
+[data-theme="void"] .history-item:hover {
+    background: rgba(30, 26, 20, 0.6);
+}
+
+[data-theme="void"] .history-item.active {
+    background: rgba(212, 175, 55, 0.15);
+    border-color: var(--accent);
+}
+
+[data-theme="void"] .history-item.active .history-title {
+    color: var(--accent);
+}
+
+[data-theme="void"] .chat-input-area {
+    background: var(--bg-primary);
+    border-top-color: rgba(212, 175, 55, 0.2);
+}
+
+[data-theme="void"] .chat-input-wrapper {
+    background: rgba(30, 26, 20, 0.6);
+    border-color: rgba(212, 175, 55, 0.3);
+}
+
+[data-theme="void"] .chat-input-wrapper:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+}
+
+[data-theme="void"][data-glass="true"] .chat-sidebar {
+    background: rgba(8, 6, 4, 0.5);
+    border-right-color: rgba(212, 175, 55, 0.25);
+}
+
+[data-theme="void"][data-glass="true"] .history-item {
+    background: rgba(30, 26, 20, 0.35) !important;
+    border-color: rgba(212, 175, 55, 0.15) !important;
+}
+
+[data-theme="void"][data-glass="true"] .history-item:hover {
+    background: rgba(30, 26, 20, 0.5) !important;
+}
+
+[data-theme="void"][data-glass="true"] .history-item.active {
+    background: rgba(212, 175, 55, 0.2) !important;
+    border-color: var(--accent) !important;
+}
+
+[data-theme="void"][data-glass="true"] .chat-input-area {
+    background: rgba(10, 8, 5, 0.5);
+    border-top-color: rgba(212, 175, 55, 0.25);
+}
+
+[data-theme="void"][data-glass="true"] .chat-input-wrapper {
+    background: rgba(30, 26, 20, 0.4) !important;
+    border-color: rgba(212, 175, 55, 0.3) !important;
+}
+
+[data-theme="void"][data-glass="true"] .chat-input-wrapper:focus-within {
+    background: rgba(30, 26, 20, 0.5) !important;
+}
+
+/* Void 主题顶部标题栏适配 */
+[data-theme="void"] .chat-header {
+    background: var(--bg-primary);
+    border-bottom-color: rgba(212, 175, 55, 0.2);
+}
+
+[data-theme="void"][data-glass="true"] .chat-header {
+    background: rgba(10, 8, 5, 0.5);
+    border-bottom-color: rgba(212, 175, 55, 0.25);
+}
+
+/* Void 主题侧边栏头部适配 */
+[data-theme="void"] .chat-sidebar-header {
+    background: var(--bg-secondary);
+    border-bottom-color: rgba(212, 175, 55, 0.15);
+}
+
+[data-theme="void"][data-glass="true"] .chat-sidebar-header {
+    background: transparent;
+    border-bottom-color: rgba(212, 175, 55, 0.2);
+}
+
+/* Void 主题新对话按钮适配 */
+[data-theme="void"] .new-chat-btn {
+    background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%);
+    color: #000000;
+}
+
+[data-theme="void"] .new-chat-btn:hover {
+    background: linear-gradient(135deg, #E5C158 0%, #D4AF37 100%);
+}
+
+[data-theme="void"][data-glass="true"] .new-chat-btn {
+    background: rgba(212, 175, 55, 0.85);
+    color: #000000;
+}
+
+/* Void 主题搜索框适配 */
+[data-theme="void"] .chat-search-wrapper input {
+    background: rgba(30, 26, 20, 0.6);
+    border-color: rgba(212, 175, 55, 0.3);
+    color: var(--text-primary);
+}
+
+[data-theme="void"][data-glass="true"] .chat-search-wrapper input {
+    background: rgba(30, 26, 20, 0.4) !important;
+    border-color: rgba(212, 175, 55, 0.3);
+}
+
 /* Frosted Glass Effect for Chat Sidebar */
 [data-glass="true"] #page-ai-chat .chat-sidebar {
     background: rgba(15, 23, 42, 0.65);
     border-right: 1px solid rgba(255, 255, 255, 0.08);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     backdrop-filter: blur(20px) saturate(180%);
+}
+
+[data-theme="void"][data-glass="true"] #page-ai-chat .chat-sidebar {
+    background: rgba(8, 6, 4, var(--glass-opacity, 0.5)) !important;
+    border-right-color: rgba(212, 175, 55, 0.25);
+}
+
+/* Neon 主题 AI 聊天适配 */
+[data-theme="neon"][data-glass="true"] #page-ai-chat .chat-sidebar {
+    background: rgba(15, 20, 30, var(--glass-opacity, 0.5)) !important;
+    border-right-color: rgba(0, 255, 200, 0.25);
+}
+
+[data-theme="neon"] .chat-header {
+    border-bottom-color: rgba(0, 255, 200, 0.2);
+}
+
+[data-theme="neon"][data-glass="true"] .chat-header {
+    background: rgba(23, 28, 40, var(--glass-opacity, 0.5));
+}
+
+[data-theme="neon"] .history-item.active {
+    background: rgba(0, 255, 200, 0.15);
+    border-color: var(--accent);
+}
+
+[data-theme="neon"] .new-chat-btn {
+    box-shadow: 0 0 15px rgba(0, 255, 200, 0.4);
+}
+
+[data-theme="neon"] .ai-message .message-content {
+    border-color: rgba(0, 255, 200, 0.2);
+}
+
+[data-theme="neon"] .user-message .message-content {
+    box-shadow: 0 0 15px rgba(0, 255, 200, 0.3);
+}
+
+/* Cyberpunk 主题 AI 聊天适配 */
+[data-theme="cyberpunk"][data-glass="true"] #page-ai-chat .chat-sidebar {
+    background: rgba(20, 15, 30, var(--glass-opacity, 0.5)) !important;
+    border-right-color: rgba(255, 0, 255, 0.25);
+}
+
+[data-theme="cyberpunk"] .chat-header {
+    border-bottom-color: rgba(255, 0, 255, 0.2);
+}
+
+[data-theme="cyberpunk"][data-glass="true"] .chat-header {
+    background: rgba(26, 20, 40, var(--glass-opacity, 0.5));
+}
+
+[data-theme="cyberpunk"] .history-item.active {
+    background: rgba(255, 0, 255, 0.15);
+    border-color: var(--accent);
+}
+
+[data-theme="cyberpunk"] .new-chat-btn {
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.4);
+}
+
+[data-theme="cyberpunk"] .ai-message .message-content {
+    border-color: rgba(255, 0, 255, 0.2);
+}
+
+[data-theme="cyberpunk"] .user-message .message-content {
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
 }
 
 :is([data-theme="light"], [data-theme="cute"], [data-theme="office"], [data-theme="neon-light"], [data-theme="cyberpunk-light"])[data-glass="true"] #page-ai-chat .chat-sidebar {

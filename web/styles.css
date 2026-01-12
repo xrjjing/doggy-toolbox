@@ -23,11 +23,15 @@
     --warning: hsl(40, 90%, 55%);
     --border: hsl(220, 15%, 22%);
     --border-light: hsl(220, 15%, 35%);
-    --card-highlight: inset 0 1px 0 0 hsla(0, 0%, 100%, 0.05);
-    --radius: 12px;
-    --radius-sm: 8px;
-    --shadow: 0 4px 24px hsla(0, 0%, 0%, 0.3);
-    --shadow-sm: 0 2px 8px hsla(0, 0%, 0%, 0.2);
+    /* Zen-iOS Physics: Dual Stroke (Outer Ring + Inner Glass Highlight) */
+    --card-highlight: inset 0 1px 0 0 hsla(0, 0%, 100%, 0.15), 0 0 0 1px hsla(0, 0%, 0%, 0.05);
+    --radius: 20px;
+    --radius-lg: 28px;
+    --radius-sm: 12px;
+    /* Zen-iOS Depth: Diffusion Shadow */
+    --shadow: 0 24px 48px -12px hsla(0, 0%, 0%, 0.12);
+    --shadow-sm: 0 8px 16px -4px hsla(0, 0%, 0%, 0.1);
+    --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
     --sidebar-gradient: none;
     --title-gradient: linear-gradient(135deg, var(--accent), var(--accent-hover));
     /* 毛玻璃效果变量 */
@@ -35,7 +39,7 @@
     --glass-sidebar: hsla(220, 15%, 11%, 0.75);
     --glass-sidebar-rgb: 20, 25, 35;
     --glass-blur: 20px;
-    --glass-opacity: 0.6;
+    --glass-opacity: 0.45;
 
     /* 简约模式：窗口三按钮"胶囊"配色变量（默认：暗色系） */
     --minimal-pill-bg: rgba(30, 41, 59, 0.55);
@@ -72,7 +76,38 @@
     --glass-sidebar-rgb: 255, 255, 255;
 }
 
-/* 简约模式：窗口三按钮“胶囊”按主题自适配（亮色系用米白底） */
+/* ========== Void 主题 - 奢华暗色 ========== */
+[data-theme="void"] {
+    --bg-primary: linear-gradient(135deg, #000000 0%, #141008 100%);
+    --bg-secondary: #080604;
+    --bg-card: rgba(20, 18, 12, 0.95);
+    --bg-hover: rgba(212, 175, 55, 0.08);
+    --bg-input: rgba(30, 26, 20, 0.9);
+    --text-primary: #E8E2D2;
+    --text-secondary: #999080;
+    --text-muted: #666050;
+    --accent: #D4AF37;
+    --accent-hover: #E5C158;
+    --accent-glow: rgba(212, 175, 55, 0.15);
+    --success: #00FF9D;
+    --danger: #FF453A;
+    --warning: #FFD60A;
+    --border: rgba(212, 175, 55, 0.2);
+    --border-light: rgba(212, 175, 55, 0.35);
+    --shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.5);
+    --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --radius: 20px;
+    --sidebar-gradient: none;
+    --title-gradient: linear-gradient(135deg, #D4AF37, #F2C94C);
+    --glass-bg: rgba(10, 8, 5, 0.5);
+    --glass-sidebar: rgba(5, 4, 2, 0.5);
+    --glass-sidebar-rgb: 5, 4, 2;
+    --glass-opacity: 0.45;
+    --card-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 0 0 1px rgba(212, 175, 55, 0.1);
+    --ui-scale: 1;
+}
+
+/* 简约模式：窗口三按钮"胶囊"按主题自适配（亮色系用米白底） */
 [data-theme="light"],
 [data-theme="cute"],
 [data-theme="office"],
@@ -83,7 +118,13 @@
     --minimal-pill-border: rgba(0, 0, 0, 0.12);
 }
 
-/* 毛玻璃模式下更“透”一点，避免胶囊过实 */
+[data-theme="void"] {
+    --minimal-pill-bg: rgba(212, 175, 55, 0.1);
+    --minimal-pill-bg-hover: rgba(212, 175, 55, 0.2);
+    --minimal-pill-border: rgba(212, 175, 55, 0.15);
+}
+
+/* 毛玻璃模式下更"透"一点，避免胶囊过实 */
 [data-glass="true"] {
     --minimal-pill-bg: rgba(30, 41, 59, 0.35);
     --minimal-pill-bg-hover: rgba(30, 41, 59, 0.5);
@@ -348,6 +389,11 @@ body {
     background: rgba(255, 255, 255, 0.5) !important;
 }
 
+[data-theme="void"][data-glass="true"] .modal-content {
+    background: rgba(20, 18, 12, 0.5) !important;
+    border-color: rgba(212, 175, 55, 0.3);
+}
+
 /* 主题菜单半透明 */
 [data-glass="true"] .theme-popup-menu {
     background: rgba(30, 41, 59, 0.5) !important;
@@ -366,7 +412,7 @@ body {
 /* ========== 自定义标题栏 ========== */
 .custom-titlebar {
     height: 32px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    background: var(--title-gradient);
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
@@ -3906,6 +3952,27 @@ select option {
 }
 [data-theme="cyberpunk"] .dog-nose {
     background: hsl(0, 0%, 10%);
+}
+
+/* Void - 奢华金色狗 */
+[data-theme="void"] .dog-face,
+[data-theme="void"] .dog-ear {
+    background: var(--accent);
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.3);
+}
+[data-theme="void"] .dog-logo:hover .dog-face {
+    background: linear-gradient(135deg, #D4AF37 0%, #000000 50%, #D4AF37 100%);
+    box-shadow: 0 0 24px rgba(212, 175, 55, 0.6);
+    transform: scale(1.05);
+}
+[data-theme="void"] .dog-logo:hover .dog-ear {
+    background: linear-gradient(135deg, #D4AF37, #000000);
+}
+[data-theme="void"] .dog-eye {
+    background: #000000;
+}
+[data-theme="void"] .dog-nose {
+    background: #000000;
 }
 
 /* ========== 主题选择器 ========== */
@@ -8795,5 +8862,210 @@ textarea.drag-over {
 
 #http-response-tree .jtree-error {
     color: #ef4444;
+}
+
+/* ========== Void 主题特殊交互 ========== */
+[data-theme="void"] .credential-card,
+[data-theme="void"] .command-card,
+[data-theme="void"] .node-card,
+[data-theme="void"] .provider-card,
+[data-theme="void"] .naming-card,
+[data-theme="void"] .backup-stat-card,
+[data-theme="void"] .move-tab-option {
+    background: var(--bg-card);
+    border-color: var(--border);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+[data-theme="void"] .credential-card:hover,
+[data-theme="void"] .command-card:hover,
+[data-theme="void"] .node-card:hover,
+[data-theme="void"] .provider-card:hover,
+[data-theme="void"] .naming-card:hover,
+[data-theme="void"] .backup-stat-card:hover,
+[data-theme="void"] .move-tab-option:hover {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(0, 0, 0, 0.8) 50%, rgba(212, 175, 55, 0.15) 100%);
+    border-color: var(--accent);
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 16px 48px -12px rgba(212, 175, 55, 0.3), 0 0 0 1px rgba(212, 175, 55, 0.4);
+}
+
+[data-theme="void"] .sidebar {
+    border-right-color: var(--border);
+}
+
+/* Void 主题按钮图标颜色修复 */
+[data-theme="void"] .btn-icon,
+[data-theme="void"] .theme-main-btn,
+[data-theme="void"] .sidebar-toggle-btn {
+    color: var(--accent);
+}
+
+[data-theme="void"] .btn-icon:hover,
+[data-theme="void"] .theme-main-btn:hover,
+[data-theme="void"] .sidebar-toggle-btn:hover {
+    color: var(--accent-hover);
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(0, 0, 0, 0.5) 50%, rgba(212, 175, 55, 0.1) 100%);
+}
+
+/* Void 主题按钮渐变效果 */
+[data-theme="void"] .btn-primary:hover {
+    background: linear-gradient(135deg, #E5C158 0%, #D4AF37 50%, #E5C158 100%);
+    box-shadow: 0 8px 24px rgba(212, 175, 55, 0.4);
+}
+
+[data-theme="void"] .btn-secondary:hover,
+[data-theme="void"] .btn-ghost:hover {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(0, 0, 0, 0.3) 50%, rgba(212, 175, 55, 0.1) 100%);
+    border-color: var(--accent);
+}
+
+/* Void 主题导航项渐变 */
+[data-theme="void"] .nav-item:hover {
+    background: linear-gradient(90deg, rgba(212, 175, 55, 0.08) 0%, transparent 100%);
+}
+
+[data-theme="void"] .nav-item.active {
+    background: linear-gradient(90deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%);
+    border-left: 3px solid var(--accent);
+}
+
+/* Void 主题输入框 focus 渐变 */
+[data-theme="void"] input:focus,
+[data-theme="void"] textarea:focus,
+[data-theme="void"] select:focus {
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2), inset 0 0 20px rgba(212, 175, 55, 0.05);
+}
+
+/* Void 主题毛玻璃适配 */
+[data-theme="void"][data-glass="true"] .sidebar {
+    background: rgba(8, 6, 4, var(--glass-opacity, 0.5)) !important;
+}
+
+[data-theme="void"][data-glass="true"] .main,
+[data-theme="void"][data-glass="true"] .content {
+    background: rgba(10, 8, 5, var(--glass-opacity, 0.45)) !important;
+}
+
+[data-theme="void"][data-glass="true"] .converter-panel,
+[data-theme="void"][data-glass="true"] .converter-output,
+[data-theme="void"][data-glass="true"] .tool-panel,
+[data-theme="void"][data-glass="true"] .result-panel {
+    background: rgba(20, 18, 12, calc(var(--glass-opacity, 0.45) * 0.9)) !important;
+    border-color: rgba(212, 175, 55, 0.25) !important;
+}
+
+[data-theme="void"][data-glass="true"] textarea,
+[data-theme="void"][data-glass="true"] input[type="text"],
+[data-theme="void"][data-glass="true"] input[type="number"],
+[data-theme="void"][data-glass="true"] select {
+    background: rgba(30, 26, 20, calc(var(--glass-opacity, 0.45) * 0.8)) !important;
+    border-color: rgba(212, 175, 55, 0.3) !important;
+}
+
+[data-theme="void"][data-glass="true"] .credential-card,
+[data-theme="void"][data-glass="true"] .command-card,
+[data-theme="void"][data-glass="true"] .node-card,
+[data-theme="void"][data-glass="true"] .provider-card,
+[data-theme="void"][data-glass="true"] .card {
+    background: rgba(20, 18, 12, calc(var(--glass-opacity, 0.45) * 0.9)) !important;
+    border-color: rgba(212, 175, 55, 0.25) !important;
+}
+
+[data-theme="void"][data-glass="true"] .sidebar-toggle-btn {
+    background: rgba(20, 18, 12, var(--glass-opacity, 0.45)) !important;
+    border-color: rgba(212, 175, 55, 0.3);
+}
+
+[data-theme="void"][data-glass="true"] .sidebar-toggle-btn:hover {
+    background: rgba(20, 18, 12, calc(var(--glass-opacity, 0.45) + 0.15)) !important;
+    border-color: var(--accent);
+}
+
+[data-theme="void"][data-glass="true"] .settings-section {
+    background: rgba(30, 26, 20, calc(var(--glass-opacity, 0.45) * 0.8)) !important;
+    border-color: rgba(212, 175, 55, 0.2) !important;
+}
+
+/* Void 主题设置弹框适配 */
+[data-theme="void"] .modal-content {
+    background: var(--bg-card);
+    border-color: rgba(212, 175, 55, 0.2);
+}
+
+[data-theme="void"] .modal-header,
+[data-theme="void"] .modal-footer {
+    border-color: rgba(212, 175, 55, 0.15);
+}
+
+[data-theme="void"] .settings-section {
+    background: rgba(30, 26, 20, 0.4);
+    border: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+/* Void 主题 AI 配置页面适配 */
+[data-theme="void"] .page-header {
+    background: transparent;
+}
+
+[data-theme="void"] .tool-panel,
+[data-theme="void"] .converter-panel {
+    background: var(--bg-card);
+    border-color: rgba(212, 175, 55, 0.2);
+}
+
+[data-theme="void"] .panel-header {
+    background: rgba(30, 26, 20, 0.3);
+    border-bottom-color: rgba(212, 175, 55, 0.15);
+}
+
+[data-theme="void"] input[type="checkbox"]:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+[data-theme="void"] .toggle-slider {
+    background: rgba(30, 26, 20, 0.6);
+}
+
+[data-theme="void"] .toggle-slider::after {
+    background: rgba(212, 175, 55, 0.5);
+}
+
+[data-theme="void"] input:checked + .toggle-slider {
+    background: var(--accent);
+}
+
+[data-theme="void"] input:checked + .toggle-slider::after {
+    background: #000000;
+}
+
+[data-theme="void"] .glass-toggle-label input:checked + .toggle-slider {
+    background: var(--accent);
+}
+
+[data-theme="void"] .glass-toggle-label input:checked + .toggle-slider::after {
+    background: #000000;
+}
+
+[data-theme="void"] .glass-opacity-wrapper input[type="range"] {
+    background: rgba(30, 26, 20, 0.6);
+}
+
+[data-theme="void"] .glass-opacity-wrapper input[type="range"]::-webkit-slider-thumb {
+    background: var(--accent);
+}
+
+[data-theme="void"] .glass-opacity-wrapper input[type="range"]::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+}
+
+[data-theme="void"] .glass-opacity-wrapper input[type="range"]::-moz-range-thumb {
+    background: var(--accent);
+}
+
+[data-theme="void"] .opacity-value {
+    color: var(--accent);
 }
 

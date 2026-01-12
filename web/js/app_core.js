@@ -903,7 +903,7 @@ function handlePageLeave(page) {
 const THEME_ICONS = {
     'light': '☀️', 'cute': '🐶', 'office': '📊',
     'neon-light': '🌊', 'cyberpunk-light': '🌸',
-    'dark': '🌙', 'neon': '🌈', 'cyberpunk': '🤖'
+    'dark': '🌙', 'neon': '🌈', 'cyberpunk': '🤖', 'void': '🌌'
 };
 
 async function initTheme() {
@@ -972,7 +972,7 @@ function updateThemeSelector(activeTheme) {
 let _settingsOriginal = null;
 let _settingsDraft = null;
 
-const ALLOWED_THEMES = ['light', 'cute', 'office', 'neon-light', 'cyberpunk-light', 'dark', 'neon', 'cyberpunk'];
+const ALLOWED_THEMES = ['light', 'cute', 'office', 'neon-light', 'cyberpunk-light', 'dark', 'neon', 'cyberpunk', 'void'];
 const ALLOWED_TITLEBAR_MODES = ['fixed', 'minimal'];
 
 function _readCurrentSettings() {

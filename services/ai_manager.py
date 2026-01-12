@@ -399,11 +399,20 @@ class AIManager:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(url, headers=headers)
             response.raise_for_status()
+
+            # 验证响应内容
+            content = response.text.strip()
+            if not content:
+                raise ValueError("API 返回空响应")
+
             data = response.json()
+            if data is None:
+                raise ValueError("API 返回无效 JSON")
 
             # 提取模型信息
             models = []
-            for model in data.get('data', []):
+            model_list = data.get('data') if isinstance(data, dict) else None
+            for model in (model_list or []):
                 models.append({
                     'id': model['id'],
                     'name': model.get('id'),
@@ -473,10 +482,19 @@ class AIManager:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(url, headers=headers)
             response.raise_for_status()
+
+            # 验证响应内容
+            content = response.text.strip()
+            if not content:
+                raise ValueError("API 返回空响应")
+
             data = response.json()
+            if data is None:
+                raise ValueError("API 返回无效 JSON")
 
             models = []
-            for model in data.get('data', []):
+            model_list = data.get('data') if isinstance(data, dict) else None
+            for model in (model_list or []):
                 model_id = model.get('id')
                 if not model_id:
                     continue
