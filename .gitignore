@@ -38,10 +38,6 @@ _json_backup/
 htmlcov/
 .pytest_cache/
 
-AGENTS.md
-CLAUDE.md
-GEMINI.md
-CHANGELOG.md
 /.spec-workflow/
 /.serena/
 /.roo/

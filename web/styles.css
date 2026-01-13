@@ -2753,28 +2753,28 @@ textarea {
 
 /* ========== 设置弹窗 ========== */
 .settings-modal .modal-content {
-    width: 580px;
+    width: 480px;
     max-width: 90vw;
 }
 
 .settings-modal-body {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 16px;
 }
 
 .settings-section {
     background: var(--bg-input);
     border-radius: var(--radius-md);
-    padding: 16px;
+    padding: 12px;
 }
 
 .settings-section-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 12px;
-    padding-bottom: 8px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
     border-bottom: 1px solid var(--border);
 }
 
@@ -4486,6 +4486,41 @@ select option {
     font-family: "SF Mono", Monaco, monospace;
     font-weight: 600;
     color: var(--accent);
+}
+
+.opacity-input {
+    width: 56px;
+    padding: 3px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-input);
+    color: var(--accent);
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: right;
+    -moz-appearance: textfield;
+}
+
+.opacity-input::-webkit-outer-spin-button,
+.opacity-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.opacity-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.opacity-input-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    color: var(--accent);
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 12px;
+    font-weight: 600;
 }
 
 .glass-opacity-wrapper input[type="range"] {

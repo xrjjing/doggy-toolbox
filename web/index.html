@@ -656,11 +656,16 @@
                         </label>
                     </div>
                     <div class="glass-opacity-wrapper" id="settingsGlassOpacityWrapper" style="display: none;">
-                        <label class="glass-opacity-label">
+                        <div class="glass-opacity-label">
                             <span>透明度</span>
-                            <span class="opacity-value" id="settingsOpacityValue">60%</span>
-                        </label>
-                        <input type="range" id="settingsGlassOpacitySlider" min="20" max="90" value="60"
+                            <span class="opacity-input-group">
+                                <input type="text" class="opacity-input" id="settingsOpacityValue" value="60"
+                                       maxlength="2" onchange="settingsPreviewGlassOpacity(this.value)"
+                                       onblur="settingsClampGlassOpacity(this)"
+                                       onkeypress="return /[0-9]/.test(event.key)">%
+                            </span>
+                        </div>
+                        <input type="range" id="settingsGlassOpacitySlider" min="45" max="95" value="60"
                                oninput="settingsPreviewGlassOpacity(this.value)">
                     </div>
                 </div>

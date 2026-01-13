@@ -130,8 +130,8 @@ function renderToolItem(tool, globalEnabled) {
     const isEnabled = toolConfig.enabled !== false;
 
     const featureBadges = tool.features.map(f => {
-        const label = f === 'generate' ? 'AI 生成' : 'AI 修复';
-        return `<span class="feature-badge ${f}">${label}</span>`;
+        const labels = { generate: 'AI 生成', fix: 'AI 修复', analyze: 'AI 分析' };
+        return `<span class="feature-badge ${f}">${labels[f] || f}</span>`;
     }).join('');
 
     return `

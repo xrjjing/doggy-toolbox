@@ -1555,6 +1555,42 @@
     background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%);
 }
 
+/* ========== Cyberpunk 主题 global-toggle-card ========== */
+[data-theme="cyberpunk"] .global-toggle-card {
+    background: linear-gradient(135deg, hsl(300, 100%, 60%) 0%, hsl(190, 100%, 50%) 100%);
+}
+
+/* ========== Neon (极光) 主题 global-toggle-card ========== */
+[data-theme="neon"] .global-toggle-card {
+    background: linear-gradient(135deg, hsl(280, 100%, 60%) 0%, hsl(200, 100%, 50%) 100%);
+}
+
+/* ========== Dark 主题 global-toggle-card ========== */
+[data-theme="dark"] .global-toggle-card {
+    background: linear-gradient(135deg, #7aa2f7 0%, #5a7fd4 100%);
+}
+
+/* ========== 亮色系主题 global-toggle-card ========== */
+[data-theme="light"] .global-toggle-card {
+    background: linear-gradient(135deg, hsl(210, 90%, 50%) 0%, hsl(210, 90%, 40%) 100%);
+}
+
+[data-theme="cute"] .global-toggle-card {
+    background: linear-gradient(135deg, hsl(340, 70%, 65%) 0%, hsl(20, 80%, 65%) 100%);
+}
+
+[data-theme="office"] .global-toggle-card {
+    background: linear-gradient(135deg, hsl(220, 60%, 45%) 0%, hsl(220, 70%, 35%) 100%);
+}
+
+[data-theme="cyberpunk-light"] .global-toggle-card {
+    background: linear-gradient(135deg, hsl(280, 80%, 55%) 0%, hsl(190, 90%, 45%) 100%);
+}
+
+[data-theme="neon-light"] .global-toggle-card {
+    background: linear-gradient(135deg, hsl(170, 80%, 40%) 0%, hsl(200, 90%, 45%) 100%);
+}
+
 [data-theme="void"] .ai-btn-primary {
     background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%);
     color: #000000;
@@ -1680,5 +1716,88 @@
 [data-theme="void"][data-glass="true"] .ai-modal-footer {
     background: rgba(20, 18, 12, 0.5);
     border-color: rgba(212, 175, 55, 0.2);
+}
+
+/* Void 主题补充样式 */
+[data-theme="void"] .provider-type {
+    background: rgba(212, 175, 55, 0.15);
+    color: var(--text-secondary);
+}
+
+[data-theme="void"] .category-count {
+    background: rgba(212, 175, 55, 0.12);
+    color: var(--text-secondary);
+}
+
+[data-theme="void"] .feature-badge {
+    background: rgba(212, 175, 55, 0.1);
+    color: var(--text-secondary);
+}
+
+[data-theme="void"] .feature-badge.analyze {
+    background: rgba(212, 175, 55, 0.12);
+    color: #C9A227;
+}
+
+/* ========== Cyberpunk 主题适配 ========== */
+[data-theme="cyberpunk"] .provider-type {
+    background: hsla(300, 60%, 40%, 0.2);
+    color: var(--text-secondary);
+}
+
+[data-theme="cyberpunk"] .category-count {
+    background: hsla(300, 60%, 40%, 0.15);
+    color: var(--text-secondary);
+}
+
+[data-theme="cyberpunk"] .feature-badge {
+    background: hsla(300, 60%, 40%, 0.15);
+    color: var(--text-secondary);
+}
+
+[data-theme="cyberpunk"] .feature-badge.generate {
+    background: hsla(160, 80%, 50%, 0.2);
+    color: hsl(160, 80%, 50%);
+}
+
+[data-theme="cyberpunk"] .feature-badge.fix {
+    background: hsla(190, 100%, 50%, 0.2);
+    color: hsl(190, 100%, 50%);
+}
+
+[data-theme="cyberpunk"] .feature-badge.analyze {
+    background: hsla(300, 100%, 65%, 0.2);
+    color: hsl(300, 100%, 65%);
+}
+
+/* ========== Neon (极光) 主题适配 ========== */
+[data-theme="neon"] .provider-type {
+    background: hsla(280, 100%, 60%, 0.15);
+    color: var(--text-secondary);
+}
+
+[data-theme="neon"] .category-count {
+    background: hsla(280, 100%, 60%, 0.12);
+    color: var(--text-secondary);
+}
+
+[data-theme="neon"] .feature-badge {
+    background: hsla(280, 100%, 60%, 0.12);
+    color: var(--text-secondary);
+}
+
+[data-theme="neon"] .feature-badge.generate {
+    background: hsla(145, 80%, 50%, 0.2);
+    color: hsl(145, 80%, 50%);
+}
+
+[data-theme="neon"] .feature-badge.fix {
+    background: hsla(200, 100%, 50%, 0.2);
+    color: hsl(200, 100%, 50%);
+}
+
+[data-theme="neon"] .feature-badge.analyze {
+    background: hsla(280, 100%, 60%, 0.2);
+    color: hsl(280, 100%, 60%);
 }
 </style>

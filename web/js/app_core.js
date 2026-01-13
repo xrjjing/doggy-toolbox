@@ -29,6 +29,11 @@
 // 脚本加载标记（供开机自检使用）
 window.__DOG_TOOLBOX_CORE_LOADED__ = true;
 
+// 毛玻璃透明度映射：用户设置值 -> 实际 CSS 值（幂函数让高值更不透明）
+function mapGlassOpacity(percent) {
+    return Math.pow(percent / 100, 0.65);
+}
+
 // ==================== 模块加载错误边界 ====================
 
 function showJsRuntimeErrorBanner(error, extraTitle = '') {
@@ -640,7 +645,7 @@ async function syncSettingsFromBackend() {
         if (slider) slider.value = finalOpacity;
         const valueDisplay = document.getElementById('opacityValue');
         if (valueDisplay) valueDisplay.textContent = finalOpacity + '%';
-        document.documentElement.style.setProperty('--glass-opacity', finalOpacity / 100);
+        document.documentElement.style.setProperty('--glass-opacity', mapGlassOpacity(finalOpacity));
         localStorage.setItem('glass_opacity', String(finalOpacity));
         // 不回写 localStorage -> 后端，避免启动兜底值污染数据库
     } catch {}
@@ -1019,11 +1024,11 @@ function _applySettingsPreview(settings) {
     if (opacityWrapper) opacityWrapper.style.display = settings.glassMode ? 'block' : 'none';
 
     // 透明度
-    document.documentElement.style.setProperty('--glass-opacity', settings.glassOpacity / 100);
+    document.documentElement.style.setProperty('--glass-opacity', mapGlassOpacity(settings.glassOpacity));
     const opacitySlider = document.getElementById('settingsGlassOpacitySlider');
     if (opacitySlider) opacitySlider.value = settings.glassOpacity;
     const opacityValue = document.getElementById('settingsOpacityValue');
-    if (opacityValue) opacityValue.textContent = settings.glassOpacity + '%';
+    if (opacityValue) opacityValue.value = settings.glassOpacity;
 
     // UI 缩放
     document.documentElement.style.setProperty('--ui-scale', settings.uiScale / 100);
@@ -1093,12 +1098,20 @@ function settingsPreviewGlassMode(enabled) {
 
 function settingsPreviewGlassOpacity(value) {
     if (!_settingsDraft) return;
-    const v = Math.max(20, Math.min(90, parseInt(value) || 60));
+    const v = Math.max(45, Math.min(95, parseInt(value) || 60));
     _settingsDraft.glassOpacity = v;
-    document.documentElement.style.setProperty('--glass-opacity', v / 100);
+    document.documentElement.style.setProperty('--glass-opacity', mapGlassOpacity(v));
     const opacityValue = document.getElementById('settingsOpacityValue');
-    if (opacityValue) opacityValue.textContent = v + '%';
+    if (opacityValue) opacityValue.value = v;
+    const slider = document.getElementById('settingsGlassOpacitySlider');
+    if (slider) slider.value = v;
     _updateSaveButtonState();
+}
+
+function settingsClampGlassOpacity(input) {
+    const v = Math.max(45, Math.min(95, parseInt(input.value) || 60));
+    input.value = v;
+    settingsPreviewGlassOpacity(v);
 }
 
 function settingsPreviewUIScale(scale) {
@@ -1246,8 +1259,8 @@ function toggleGlassMode() {
 
 // 更新毛玻璃透明度
 function updateGlassOpacity(value) {
-    const opacity = parseInt(value) / 100;
-    document.documentElement.style.setProperty('--glass-opacity', opacity);
+    const opacity = parseInt(value);
+    document.documentElement.style.setProperty('--glass-opacity', mapGlassOpacity(opacity));
     // 更新显示的百分比
     const valueDisplay = document.getElementById('opacityValue');
     if (valueDisplay) valueDisplay.textContent = value + '%';
@@ -1274,7 +1287,7 @@ async function loadGlassOpacity() {
     if (slider) slider.value = opacity;
     const valueDisplay = document.getElementById('opacityValue');
     if (valueDisplay) valueDisplay.textContent = opacity + '%';
-    document.documentElement.style.setProperty('--glass-opacity', opacity / 100);
+    document.documentElement.style.setProperty('--glass-opacity', mapGlassOpacity(opacity));
 }
 
 // ==================== 标题栏模式 ====================
