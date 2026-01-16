@@ -1398,13 +1398,33 @@ class Api:
                     async for chunk in provider.chat_stream(messages, **stream_kwargs):
                         if chunk:
                             chunk_count += 1
+                            # 适配新的 Dict 返回格式：提取 text 字段
+                            if isinstance(chunk, dict):
+                                chunk_type = chunk.get('type', '')
+                                if chunk_type == 'delta':
+                                    text = chunk.get('text', '')
+                                elif chunk_type == 'completed':
+                                    # 完成事件：记录 response_id，不输出文本
+                                    continue
+                                elif chunk_type == 'error':
+                                    # 错误事件：抛出异常让外层捕获处理
+                                    error_msg = chunk.get('error', '流式响应错误')
+                                    raise ValueError(error_msg)
+                                else:
+                                    text = chunk.get('text', '')
+                            else:
+                                text = str(chunk) if chunk else ''
+
+                            if not text:
+                                continue
+
                             # 线程安全地添加 chunk 并更新访问时间
                             with self._chat_sessions_lock:
                                 session = self._chat_sessions.get(session_id)
                                 if session is None:  # 会话已被清理
                                     break
-                                session['chunks'].append(chunk)
-                                session['buffer'].append(chunk)
+                                session['chunks'].append(text)
+                                session['buffer'].append(text)
                                 session['last_access'] = time.monotonic()
 
                 loop.run_until_complete(run_stream())

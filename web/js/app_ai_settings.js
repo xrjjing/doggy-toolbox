@@ -325,17 +325,17 @@ async function disableAllTools() {
 
 // 初始化 Provider 类型选择监听器
 function initProviderTypeListeners() {
-    // 监听 OpenAI 子类型选择
-    document.querySelectorAll('.subtype-option input[type="radio"]').forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            // 更新选中状态样式
-            document.querySelectorAll('.subtype-option').forEach(opt => {
-                opt.classList.toggle('active', opt.querySelector('input').checked);
-            });
-            // 更新表单字段
-            updateFormFields();
+    // 监听 API 格式切换，自动更新端点路径
+    const apiFormatEl = document.getElementById('api-format');
+    if (apiFormatEl) {
+        apiFormatEl.addEventListener('change', (e) => {
+            const endpointEl = document.getElementById('endpoint');
+            if (endpointEl) {
+                // 根据 API 格式自动设置端点路径
+                endpointEl.value = e.target.value === 'responses' ? '/responses' : '/chat/completions';
+            }
         });
-    });
+    }
 }
 
 // 切换 Provider 类别（OpenAI 系列 / Claude）
@@ -355,9 +355,8 @@ function switchProviderCategory(category) {
     if (category === 'claude') {
         currentProviderConfig.type = 'claude';
     } else {
-        // OpenAI 系列：根据选中的 radio 确定类型
-        const checkedRadio = document.querySelector('.subtype-option input[type="radio"]:checked');
-        currentProviderConfig.type = checkedRadio ? checkedRadio.value : 'openai';
+        // OpenAI 系列：固定为 openai-compatible
+        currentProviderConfig.type = 'openai-compatible';
     }
 
     // 更新表单字段
@@ -502,13 +501,8 @@ function openAddProviderModal() {
     document.getElementById('openai-subtype').style.display = 'block';
     document.getElementById('claude-subtype').style.display = 'none';
 
-    // 重置 OpenAI 子类型选项 - 默认选择第三方兼容
-    document.querySelectorAll('.subtype-option').forEach(opt => {
-        const radio = opt.querySelector('input[type="radio"]');
-        const isCompatible = radio.value === 'openai-compatible';
-        radio.checked = isCompatible;
-        opt.classList.toggle('active', isCompatible);
-    });
+    // OpenAI 系列固定为 openai-compatible
+    currentProviderConfig.type = 'openai-compatible';
 
     updateFormFields();
     document.getElementById('provider-modal').style.display = 'flex';
@@ -540,20 +534,7 @@ async function editProvider(providerId) {
         // 先切换顶部分类 Tab，确保显示正确的表单区域
         switchProviderCategory(currentProviderConfig.category);
 
-        // 选择对应的子类型（仅 OpenAI 系列需要）
-        if (currentProviderConfig.category === 'openai') {
-            const subtypeRadio = document.querySelector(`input[name="provider-type"][value="${provider.type}"]`);
-            if (subtypeRadio) {
-                subtypeRadio.checked = true;
-                // 触发 change 事件以更新表单字段
-                subtypeRadio.dispatchEvent(new Event('change'));
-            }
-        }
-
-        // 更新选中状态样式
-        document.querySelectorAll('.subtype-option').forEach(opt => {
-            opt.classList.toggle('active', opt.querySelector('input').checked);
-        });
+        // OpenAI 系列固定为 openai-compatible，无需选择子类型
 
         // 先更新表单字段显示（决定哪些字段可见）
         updateFormFields();
@@ -568,6 +549,35 @@ async function editProvider(providerId) {
         // Base URL - 在 updateFormFields 之后再次设置，覆盖默认值
         if (config.base_url) {
             document.getElementById('base-url').value = config.base_url;
+        }
+
+        // OpenAI 兼容：反显 api_format 和 compatibility 配置
+        if (provider.type === 'openai-compatible') {
+            const apiFormat = config.api_format || 'chat_completions';
+            const apiFormatEl = document.getElementById('api-format');
+            if (apiFormatEl) {
+                apiFormatEl.value = apiFormat;
+            }
+
+            // 加载 compatibility 配置
+            const compat = provider.compatibility || {};
+            const endpointEl = document.getElementById('endpoint');
+            if (endpointEl) {
+                // 如果有保存的 endpoint 则使用，否则根据 api_format 设置默认值
+                endpointEl.value = compat.endpoint || (apiFormat === 'responses' ? '/responses' : '/chat/completions');
+            }
+            const authHeaderEl = document.getElementById('auth-header');
+            if (authHeaderEl) {
+                authHeaderEl.value = compat.auth_header || 'Authorization';
+            }
+            const authPrefixEl = document.getElementById('auth-prefix');
+            if (authPrefixEl) {
+                authPrefixEl.value = compat.auth_prefix || 'Bearer ';
+            }
+            const verifySslEl = document.getElementById('verify-ssl');
+            if (verifySslEl) {
+                verifySslEl.checked = compat.verify_ssl !== false;
+            }
         }
 
         // 可选字段
@@ -676,6 +686,30 @@ function resetForm() {
     document.getElementById('stream-enabled').checked = true;
     document.getElementById('proxy').value = '';
 
+    // 重置 API 格式为默认值
+    const apiFormatEl = document.getElementById('api-format');
+    if (apiFormatEl) {
+        apiFormatEl.value = 'chat_completions';
+    }
+
+    // 重置 compatibility 配置
+    const endpointEl = document.getElementById('endpoint');
+    if (endpointEl) {
+        endpointEl.value = '/chat/completions';
+    }
+    const authHeaderEl = document.getElementById('auth-header');
+    if (authHeaderEl) {
+        authHeaderEl.value = 'Authorization';
+    }
+    const authPrefixEl = document.getElementById('auth-prefix');
+    if (authPrefixEl) {
+        authPrefixEl.value = 'Bearer ';
+    }
+    const verifySslEl = document.getElementById('verify-ssl');
+    if (verifySslEl) {
+        verifySslEl.checked = true;
+    }
+
     updateRangeValue('temperature', 'temp-value');
     updateRangeValue('top-p', 'top-p-value');
     updateRangeValue('freq-penalty', 'freq-value');
@@ -689,15 +723,15 @@ function updateFormFields() {
     if (currentProviderConfig.category === 'claude') {
         type = 'claude';
     } else {
-        const checkedRadio = document.querySelector('.subtype-option input[type="radio"]:checked');
-        type = checkedRadio ? checkedRadio.value : 'openai';
+        // OpenAI 系列固定为 openai-compatible
+        type = 'openai-compatible';
     }
     currentProviderConfig.type = type;
-    currentProviderConfig.category = type;  // 同步设置 category
 
     // 隐藏所有专用字段
     document.getElementById('field-api-key').style.display = 'none';
     document.getElementById('field-base-url').style.display = 'none';
+    document.getElementById('field-api-format').style.display = 'none';
     document.getElementById('field-organization').style.display = 'none';
     document.getElementById('field-api-version').style.display = 'none';
     document.getElementById('third-party-fields').style.display = 'none';
@@ -707,15 +741,7 @@ function updateFormFields() {
     const currentBaseUrl = document.getElementById('base-url').value;
 
     // 根据类型显示对应字段
-    if (type === 'openai') {
-        // OpenAI 官方：使用 API Key
-        document.getElementById('field-api-key').style.display = 'block';
-        document.getElementById('field-organization').style.display = 'block';
-        // 仅在新建模式或无值时设置默认 Base URL
-        if (!isEditMode || !currentBaseUrl) {
-            document.getElementById('base-url').value = 'https://api.openai.com/v1';
-        }
-    } else if (type === 'claude') {
+    if (type === 'claude') {
         // Claude：使用 API Key + Base URL
         document.getElementById('field-api-key').style.display = 'block';
         document.getElementById('field-base-url').style.display = 'block';
@@ -726,9 +752,10 @@ function updateFormFields() {
         }
         document.getElementById('url-hint').textContent = 'Anthropic 官方地址';
     } else if (type === 'openai-compatible') {
-        // 第三方兼容：使用 API Key + Base URL
+        // 第三方兼容：使用 API Key + Base URL + API 格式
         document.getElementById('field-api-key').style.display = 'block';
         document.getElementById('field-base-url').style.display = 'block';
+        document.getElementById('field-api-format').style.display = 'block';
         document.getElementById('third-party-fields').style.display = 'block';
         // 编辑模式下不清空 base_url
         if (!isEditMode && !currentBaseUrl) {
@@ -984,6 +1011,11 @@ async function saveProvider() {
     } else if (type === 'claude') {
         config.config.api_version = document.getElementById('api-version')?.value;
     } else if (type === 'openai-compatible') {
+        // OpenAI 兼容：保存 api_format 到 config.config
+        const apiFormatEl = document.getElementById('api-format');
+        config.config.api_format = (apiFormatEl && apiFormatEl.value)
+            ? apiFormatEl.value
+            : 'chat_completions';
         config.compatibility = {
             endpoint: document.getElementById('endpoint').value,
             auth_header: document.getElementById('auth-header').value,

@@ -94,23 +94,12 @@
                     </button>
                 </div>
 
-                <!-- OpenAI 系列子选项 -->
+                <!-- OpenAI 系列子选项（仅兼容 API） -->
                 <div class="provider-subtype" id="openai-subtype">
-                    <div class="subtype-options">
-                        <label class="subtype-option active" data-type="openai">
-                            <input type="radio" name="provider-type" value="openai" checked>
-                            <span class="option-content">
-                                <span class="option-title">官方 API</span>
-                                <span class="option-desc">使用 OpenAI API Key</span>
-                            </span>
-                        </label>
-                        <label class="subtype-option" data-type="openai-compatible">
-                            <input type="radio" name="provider-type" value="openai-compatible">
-                            <span class="option-content">
-                                <span class="option-title">兼容 API</span>
-                                <span class="option-desc">第三方 OpenAI 兼容服务</span>
-                            </span>
-                        </label>
+                    <input type="hidden" name="provider-type" value="openai-compatible">
+                    <div class="subtype-info">
+                        <span class="info-icon">ℹ️</span>
+                        <span>第三方 OpenAI 兼容服务</span>
                     </div>
                 </div>
 
@@ -153,6 +142,16 @@
                     <label>Base URL <span class="required">*</span></label>
                     <input type="text" id="base-url" class="form-input" placeholder="https://api.openai.com/v1">
                     <small class="form-hint" id="url-hint">API 服务地址</small>
+                </div>
+
+                <!-- API 格式（仅第三方兼容显示） -->
+                <div class="form-group" id="field-api-format" style="display:none">
+                    <label>API 格式</label>
+                    <select id="api-format">
+                        <option value="chat_completions">Chat Completions (默认)</option>
+                        <option value="responses">Responses</option>
+                    </select>
+                    <small class="form-hint">Responses 格式支持 previous_response_id 进行会话续接</small>
                 </div>
 
                 <!-- 组织 ID（仅 OpenAI） -->
@@ -1383,6 +1382,392 @@
     color: #7aa2f7;
 }
 
+/* ========== Neon (极光暗色) 主题适配 ========== */
+[data-theme="neon"] .ai-main-tabs {
+    background: hsl(230, 25%, 12%);
+}
+
+[data-theme="neon"] .ai-main-tab {
+    color: hsl(170, 50%, 55%);
+}
+
+[data-theme="neon"] .ai-main-tab:hover {
+    color: hsl(170, 60%, 65%);
+    background: rgba(0, 255, 200, 0.05);
+}
+
+[data-theme="neon"] .ai-main-tab.active {
+    background: hsl(230, 25%, 16%);
+    color: hsl(170, 90%, 55%);
+    box-shadow: 0 0 12px hsla(170, 90%, 50%, 0.2);
+}
+
+[data-theme="neon"] .tool-category-card {
+    background: hsl(230, 25%, 12%);
+    border-color: hsla(170, 80%, 50%, 0.15);
+}
+
+[data-theme="neon"] .category-header {
+    background: hsl(230, 25%, 14%);
+    border-color: hsla(170, 80%, 50%, 0.15);
+}
+
+[data-theme="neon"] .category-header:hover {
+    background: hsl(230, 25%, 16%);
+}
+
+[data-theme="neon"] .category-title h4 {
+    color: hsl(170, 60%, 70%);
+}
+
+[data-theme="neon"] .category-count {
+    background: hsl(230, 25%, 10%);
+    color: hsl(170, 50%, 55%);
+}
+
+[data-theme="neon"] .tool-item:hover {
+    background: rgba(0, 255, 200, 0.03);
+}
+
+[data-theme="neon"] .tool-name {
+    color: hsl(170, 60%, 70%);
+}
+
+[data-theme="neon"] .feature-badge {
+    background: hsl(230, 25%, 14%);
+    color: hsl(170, 50%, 55%);
+}
+
+[data-theme="neon"] .tool-toggle-slider {
+    background-color: hsla(170, 40%, 30%, 0.5);
+}
+
+[data-theme="neon"] .tool-toggle input:checked + .tool-toggle-slider {
+    background-color: hsl(170, 90%, 45%);
+}
+
+[data-theme="neon"] .list-category-tabs {
+    border-color: hsla(170, 80%, 50%, 0.15);
+}
+
+[data-theme="neon"] .list-category-tab {
+    color: hsl(170, 50%, 55%);
+}
+
+[data-theme="neon"] .list-category-tab:hover {
+    color: hsl(170, 60%, 65%);
+}
+
+[data-theme="neon"] .list-category-tab.active {
+    color: hsl(170, 90%, 55%);
+}
+
+[data-theme="neon"] .list-category-tab.active::after {
+    background: hsl(170, 90%, 50%);
+}
+
+[data-theme="neon"] .provider-type-tabs {
+    background: hsl(230, 25%, 10%);
+}
+
+[data-theme="neon"] .type-tab {
+    color: hsl(170, 50%, 55%);
+}
+
+[data-theme="neon"] .type-tab:hover {
+    color: hsl(170, 60%, 65%);
+}
+
+[data-theme="neon"] .type-tab.active {
+    background: hsl(230, 25%, 16%);
+    color: hsl(170, 90%, 55%);
+}
+
+[data-theme="neon"] .subtype-option {
+    border-color: hsla(170, 80%, 50%, 0.15);
+}
+
+[data-theme="neon"] .subtype-option:hover,
+[data-theme="neon"] .subtype-option.active {
+    border-color: hsl(170, 90%, 50%);
+    background: rgba(0, 255, 200, 0.08);
+}
+
+[data-theme="neon"] .option-title {
+    color: hsl(170, 60%, 70%);
+}
+
+[data-theme="neon"] .option-desc {
+    color: hsl(170, 50%, 55%);
+}
+
+[data-theme="neon"] .subtype-info {
+    background: rgba(0, 255, 200, 0.1);
+}
+
+[data-theme="neon"] .ai-modal-footer {
+    background: hsl(230, 25%, 10%);
+    border-color: hsla(170, 80%, 50%, 0.15);
+}
+
+[data-theme="neon"] .ai-btn-outline {
+    border-color: hsla(170, 80%, 50%, 0.3);
+    color: hsl(170, 60%, 70%);
+}
+
+[data-theme="neon"] .ai-btn-outline:hover {
+    background: rgba(0, 255, 200, 0.08);
+    border-color: hsl(170, 90%, 50%);
+    color: hsl(170, 90%, 55%);
+}
+
+[data-theme="neon"] .ai-btn-ghost {
+    color: hsl(170, 50%, 55%);
+}
+
+[data-theme="neon"] .ai-btn-ghost:hover {
+    background: rgba(0, 255, 200, 0.05);
+    color: hsl(170, 60%, 65%);
+}
+
+[data-theme="neon"] .provider-card {
+    background: hsl(230, 25%, 12%);
+    border-color: hsla(170, 80%, 50%, 0.15);
+}
+
+[data-theme="neon"] .provider-card.active {
+    background: rgba(0, 255, 200, 0.08);
+    border-color: hsl(170, 90%, 50%);
+}
+
+[data-theme="neon"] .provider-info h4 {
+    color: hsl(170, 60%, 70%);
+}
+
+[data-theme="neon"] .provider-type {
+    background: hsl(230, 25%, 14%);
+    color: hsl(170, 50%, 55%);
+}
+
+[data-theme="neon"] .badge-active {
+    background: rgba(0, 255, 200, 0.15);
+    color: hsl(170, 90%, 55%);
+}
+
+[data-theme="neon"] .provider-stats {
+    border-color: hsla(170, 80%, 50%, 0.15);
+}
+
+[data-theme="neon"] .stat-label {
+    color: hsl(170, 50%, 55%);
+}
+
+[data-theme="neon"] .stat-value {
+    color: hsl(170, 60%, 70%);
+}
+
+[data-theme="neon"] .toggle-password-btn {
+    color: hsl(170, 50%, 55%);
+}
+
+[data-theme="neon"] .toggle-password-btn:hover {
+    background: rgba(0, 255, 200, 0.08);
+    color: hsl(170, 90%, 55%);
+}
+
+/* ========== Cyberpunk (赛博暗色) 主题适配 ========== */
+[data-theme="cyberpunk"] .ai-main-tabs {
+    background: hsl(260, 20%, 10%);
+}
+
+[data-theme="cyberpunk"] .ai-main-tab {
+    color: hsl(300, 80%, 70%);
+}
+
+[data-theme="cyberpunk"] .ai-main-tab:hover {
+    color: hsl(300, 90%, 75%);
+    background: rgba(255, 0, 255, 0.05);
+}
+
+[data-theme="cyberpunk"] .ai-main-tab.active {
+    background: hsl(260, 20%, 14%);
+    color: hsl(190, 100%, 55%);
+    box-shadow: 0 0 12px hsla(190, 100%, 50%, 0.2);
+}
+
+[data-theme="cyberpunk"] .tool-category-card {
+    background: hsl(260, 20%, 10%);
+    border-color: hsla(300, 100%, 50%, 0.15);
+}
+
+[data-theme="cyberpunk"] .category-header {
+    background: hsl(260, 20%, 12%);
+    border-color: hsla(300, 100%, 50%, 0.15);
+}
+
+[data-theme="cyberpunk"] .category-header:hover {
+    background: hsl(260, 20%, 14%);
+}
+
+[data-theme="cyberpunk"] .category-title h4 {
+    color: hsl(190, 100%, 70%);
+}
+
+[data-theme="cyberpunk"] .category-count {
+    background: hsl(260, 20%, 8%);
+    color: hsl(300, 80%, 70%);
+}
+
+[data-theme="cyberpunk"] .tool-item:hover {
+    background: rgba(255, 0, 255, 0.03);
+}
+
+[data-theme="cyberpunk"] .tool-name {
+    color: hsl(190, 100%, 70%);
+}
+
+[data-theme="cyberpunk"] .feature-badge {
+    background: hsl(260, 20%, 12%);
+    color: hsl(300, 80%, 70%);
+}
+
+[data-theme="cyberpunk"] .tool-toggle-slider {
+    background-color: hsla(300, 40%, 30%, 0.5);
+}
+
+[data-theme="cyberpunk"] .tool-toggle input:checked + .tool-toggle-slider {
+    background-color: hsl(190, 100%, 50%);
+}
+
+[data-theme="cyberpunk"] .list-category-tabs {
+    border-color: hsla(300, 100%, 50%, 0.15);
+}
+
+[data-theme="cyberpunk"] .list-category-tab {
+    color: hsl(300, 80%, 70%);
+}
+
+[data-theme="cyberpunk"] .list-category-tab:hover {
+    color: hsl(300, 90%, 75%);
+}
+
+[data-theme="cyberpunk"] .list-category-tab.active {
+    color: hsl(190, 100%, 55%);
+}
+
+[data-theme="cyberpunk"] .list-category-tab.active::after {
+    background: hsl(190, 100%, 50%);
+}
+
+[data-theme="cyberpunk"] .provider-type-tabs {
+    background: hsl(260, 20%, 8%);
+}
+
+[data-theme="cyberpunk"] .type-tab {
+    color: hsl(300, 80%, 70%);
+}
+
+[data-theme="cyberpunk"] .type-tab:hover {
+    color: hsl(300, 90%, 75%);
+}
+
+[data-theme="cyberpunk"] .type-tab.active {
+    background: hsl(260, 20%, 14%);
+    color: hsl(190, 100%, 55%);
+}
+
+[data-theme="cyberpunk"] .subtype-option {
+    border-color: hsla(300, 100%, 50%, 0.15);
+}
+
+[data-theme="cyberpunk"] .subtype-option:hover,
+[data-theme="cyberpunk"] .subtype-option.active {
+    border-color: hsl(190, 100%, 50%);
+    background: rgba(0, 255, 255, 0.08);
+}
+
+[data-theme="cyberpunk"] .option-title {
+    color: hsl(190, 100%, 70%);
+}
+
+[data-theme="cyberpunk"] .option-desc {
+    color: hsl(300, 80%, 70%);
+}
+
+[data-theme="cyberpunk"] .subtype-info {
+    background: rgba(0, 255, 255, 0.1);
+}
+
+[data-theme="cyberpunk"] .ai-modal-footer {
+    background: hsl(260, 20%, 8%);
+    border-color: hsla(300, 100%, 50%, 0.15);
+}
+
+[data-theme="cyberpunk"] .ai-btn-outline {
+    border-color: hsla(300, 100%, 50%, 0.3);
+    color: hsl(190, 100%, 70%);
+}
+
+[data-theme="cyberpunk"] .ai-btn-outline:hover {
+    background: rgba(0, 255, 255, 0.08);
+    border-color: hsl(190, 100%, 50%);
+    color: hsl(190, 100%, 55%);
+}
+
+[data-theme="cyberpunk"] .ai-btn-ghost {
+    color: hsl(300, 80%, 70%);
+}
+
+[data-theme="cyberpunk"] .ai-btn-ghost:hover {
+    background: rgba(255, 0, 255, 0.05);
+    color: hsl(300, 90%, 75%);
+}
+
+[data-theme="cyberpunk"] .provider-card {
+    background: hsl(260, 20%, 10%);
+    border-color: hsla(300, 100%, 50%, 0.15);
+}
+
+[data-theme="cyberpunk"] .provider-card.active {
+    background: rgba(0, 255, 255, 0.08);
+    border-color: hsl(190, 100%, 50%);
+}
+
+[data-theme="cyberpunk"] .provider-info h4 {
+    color: hsl(190, 100%, 70%);
+}
+
+[data-theme="cyberpunk"] .provider-type {
+    background: hsl(260, 20%, 12%);
+    color: hsl(300, 80%, 70%);
+}
+
+[data-theme="cyberpunk"] .badge-active {
+    background: rgba(0, 255, 255, 0.15);
+    color: hsl(190, 100%, 55%);
+}
+
+[data-theme="cyberpunk"] .provider-stats {
+    border-color: hsla(300, 100%, 50%, 0.15);
+}
+
+[data-theme="cyberpunk"] .stat-label {
+    color: hsl(300, 80%, 70%);
+}
+
+[data-theme="cyberpunk"] .stat-value {
+    color: hsl(190, 100%, 70%);
+}
+
+[data-theme="cyberpunk"] .toggle-password-btn {
+    color: hsl(300, 80%, 70%);
+}
+
+[data-theme="cyberpunk"] .toggle-password-btn:hover {
+    background: rgba(0, 255, 255, 0.08);
+    color: hsl(190, 100%, 55%);
+}
+
 /* ========== 毛玻璃效果适配 ========== */
 
 /* 主 Tab 切换 */
@@ -1562,7 +1947,7 @@
 
 /* ========== Neon (极光) 主题 global-toggle-card ========== */
 [data-theme="neon"] .global-toggle-card {
-    background: linear-gradient(135deg, hsl(280, 100%, 60%) 0%, hsl(200, 100%, 50%) 100%);
+    background: linear-gradient(135deg, hsl(170, 80%, 35%) 0%, hsl(200, 90%, 40%) 100%);
 }
 
 /* ========== Dark 主题 global-toggle-card ========== */

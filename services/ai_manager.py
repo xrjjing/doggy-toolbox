@@ -265,9 +265,18 @@ class AIManager:
             # 更新统计
             self._update_stats(pid, success=True, latency=latency)
 
+            # 适配 ThirdPartyProvider 返回的 Dict 格式
+            if isinstance(result, dict) and 'text' in result:
+                response_text = result.get('text', '')
+                response_id = result.get('response_id')
+            else:
+                response_text = result
+                response_id = None
+
             return {
                 'success': True,
-                'response': result,
+                'response': response_text,
+                'response_id': response_id,
                 'request_id': request_id,
                 'provider_id': pid,
                 'latency': latency,
@@ -544,9 +553,15 @@ class AIManager:
             response = await provider.chat(messages, max_tokens=10)
             latency = time.time() - start_time
 
+            # 适配 ThirdPartyProvider 返回的 Dict 格式
+            if isinstance(response, dict) and 'text' in response:
+                response_text = response.get('text', '')
+            else:
+                response_text = response
+
             return {
                 'success': True,
-                'response': response,
+                'response': response_text,
                 'latency': round(latency, 2)
             }
 

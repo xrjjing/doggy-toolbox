@@ -255,6 +255,7 @@ body {
 /* 输入框半透明（暗色主题） */
 [data-glass="true"] textarea,
 [data-glass="true"] input[type="text"],
+[data-glass="true"] input[type="password"],
 [data-glass="true"] input[type="number"],
 [data-glass="true"] input[type="date"],
 [data-glass="true"] input[type="color"],
@@ -268,6 +269,7 @@ body {
 /* 输入框半透明（亮色主题） */
 [data-theme="light"][data-glass="true"] textarea,
 [data-theme="light"][data-glass="true"] input[type="text"],
+[data-theme="light"][data-glass="true"] input[type="password"],
 [data-theme="light"][data-glass="true"] input[type="number"],
 [data-theme="light"][data-glass="true"] input[type="date"],
 [data-theme="light"][data-glass="true"] input[type="color"],
@@ -275,6 +277,7 @@ body {
 [data-theme="light"][data-glass="true"] select,
 [data-theme="cute"][data-glass="true"] textarea,
 [data-theme="cute"][data-glass="true"] input[type="text"],
+[data-theme="cute"][data-glass="true"] input[type="password"],
 [data-theme="cute"][data-glass="true"] input[type="number"],
 [data-theme="cute"][data-glass="true"] input[type="date"],
 [data-theme="cute"][data-glass="true"] input[type="color"],
@@ -282,6 +285,7 @@ body {
 [data-theme="cute"][data-glass="true"] select,
 [data-theme="office"][data-glass="true"] textarea,
 [data-theme="office"][data-glass="true"] input[type="text"],
+[data-theme="office"][data-glass="true"] input[type="password"],
 [data-theme="office"][data-glass="true"] input[type="number"],
 [data-theme="office"][data-glass="true"] input[type="date"],
 [data-theme="office"][data-glass="true"] input[type="color"],
@@ -289,6 +293,7 @@ body {
 [data-theme="office"][data-glass="true"] select,
 [data-theme="neon-light"][data-glass="true"] textarea,
 [data-theme="neon-light"][data-glass="true"] input[type="text"],
+[data-theme="neon-light"][data-glass="true"] input[type="password"],
 [data-theme="neon-light"][data-glass="true"] input[type="number"],
 [data-theme="neon-light"][data-glass="true"] input[type="date"],
 [data-theme="neon-light"][data-glass="true"] input[type="color"],
@@ -296,6 +301,7 @@ body {
 [data-theme="neon-light"][data-glass="true"] select,
 [data-theme="cyberpunk-light"][data-glass="true"] textarea,
 [data-theme="cyberpunk-light"][data-glass="true"] input[type="text"],
+[data-theme="cyberpunk-light"][data-glass="true"] input[type="password"],
 [data-theme="cyberpunk-light"][data-glass="true"] input[type="number"],
 [data-theme="cyberpunk-light"][data-glass="true"] input[type="date"],
 [data-theme="cyberpunk-light"][data-glass="true"] input[type="color"],
@@ -2018,6 +2024,7 @@ body {
 }
 
 input[type="text"],
+input[type="password"],
 input[type="number"],
 input[type="date"],
 textarea {
@@ -2032,6 +2039,7 @@ textarea {
 }
 
 input[type="text"]:focus,
+input[type="password"]:focus,
 input[type="number"]:focus,
 input[type="date"]:focus,
 textarea:focus {
@@ -8993,6 +9001,7 @@ textarea.drag-over {
 
 [data-theme="void"][data-glass="true"] textarea,
 [data-theme="void"][data-glass="true"] input[type="text"],
+[data-theme="void"][data-glass="true"] input[type="password"],
 [data-theme="void"][data-glass="true"] input[type="number"],
 [data-theme="void"][data-glass="true"] select {
     background: rgba(30, 26, 20, calc(var(--glass-opacity, 0.45) * 0.8)) !important;
