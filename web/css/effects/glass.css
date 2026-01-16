@@ -1,0 +1,285 @@
+/* ========== 毛玻璃模式 ========== */
+[data-glass="true"],
+[data-glass="true"] body,
+[data-glass="true"] .app {
+    background: transparent !important;
+}
+
+/* 毛玻璃模式下禁用页面切换动画 */
+[data-glass="true"] .page {
+    animation: none !important;
+}
+
+/* 标题栏毛玻璃 */
+[data-glass="true"] .custom-titlebar {
+    background: rgba(99, 102, 241, 0.75) !important;
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+}
+
+/* 侧边栏毛玻璃 - 使用变量控制透明度 */
+[data-glass="true"] .sidebar {
+    background: rgba(var(--glass-sidebar-rgb), var(--glass-opacity, 0.6)) !important;
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+    /* 确保不会裁剪 fixed 定位的子元素 */
+    overflow: visible !important;
+}
+
+/* 毛玻璃模式下侧边栏内部滚动容器 */
+[data-glass="true"] .sidebar .nav-list {
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+/* 毛玻璃模式下收起状态的二级菜单 - 确保正常显示 */
+[data-glass="true"] .sidebar.collapsed .nav-group.expanded .nav-sublist {
+    display: block !important;
+    position: fixed !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    z-index: 2147483647 !important;
+    background: rgba(var(--glass-sidebar-rgb), 0.95) !important;
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* 主内容区毛玻璃 - 使用变量控制透明度 */
+[data-glass="true"] .main,
+[data-glass="true"] .content {
+    background: rgba(var(--glass-sidebar-rgb), var(--glass-opacity, 0.6)) !important;
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+}
+
+/* 亮色主题的主内容区 */
+[data-theme="light"][data-glass="true"] .main,
+[data-theme="light"][data-glass="true"] .content,
+[data-theme="cute"][data-glass="true"] .main,
+[data-theme="cute"][data-glass="true"] .content,
+[data-theme="office"][data-glass="true"] .main,
+[data-theme="office"][data-glass="true"] .content,
+[data-theme="neon-light"][data-glass="true"] .main,
+[data-theme="neon-light"][data-glass="true"] .content,
+[data-theme="cyberpunk-light"][data-glass="true"] .main,
+[data-theme="cyberpunk-light"][data-glass="true"] .content {
+    background: rgba(var(--glass-sidebar-rgb), var(--glass-opacity, 0.6)) !important;
+}
+
+/* 页面容器透明 */
+[data-glass="true"] .tool-page,
+[data-glass="true"] .page,
+[data-glass="true"] .page-header,
+[data-glass="true"] .tool-single,
+[data-glass="true"] .panel-header,
+[data-glass="true"] .panel-body {
+    background: transparent !important;
+}
+
+/* 面板外框半透明（暗色主题） */
+[data-glass="true"] .converter-panel,
+[data-glass="true"] .converter-output,
+[data-glass="true"] .tool-panel,
+[data-glass="true"] .result-panel {
+    background: var(--panel-bg-glass) !important;
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+}
+
+/* 面板外框半透明（亮色主题）- 通过变量自动适配 */
+[data-theme="light"][data-glass="true"] .converter-panel,
+[data-theme="light"][data-glass="true"] .converter-output,
+[data-theme="light"][data-glass="true"] .tool-panel,
+[data-theme="light"][data-glass="true"] .result-panel,
+[data-theme="cute"][data-glass="true"] .converter-panel,
+[data-theme="cute"][data-glass="true"] .converter-output,
+[data-theme="cute"][data-glass="true"] .tool-panel,
+[data-theme="cute"][data-glass="true"] .result-panel,
+[data-theme="office"][data-glass="true"] .converter-panel,
+[data-theme="office"][data-glass="true"] .converter-output,
+[data-theme="office"][data-glass="true"] .tool-panel,
+[data-theme="office"][data-glass="true"] .result-panel,
+[data-theme="neon-light"][data-glass="true"] .converter-panel,
+[data-theme="neon-light"][data-glass="true"] .converter-output,
+[data-theme="neon-light"][data-glass="true"] .tool-panel,
+[data-theme="neon-light"][data-glass="true"] .result-panel,
+[data-theme="cyberpunk-light"][data-glass="true"] .converter-panel,
+[data-theme="cyberpunk-light"][data-glass="true"] .converter-output,
+[data-theme="cyberpunk-light"][data-glass="true"] .tool-panel,
+[data-theme="cyberpunk-light"][data-glass="true"] .result-panel {
+    background: var(--panel-bg-glass) !important;
+}
+
+/* 输入框半透明（暗色主题） */
+[data-glass="true"] textarea,
+[data-glass="true"] input[type="text"],
+[data-glass="true"] input[type="password"],
+[data-glass="true"] input[type="number"],
+[data-glass="true"] input[type="date"],
+[data-glass="true"] input[type="color"],
+[data-glass="true"] input[type="range"],
+[data-glass="true"] select {
+    background: rgba(15, 23, 42, 0.25) !important;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+}
+
+/* 输入框半透明（亮色主题） */
+[data-theme="light"][data-glass="true"] textarea,
+[data-theme="light"][data-glass="true"] input[type="text"],
+[data-theme="light"][data-glass="true"] input[type="password"],
+[data-theme="light"][data-glass="true"] input[type="number"],
+[data-theme="light"][data-glass="true"] input[type="date"],
+[data-theme="light"][data-glass="true"] input[type="color"],
+[data-theme="light"][data-glass="true"] input[type="range"],
+[data-theme="light"][data-glass="true"] select,
+[data-theme="cute"][data-glass="true"] textarea,
+[data-theme="cute"][data-glass="true"] input[type="text"],
+[data-theme="cute"][data-glass="true"] input[type="password"],
+[data-theme="cute"][data-glass="true"] input[type="number"],
+[data-theme="cute"][data-glass="true"] input[type="date"],
+[data-theme="cute"][data-glass="true"] input[type="color"],
+[data-theme="cute"][data-glass="true"] input[type="range"],
+[data-theme="cute"][data-glass="true"] select,
+[data-theme="office"][data-glass="true"] textarea,
+[data-theme="office"][data-glass="true"] input[type="text"],
+[data-theme="office"][data-glass="true"] input[type="password"],
+[data-theme="office"][data-glass="true"] input[type="number"],
+[data-theme="office"][data-glass="true"] input[type="date"],
+[data-theme="office"][data-glass="true"] input[type="color"],
+[data-theme="office"][data-glass="true"] input[type="range"],
+[data-theme="office"][data-glass="true"] select,
+[data-theme="neon-light"][data-glass="true"] textarea,
+[data-theme="neon-light"][data-glass="true"] input[type="text"],
+[data-theme="neon-light"][data-glass="true"] input[type="password"],
+[data-theme="neon-light"][data-glass="true"] input[type="number"],
+[data-theme="neon-light"][data-glass="true"] input[type="date"],
+[data-theme="neon-light"][data-glass="true"] input[type="color"],
+[data-theme="neon-light"][data-glass="true"] input[type="range"],
+[data-theme="neon-light"][data-glass="true"] select,
+[data-theme="cyberpunk-light"][data-glass="true"] textarea,
+[data-theme="cyberpunk-light"][data-glass="true"] input[type="text"],
+[data-theme="cyberpunk-light"][data-glass="true"] input[type="password"],
+[data-theme="cyberpunk-light"][data-glass="true"] input[type="number"],
+[data-theme="cyberpunk-light"][data-glass="true"] input[type="date"],
+[data-theme="cyberpunk-light"][data-glass="true"] input[type="color"],
+[data-theme="cyberpunk-light"][data-glass="true"] input[type="range"],
+[data-theme="cyberpunk-light"][data-glass="true"] select {
+    background: rgba(255, 255, 255, 0.35) !important;
+}
+
+/* 卡片类元素半透明（暗色主题）- 使用变量保持与侧边栏色调一致 */
+[data-glass="true"] .credential-card,
+[data-glass="true"] .command-card,
+[data-glass="true"] .node-card,
+[data-glass="true"] .tab-card,
+[data-glass="true"] .provider-card,
+[data-glass="true"] .card {
+    background: rgba(var(--glass-sidebar-rgb), 0.35) !important;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+}
+
+/* 卡片类元素半透明（亮色主题） */
+[data-theme="light"][data-glass="true"] .credential-card,
+[data-theme="light"][data-glass="true"] .command-card,
+[data-theme="light"][data-glass="true"] .node-card,
+[data-theme="light"][data-glass="true"] .provider-card,
+[data-theme="light"][data-glass="true"] .card,
+[data-theme="cute"][data-glass="true"] .credential-card,
+[data-theme="cute"][data-glass="true"] .command-card,
+[data-theme="cute"][data-glass="true"] .provider-card,
+[data-theme="cute"][data-glass="true"] .card,
+[data-theme="office"][data-glass="true"] .credential-card,
+[data-theme="office"][data-glass="true"] .command-card,
+[data-theme="office"][data-glass="true"] .provider-card,
+[data-theme="office"][data-glass="true"] .card,
+[data-theme="neon-light"][data-glass="true"] .credential-card,
+[data-theme="neon-light"][data-glass="true"] .command-card,
+[data-theme="neon-light"][data-glass="true"] .provider-card,
+[data-theme="neon-light"][data-glass="true"] .card,
+[data-theme="cyberpunk-light"][data-glass="true"] .credential-card,
+[data-theme="cyberpunk-light"][data-glass="true"] .command-card,
+[data-theme="cyberpunk-light"][data-glass="true"] .provider-card,
+[data-theme="cyberpunk-light"][data-glass="true"] .card {
+    background: rgba(255, 255, 255, 0.35) !important;
+}
+
+/* 侧边栏收缩按钮毛玻璃效果 - 使用变量保持色调一致 */
+[data-glass="true"] .sidebar-toggle-btn {
+    background: rgba(var(--glass-sidebar-rgb), 0.4) !important;
+    border-color: rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+}
+
+[data-glass="true"] .sidebar-toggle-btn:hover {
+    background: rgba(var(--glass-sidebar-rgb), 0.5) !important;
+    border-color: var(--accent);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"][data-glass="true"] .sidebar-toggle-btn,
+[data-theme="cute"][data-glass="true"] .sidebar-toggle-btn,
+[data-theme="office"][data-glass="true"] .sidebar-toggle-btn,
+[data-theme="neon-light"][data-glass="true"] .sidebar-toggle-btn,
+[data-theme="cyberpunk-light"][data-glass="true"] .sidebar-toggle-btn {
+    background: rgba(255, 255, 255, 0.4) !important;
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"][data-glass="true"] .sidebar-toggle-btn:hover,
+[data-theme="cute"][data-glass="true"] .sidebar-toggle-btn:hover,
+[data-theme="office"][data-glass="true"] .sidebar-toggle-btn:hover,
+[data-theme="neon-light"][data-glass="true"] .sidebar-toggle-btn:hover,
+[data-theme="cyberpunk-light"][data-glass="true"] .sidebar-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.5) !important;
+    border-color: var(--accent);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* 模态框半透明 - 使用变量保持色调一致 */
+[data-glass="true"] .modal-content {
+    background: rgba(var(--glass-sidebar-rgb), 0.5) !important;
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+}
+
+[data-theme="light"][data-glass="true"] .modal-content,
+[data-theme="cute"][data-glass="true"] .modal-content,
+[data-theme="office"][data-glass="true"] .modal-content,
+[data-theme="neon-light"][data-glass="true"] .modal-content,
+[data-theme="cyberpunk-light"][data-glass="true"] .modal-content {
+    background: rgba(255, 255, 255, 0.5) !important;
+}
+
+[data-theme="void"][data-glass="true"] .modal-content {
+    background: rgba(20, 18, 12, 0.5) !important;
+    border-color: rgba(212, 175, 55, 0.3);
+}
+
+/* 主题菜单半透明 - 使用变量保持色调一致 */
+[data-glass="true"] .theme-popup-menu {
+    background: rgba(var(--glass-sidebar-rgb), 0.5) !important;
+    -webkit-backdrop-filter: blur(15px);
+    backdrop-filter: blur(15px);
+}
+
+[data-theme="light"][data-glass="true"] .theme-popup-menu,
+[data-theme="cute"][data-glass="true"] .theme-popup-menu,
+[data-theme="office"][data-glass="true"] .theme-popup-menu,
+[data-theme="neon-light"][data-glass="true"] .theme-popup-menu,
+[data-theme="cyberpunk-light"][data-glass="true"] .theme-popup-menu {
+    background: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* 下拉菜单毛玻璃 - 使用变量保持色调一致 */
+[data-glass="true"] .dropdown-menu {
+    background: rgba(var(--glass-sidebar-rgb), 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-color: rgba(255, 255, 255, 0.1);
+}

@@ -1,0 +1,150 @@
+/* ========== 页签栏 ========== */
+.tabs-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    flex-wrap: wrap;
+}
+
+.tab-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.tab-item:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-light);
+    color: var(--text-primary);
+}
+
+.tab-item.active {
+    background: var(--accent-glow);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.tab-item.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+}
+
+.tab-item.drag-over {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.tab-count {
+    font-size: 11px;
+    padding: 2px 6px;
+    background: var(--bg-hover);
+    border-radius: 4px;
+    color: var(--text-muted);
+}
+
+.tab-item.active .tab-count {
+    background: var(--accent);
+    color: white;
+}
+
+/* ========== 页签管理列表 ========== */
+.tabs-manage-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.tab-manage-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: grab;
+    transition: all 0.2s;
+}
+
+.tab-manage-item:active {
+    cursor: grabbing;
+}
+
+.tab-manage-item:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-light);
+}
+
+.tab-manage-item.dragging {
+    opacity: 0.5;
+    background: var(--accent-glow);
+}
+
+.tab-manage-item.drag-over {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.tab-drag-handle {
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: grab;
+}
+
+.tab-manage-name {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.tab-manage-name input {
+    width: 100%;
+    padding: 6px 10px;
+    font-size: 14px;
+}
+
+.tab-manage-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.tab-manage-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.tab-manage-btn:hover {
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+
+.tab-manage-btn.delete:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: white;
+}

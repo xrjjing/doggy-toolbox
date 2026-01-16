@@ -1,0 +1,291 @@
+/* ========== 侧边栏 ========== */
+.sidebar {
+    width: 220px;
+    /* 侧边栏本身不再单独上色：使用 .app 的统一渐变背景，避免左右色调不一致 */
+    background: transparent;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.logo {
+    padding: 20px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid var(--border);
+    transition: padding-top 0.3s ease;
+}
+
+/* 简约模式下 logo 区域下移，给浮动按钮让位 */
+[data-titlebar-mode="minimal"] .logo {
+    padding-top: 48px;
+}
+
+/* ===== 狗狗吉祥物 ===== */
+.dog-logo {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+}
+
+.dog-logo:hover {
+    transform: scale(1.1);
+}
+
+.dog-logo:hover .dog-tongue {
+    height: 8px;
+}
+
+.dog-face {
+    width: 38px;
+    height: 34px;
+    background: var(--primary);
+    border-radius: 50% 50% 45% 45%;
+    position: relative;
+    box-shadow: var(--shadow-sm);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dog-ear {
+    position: absolute;
+    width: 16px;
+    height: 22px;
+    background: var(--primary);
+    border-radius: 50% 50% 30% 30%;
+    top: 2px;
+    transition: background 0.3s ease;
+}
+
+.dog-ear.left {
+    left: 2px;
+    transform: rotate(-15deg);
+}
+
+.dog-ear.right {
+    right: 2px;
+    transform: rotate(15deg);
+}
+
+.dog-eye {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #1a1a2e;
+    border-radius: 50%;
+    top: 10px;
+    transition: all 0.3s ease;
+}
+
+.dog-eye.left { left: 8px; }
+.dog-eye.right { right: 8px; }
+
+.dog-eye::after {
+    content: '';
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: white;
+    border-radius: 50%;
+    top: 1px;
+    left: 1px;
+}
+
+.dog-nose {
+    position: absolute;
+    width: 10px;
+    height: 8px;
+    background: #2d2d2d;
+    border-radius: 50% 50% 40% 40%;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.dog-tongue {
+    position: absolute;
+    width: 8px;
+    height: 0;
+    background: #ff6b8a;
+    border-radius: 0 0 50% 50%;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: height 0.2s ease;
+    overflow: hidden;
+}
+
+.logo-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.logo-text {
+    font-size: 17px;
+    font-weight: 600;
+    background: var(--title-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.logo-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+}
+
+.nav-list {
+    list-style: none;
+    padding: 12px 8px;
+    flex: 1;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    margin: 4px 0;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-secondary);
+}
+
+.nav-item:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.nav-item.active {
+    background: var(--accent-glow);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+}
+
+.nav-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.nav-icon svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    flex-shrink: 0;
+}
+
+/* ========== 导航分组（二级） ========== */
+.nav-group {
+    margin-top: 6px;
+    position: relative;
+}
+
+.nav-group-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    margin: 4px 0;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-secondary);
+    user-select: none;
+}
+
+.nav-group-header:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.nav-group-header:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.nav-arrow {
+    margin-left: auto;
+    font-size: 12px;
+    opacity: 0.8;
+    transition: transform 0.2s ease;
+}
+
+.nav-group.expanded .nav-arrow {
+    transform: rotate(0deg);
+}
+
+.nav-group:not(.expanded) .nav-arrow {
+    transform: rotate(-90deg);
+}
+
+.nav-sublist {
+    list-style: none;
+    padding: 2px 0 6px 28px;
+    display: none;
+}
+
+.nav-group.expanded .nav-sublist {
+    display: block;
+}
+
+.nav-sublist .nav-item {
+    padding: 10px 14px;
+    margin: 3px 0;
+    color: var(--text-secondary); /* 统一使用次级文字颜色，与父级一致 */
+}
+
+.nav-text {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* 侧边栏底部 */
+.sidebar-footer {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.theme-toggle {
+    width: 100%;
+    padding: 10px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.theme-toggle:hover {
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+
+.theme-icon {
+    font-size: 18px;
+}

@@ -1,0 +1,234 @@
+/* ========== 工具箱通用 ========== */
+.tool-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.tool-options-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.tool-check input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+}
+
+.btn.copied {
+    background: var(--success);
+    color: #fff;
+}
+
+.tool-single {
+    max-width: 100%;
+}
+
+/* 通用工具选择器样式 */
+.tool-select {
+    min-width: 120px;
+    padding: 6px 28px 6px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+}
+
+.tool-select:hover {
+    border-color: var(--border-light);
+    background-color: var(--bg-hover);
+}
+
+.tool-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+/* ========== 转换器布局 ========== */
+.converter-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    height: calc(100vh - 180px);
+}
+
+.converter-panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* 统一其他面板类的背景 */
+.converter-output,
+.tool-panel,
+.result-panel {
+    background: var(--panel-bg);
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.panel-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.panel-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.format-toggle {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 999px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+}
+
+.format-toggle .format-btn {
+    border-color: transparent;
+}
+
+.format-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.format-btn.active:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    color: #fff;
+}
+
+/* 主题会覆盖 .btn-sm/.btn-ghost 的背景色：提高特异性，确保选中态始终清晰可见 */
+.format-toggle .btn.format-btn.active {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.format-toggle .btn.format-btn.active:hover {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+    color: #fff;
+}
+
+.panel-body {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow: hidden;
+}
+
+.panel-body textarea {
+    flex: 1;
+    min-height: 200px;
+}
+
+/* ========== 工具箱：变量命名转换 ========== */
+.naming-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.naming-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 140px;
+}
+
+.naming-card.naming-input {
+    grid-row: span 3;
+    min-height: 300px;
+}
+
+.naming-card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.naming-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.naming-card-body {
+    padding: 16px;
+    flex: 1;
+    display: flex;
+}
+
+.naming-card-body textarea {
+    flex: 1;
+    min-height: 100%;
+    max-height: none;
+}
+
+.naming-output {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 14px;
+    color: var(--text-primary);
+    word-break: break-all;
+    overflow-wrap: break-word;
+    user-select: text;
+    line-height: 1.6;
+}
+
+@media (max-width: 1100px) {
+    .naming-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .naming-card.naming-input {
+        grid-row: auto;
+        min-height: 220px;
+    }
+}

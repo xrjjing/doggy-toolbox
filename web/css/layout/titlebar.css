@@ -1,0 +1,348 @@
+/* ========== 自定义标题栏 ========== */
+.custom-titlebar {
+    height: 32px;
+    background: var(--title-gradient);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.3s;
+}
+
+.titlebar-drag-region {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    -webkit-app-region: drag;
+}
+
+.titlebar-controls {
+    display: flex;
+    gap: 8px;
+    padding-left: 12px;
+    position: relative;
+    z-index: 1;
+}
+
+.titlebar-btn {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    -webkit-app-region: no-drag;
+}
+
+.titlebar-btn.close { background: #ff5f57; }
+.titlebar-btn.minimize { background: #febc2e; }
+.titlebar-btn.maximize { background: #28c840; }
+
+.titlebar-btn:hover { opacity: 0.8; }
+
+.titlebar-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+/* ========== 简约模式：浮动控制按钮 ========== */
+.floating-controls {
+    display: none; /* 默认隐藏 */
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 9999;
+    flex-direction: row;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(var(--glass-sidebar-rgb), 0.7);
+    border-radius: 20px;
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.floating-controls:hover {
+    background: rgba(var(--glass-sidebar-rgb), 0.85);
+}
+
+.floating-drag-region {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    -webkit-app-region: drag;
+    border-radius: 20px;
+}
+
+.floating-btn {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+    -webkit-app-region: no-drag;
+    position: relative;
+    z-index: 1;
+}
+
+.floating-btn.close { background: #ff5f57; }
+.floating-btn.minimize { background: #febc2e; }
+.floating-btn.maximize { background: #28c840; }
+
+.floating-btn:hover {
+    opacity: 0.8;
+    transform: scale(1.15);
+}
+
+/* 亮色主题的浮动控制 */
+[data-theme="light"] .floating-controls,
+[data-theme="cute"] .floating-controls,
+[data-theme="office"] .floating-controls,
+[data-theme="neon-light"] .floating-controls,
+[data-theme="cyberpunk-light"] .floating-controls {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="light"] .floating-controls:hover,
+[data-theme="cute"] .floating-controls:hover,
+[data-theme="office"] .floating-controls:hover,
+[data-theme="neon-light"] .floating-controls:hover,
+[data-theme="cyberpunk-light"] .floating-controls:hover {
+    background: rgba(255, 255, 255, 0.85);
+}
+
+/* 简约模式激活时 */
+[data-titlebar-mode="minimal"] .custom-titlebar {
+    display: none;
+}
+
+[data-titlebar-mode="minimal"] .floating-controls {
+    display: flex;
+}
+
+[data-titlebar-mode="minimal"] .floating-controls {
+    /* 简约模式：三按钮下移一点，避免贴顶；容器全宽用于承载"从按钮右侧开始"的拖拽带 */
+    top: 10px;
+    left: 0;
+    right: 0;
+    height: 28px; /* 12px按钮 + 上下各8px内边距 = 28px */
+    padding: 0;
+    background: transparent;
+    border: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-radius: 0;
+}
+
+[data-titlebar-mode="minimal"] .floating-controls:hover {
+    background: transparent;
+}
+
+[data-titlebar-mode="minimal"] .floating-drag-region {
+    /* 可拖拽范围：从三按钮右侧开始，等高延伸到右边框 */
+    left: 100px; /* 按钮胶囊的右侧起点（留一点缓冲，避免遮挡按钮） */
+    right: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 0;
+    z-index: 0;
+}
+
+[data-titlebar-mode="minimal"] .floating-window-buttons {
+    /* 三按钮胶囊：恢复"有底框"的视觉，并保证在窗口内 */
+    position: absolute;
+    left: 12px;
+    top: 0;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--minimal-pill-bg);
+    border: 1px solid var(--minimal-pill-border);
+    border-radius: 20px;
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    z-index: 1;
+}
+
+[data-titlebar-mode="minimal"] .floating-window-buttons:hover {
+    background: var(--minimal-pill-bg-hover);
+}
+
+[data-titlebar-mode="minimal"] .app {
+    height: 100vh;
+    margin-top: 0;
+}
+
+/* 简约模式下收起状态的二级菜单 - 确保正常显示 */
+[data-titlebar-mode="minimal"] .sidebar.collapsed .nav-group.expanded .nav-sublist {
+    display: block !important;
+    position: fixed !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    z-index: 99999 !important;
+}
+
+/* 毛玻璃 + 简约模式组合 */
+[data-glass="true"][data-titlebar-mode="minimal"] .sidebar.collapsed .nav-group.expanded .nav-sublist {
+    display: block !important;
+    position: fixed !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    z-index: 99999 !important;
+    background: var(--bg-card) !important;
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+}
+
+/* ========== UI 缩放选择器样式 ========== */
+.ui-scale-wrapper {
+    padding: 8px 12px;
+}
+
+.ui-scale-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.ui-scale-label .scale-value {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.ui-scale-btns {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+.ui-scale-btn {
+    padding: 6px 8px;
+    font-size: 11px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ui-scale-btn:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.ui-scale-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    font-weight: 600;
+}
+
+/* ========== 标题栏模式选择器样式 ========== */
+.titlebar-mode-wrapper {
+    padding: 8px 12px;
+}
+
+.titlebar-mode-label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.titlebar-mode-btns {
+    display: flex;
+    gap: 6px;
+}
+
+.titlebar-mode-btn {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.titlebar-mode-btn:hover {
+    border-color: var(--accent);
+}
+
+.titlebar-mode-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+/* ========== 开发者工具样式 ========== */
+.devtools-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+}
+
+.devtools-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.devtools-label {
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.devtools-hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.devtools-btn {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.devtools-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.devtools-btn:disabled:hover {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-secondary);
+}
+
+/* ========== App 容器 ========== */
+.app {
+    display: flex;
+    height: calc(100vh - 32px);
+    overflow: hidden;
+    background: var(--app-bg);
+}
