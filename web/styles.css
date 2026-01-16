@@ -41,6 +41,21 @@
     --glass-blur: 20px;
     --glass-opacity: 0.45;
 
+    /* 全局布局背景：左右区域共享同一渐变（绘制在 .app 上，子区域透明以保证渐变连续） */
+    --app-bg: var(--bg-primary);
+
+    /* 统一面板背景变量 - 解决左右面板色调不一致问题 */
+    --panel-surface: hsl(220, 15%, 18%);
+    --panel-glass-rgb: 20, 25, 35;
+    --panel-bg: linear-gradient(135deg, var(--accent-glow) 0%, transparent 60%), var(--panel-surface);
+    --panel-bg-glass:
+        linear-gradient(135deg, var(--accent-glow) 0%, transparent 60%),
+        linear-gradient(
+            135deg,
+            rgba(var(--panel-glass-rgb), calc(var(--glass-opacity, 0.6) * 0.9)) 0%,
+            rgba(var(--panel-glass-rgb), calc(var(--glass-opacity, 0.6) * 0.7)) 100%
+        );
+
     /* 简约模式：窗口三按钮"胶囊"配色变量（默认：暗色系） */
     --minimal-pill-bg: rgba(30, 41, 59, 0.55);
     --minimal-pill-bg-hover: rgba(30, 41, 59, 0.7);
@@ -74,6 +89,9 @@
     --glass-bg: hsla(210, 20%, 98%, 0.85);
     --glass-sidebar: hsla(0, 0%, 100%, 0.75);
     --glass-sidebar-rgb: 255, 255, 255;
+    /* 亮色面板变量 */
+    --panel-surface: hsl(0, 0%, 100%);
+    --panel-glass-rgb: 255, 255, 255;
 }
 
 /* ========== Void 主题 - 奢华暗色 ========== */
@@ -103,6 +121,9 @@
     --glass-sidebar: rgba(5, 4, 2, 0.5);
     --glass-sidebar-rgb: 5, 4, 2;
     --glass-opacity: 0.45;
+    /* Void 面板变量 */
+    --panel-surface: rgb(20, 18, 12);
+    --panel-glass-rgb: 20, 18, 12;
     --card-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 0 0 1px rgba(212, 175, 55, 0.1);
     --ui-scale: 1;
 }
@@ -143,7 +164,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
-    background: var(--bg-primary);
+    background: var(--app-bg);
     color: var(--text-primary);
     line-height: 1.6;
     font-size: 14px;
@@ -153,7 +174,8 @@ body {
 
 /* ========== 毛玻璃模式 ========== */
 [data-glass="true"],
-[data-glass="true"] body {
+[data-glass="true"] body,
+[data-glass="true"] .app {
     background: transparent !important;
 }
 
@@ -202,9 +224,9 @@ body {
 /* 主内容区毛玻璃 - 使用变量控制透明度 */
 [data-glass="true"] .main,
 [data-glass="true"] .content {
-    background: rgba(30, 41, 59, var(--glass-opacity, 0.6)) !important;
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
+    background: rgba(var(--glass-sidebar-rgb), var(--glass-opacity, 0.6)) !important;
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
 }
 
 /* 亮色主题的主内容区 */
@@ -218,7 +240,7 @@ body {
 [data-theme="neon-light"][data-glass="true"] .content,
 [data-theme="cyberpunk-light"][data-glass="true"] .main,
 [data-theme="cyberpunk-light"][data-glass="true"] .content {
-    background: rgba(255, 255, 255, var(--glass-opacity, 0.6)) !important;
+    background: rgba(var(--glass-sidebar-rgb), var(--glass-opacity, 0.6)) !important;
 }
 
 /* 页面容器透明 */
@@ -236,20 +258,33 @@ body {
 [data-glass="true"] .converter-output,
 [data-glass="true"] .tool-panel,
 [data-glass="true"] .result-panel {
-    background: rgba(30, 41, 59, 0.35) !important;
+    background: var(--panel-bg-glass) !important;
     -webkit-backdrop-filter: blur(16px);
     backdrop-filter: blur(16px);
 }
 
-/* 面板外框半透明（亮色主题） */
+/* 面板外框半透明（亮色主题）- 通过变量自动适配 */
 [data-theme="light"][data-glass="true"] .converter-panel,
 [data-theme="light"][data-glass="true"] .converter-output,
 [data-theme="light"][data-glass="true"] .tool-panel,
+[data-theme="light"][data-glass="true"] .result-panel,
 [data-theme="cute"][data-glass="true"] .converter-panel,
+[data-theme="cute"][data-glass="true"] .converter-output,
+[data-theme="cute"][data-glass="true"] .tool-panel,
+[data-theme="cute"][data-glass="true"] .result-panel,
 [data-theme="office"][data-glass="true"] .converter-panel,
+[data-theme="office"][data-glass="true"] .converter-output,
+[data-theme="office"][data-glass="true"] .tool-panel,
+[data-theme="office"][data-glass="true"] .result-panel,
 [data-theme="neon-light"][data-glass="true"] .converter-panel,
-[data-theme="cyberpunk-light"][data-glass="true"] .converter-panel {
-    background: rgba(255, 255, 255, 0.35) !important;
+[data-theme="neon-light"][data-glass="true"] .converter-output,
+[data-theme="neon-light"][data-glass="true"] .tool-panel,
+[data-theme="neon-light"][data-glass="true"] .result-panel,
+[data-theme="cyberpunk-light"][data-glass="true"] .converter-panel,
+[data-theme="cyberpunk-light"][data-glass="true"] .converter-output,
+[data-theme="cyberpunk-light"][data-glass="true"] .tool-panel,
+[data-theme="cyberpunk-light"][data-glass="true"] .result-panel {
+    background: var(--panel-bg-glass) !important;
 }
 
 /* 输入框半透明（暗色主题） */
@@ -310,14 +345,14 @@ body {
     background: rgba(255, 255, 255, 0.35) !important;
 }
 
-/* 卡片类元素半透明（暗色主题） */
+/* 卡片类元素半透明（暗色主题）- 使用变量保持与侧边栏色调一致 */
 [data-glass="true"] .credential-card,
 [data-glass="true"] .command-card,
 [data-glass="true"] .node-card,
 [data-glass="true"] .tab-card,
 [data-glass="true"] .provider-card,
 [data-glass="true"] .card {
-    background: rgba(30, 41, 59, 0.35) !important;
+    background: rgba(var(--glass-sidebar-rgb), 0.35) !important;
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
 }
@@ -347,16 +382,16 @@ body {
     background: rgba(255, 255, 255, 0.35) !important;
 }
 
-/* 侧边栏收缩按钮毛玻璃效果 */
+/* 侧边栏收缩按钮毛玻璃效果 - 使用变量保持色调一致 */
 [data-glass="true"] .sidebar-toggle-btn {
-    background: rgba(30, 41, 59, 0.4) !important;
+    background: rgba(var(--glass-sidebar-rgb), 0.4) !important;
     border-color: rgba(255, 255, 255, 0.1);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
 }
 
 [data-glass="true"] .sidebar-toggle-btn:hover {
-    background: rgba(30, 41, 59, 0.5) !important;
+    background: rgba(var(--glass-sidebar-rgb), 0.5) !important;
     border-color: var(--accent);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
@@ -380,9 +415,9 @@ body {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
-/* 模态框半透明 */
+/* 模态框半透明 - 使用变量保持色调一致 */
 [data-glass="true"] .modal-content {
-    background: rgba(30, 41, 59, 0.5) !important;
+    background: rgba(var(--glass-sidebar-rgb), 0.5) !important;
     -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
 }
@@ -400,9 +435,9 @@ body {
     border-color: rgba(212, 175, 55, 0.3);
 }
 
-/* 主题菜单半透明 */
+/* 主题菜单半透明 - 使用变量保持色调一致 */
 [data-glass="true"] .theme-popup-menu {
-    background: rgba(30, 41, 59, 0.5) !important;
+    background: rgba(var(--glass-sidebar-rgb), 0.5) !important;
     -webkit-backdrop-filter: blur(15px);
     backdrop-filter: blur(15px);
 }
@@ -480,7 +515,7 @@ body {
     flex-direction: row;
     gap: 8px;
     padding: 8px 12px;
-    background: rgba(30, 41, 59, 0.7);
+    background: rgba(var(--glass-sidebar-rgb), 0.7);
     border-radius: 20px;
     -webkit-backdrop-filter: blur(16px);
     backdrop-filter: blur(16px);
@@ -489,7 +524,7 @@ body {
 }
 
 .floating-controls:hover {
-    background: rgba(30, 41, 59, 0.85);
+    background: rgba(var(--glass-sidebar-rgb), 0.85);
 }
 
 .floating-drag-region {
@@ -761,12 +796,14 @@ body {
     display: flex;
     height: calc(100vh - 32px);
     overflow: hidden;
+    background: var(--app-bg);
 }
 
 /* ========== 侧边栏 ========== */
 .sidebar {
     width: 220px;
-    background: var(--bg-secondary);
+    /* 侧边栏本身不再单独上色：使用 .app 的统一渐变背景，避免左右色调不一致 */
+    background: transparent;
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -1059,7 +1096,8 @@ body {
     flex: 1;
     padding: 32px;
     overflow-y: auto;
-    background: var(--bg-primary);
+    /* 主内容区不单独上色：与侧边栏共享 .app 的统一渐变背景 */
+    background: transparent;
     zoom: var(--ui-scale);
     transform-origin: top left;
 }
@@ -1146,9 +1184,9 @@ body {
     background: var(--bg-hover);
 }
 
-/* 毛玻璃模式适配 */
+/* 毛玻璃模式适配 - 使用变量保持色调一致 */
 [data-glass="true"] .dropdown-menu {
-    background: rgba(30, 41, 59, 0.75);
+    background: rgba(var(--glass-sidebar-rgb), 0.75);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-color: rgba(255, 255, 255, 0.1);
@@ -1777,12 +1815,19 @@ body {
 }
 
 .converter-panel {
-    background: var(--bg-card);
+    background: var(--panel-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+}
+
+/* 统一其他面板类的背景 */
+.converter-output,
+.tool-panel,
+.result-panel {
+    background: var(--panel-bg);
 }
 
 .panel-header {
@@ -3142,6 +3187,9 @@ select option {
     --glass-sidebar: hsla(30, 40%, 94%, 0.75);
     --glass-sidebar-rgb: 245, 235, 225;
     --glass-blur: 20px;
+    /* Cute 面板变量 */
+    --panel-surface: hsl(0, 0%, 100%);
+    --panel-glass-rgb: 255, 255, 255;
 }
 
 [data-theme="cute"] .theme-mascot-wrapper {
@@ -3187,6 +3235,9 @@ select option {
     --glass-sidebar: hsla(220, 15%, 97%, 0.75);
     --glass-sidebar-rgb: 245, 247, 250;
     --glass-blur: 20px;
+    /* Office 面板变量 */
+    --panel-surface: hsl(0, 0%, 100%);
+    --panel-glass-rgb: 255, 255, 255;
 }
 
 /* ========== 霓虹主题 (Neon) - 极光流动 🌈 ========== */
@@ -3210,15 +3261,19 @@ select option {
     --shadow: 0 4px 20px hsla(170, 80%, 50%, 0.12);
     --shadow-sm: 0 0 15px hsla(170, 80%, 50%, 0.1);
     --sidebar-gradient: linear-gradient(180deg, hsl(230, 30%, 12%) 0%, hsl(200, 35%, 10%) 50%, hsl(170, 30%, 12%) 100%);
+    --app-bg: var(--sidebar-gradient);
     --title-gradient: linear-gradient(90deg, hsl(180, 100%, 50%), hsl(140, 100%, 50%));
     --glass-bg: hsla(230, 25%, 10%, 0.75);
     --glass-sidebar: hsla(220, 30%, 8%, 0.7);
     --glass-sidebar-rgb: 15, 20, 30;
     --glass-blur: 25px;
+    /* Neon 面板变量 */
+    --panel-surface: hsl(230, 25%, 16%);
+    --panel-glass-rgb: 15, 20, 30;
 }
 
 [data-theme="neon"] .sidebar {
-    background: var(--sidebar-gradient);
+    background: transparent;
 }
 
 [data-theme="neon"] .theme-mascot-wrapper {
@@ -3268,15 +3323,19 @@ select option {
     --radius: 4px;
     --radius-sm: 2px;
     --sidebar-gradient: linear-gradient(160deg, hsl(270, 50%, 10%) 0%, hsl(260, 45%, 8%) 50%, hsl(240, 50%, 10%) 100%);
+    --app-bg: var(--sidebar-gradient);
     --title-gradient: linear-gradient(90deg, hsl(300, 100%, 65%), hsl(190, 100%, 50%));
     --glass-bg: hsla(260, 40%, 8%, 0.75);
     --glass-sidebar: hsla(270, 45%, 7%, 0.7);
     --glass-sidebar-rgb: 18, 12, 28;
     --glass-blur: 25px;
+    /* Cyberpunk 面板变量 */
+    --panel-surface: hsl(260, 30%, 14%);
+    --panel-glass-rgb: 18, 12, 28;
 }
 
 [data-theme="cyberpunk"] .sidebar {
-    background: var(--sidebar-gradient);
+    background: transparent;
 }
 
 [data-theme="cyberpunk"] .theme-mascot-wrapper {
@@ -3347,15 +3406,19 @@ select option {
     --radius: 8px;
     --radius-sm: 4px;
     --sidebar-gradient: linear-gradient(135deg, hsl(280, 60%, 75%) 0%, hsl(220, 70%, 75%) 50%, hsl(190, 70%, 70%) 100%);
+    --app-bg: var(--sidebar-gradient);
     --title-gradient: linear-gradient(90deg, hsl(280, 80%, 55%), hsl(190, 90%, 45%));
     --glass-bg: hsla(280, 30%, 95%, 0.8);
     --glass-sidebar: hsla(280, 60%, 75%, 0.7);
     --glass-sidebar-rgb: 200, 160, 220;
     --glass-blur: 20px;
+    /* Cyberpunk-light 面板变量 */
+    --panel-surface: hsl(0, 0%, 100%);
+    --panel-glass-rgb: 255, 255, 255;
 }
 
 [data-theme="cyberpunk-light"] .sidebar {
-    background: var(--sidebar-gradient);
+    background: transparent;
 }
 
 [data-theme="cyberpunk-light"] .nav-item {
@@ -3413,7 +3476,7 @@ select option {
 }
 
 [data-theme="cyberpunk-light"] .content {
-    background: linear-gradient(135deg, hsl(280, 45%, 92%) 0%, hsl(220, 50%, 92%) 50%, hsl(190, 50%, 90%) 100%);
+    background: transparent;
 }
 
 /* ========== 极光亮色主题 (Neon Light) - 日间极光 🌊 ========== */
@@ -3439,15 +3502,19 @@ select option {
     --radius: 12px;
     --radius-sm: 8px;
     --sidebar-gradient: linear-gradient(160deg, hsl(200, 60%, 75%) 0%, hsl(170, 55%, 70%) 50%, hsl(145, 50%, 72%) 100%);
+    --app-bg: var(--sidebar-gradient);
     --title-gradient: linear-gradient(90deg, hsl(200, 70%, 45%), hsl(160, 70%, 40%));
     --glass-bg: hsla(180, 25%, 95%, 0.8);
     --glass-sidebar: hsla(200, 60%, 75%, 0.7);
     --glass-sidebar-rgb: 150, 200, 220;
     --glass-blur: 20px;
+    /* Neon-light 面板变量 */
+    --panel-surface: hsl(0, 0%, 100%);
+    --panel-glass-rgb: 255, 255, 255;
 }
 
 [data-theme="neon-light"] .sidebar {
-    background: var(--sidebar-gradient);
+    background: transparent;
 }
 
 [data-theme="neon-light"] .nav-item {
@@ -3505,7 +3572,7 @@ select option {
 }
 
 [data-theme="neon-light"] .content {
-    background: linear-gradient(160deg, hsl(200, 45%, 92%) 0%, hsl(170, 40%, 91%) 50%, hsl(145, 38%, 92%) 100%);
+    background: transparent;
 }
 
 /* ========== 各主题按钮适配 ========== */
@@ -8983,19 +9050,19 @@ textarea.drag-over {
 
 /* Void 主题毛玻璃适配 */
 [data-theme="void"][data-glass="true"] .sidebar {
-    background: rgba(8, 6, 4, var(--glass-opacity, 0.5)) !important;
+    background: rgba(var(--glass-sidebar-rgb), var(--glass-opacity, 0.45)) !important;
 }
 
 [data-theme="void"][data-glass="true"] .main,
 [data-theme="void"][data-glass="true"] .content {
-    background: rgba(10, 8, 5, var(--glass-opacity, 0.45)) !important;
+    background: rgba(var(--glass-sidebar-rgb), var(--glass-opacity, 0.45)) !important;
 }
 
 [data-theme="void"][data-glass="true"] .converter-panel,
 [data-theme="void"][data-glass="true"] .converter-output,
 [data-theme="void"][data-glass="true"] .tool-panel,
 [data-theme="void"][data-glass="true"] .result-panel {
-    background: rgba(20, 18, 12, calc(var(--glass-opacity, 0.45) * 0.9)) !important;
+    background: var(--panel-bg-glass) !important;
     border-color: rgba(212, 175, 55, 0.25) !important;
 }
 
@@ -9055,7 +9122,7 @@ textarea.drag-over {
 
 [data-theme="void"] .tool-panel,
 [data-theme="void"] .converter-panel {
-    background: var(--bg-card);
+    background: var(--panel-bg);
     border-color: rgba(212, 175, 55, 0.2);
 }
 
@@ -9112,4 +9179,3 @@ textarea.drag-over {
 [data-theme="void"] .opacity-value {
     color: var(--accent);
 }
-
