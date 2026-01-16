@@ -470,7 +470,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         // ✅ 关键修复：必须先等待 pywebview 就绪，再执行依赖后端的初始化
         // 打包环境下 pywebviewready 事件通常在 DOMContentLoaded 之后才触发
         // 如果不等待，initTheme/initGlassMode/loadCredentials 等会因 API 未就绪而失败
+        console.log('[DOMContentLoaded] 开始等待 pywebview...');
+        console.log('[DOMContentLoaded] window.pywebview:', !!window.pywebview);
+        console.log('[DOMContentLoaded] window.pywebview?.api:', !!(window.pywebview && window.pywebview.api));
         const pywebviewReady = await waitForPywebview({ timeoutMs: 15000 });
+        console.log('[DOMContentLoaded] waitForPywebview 返回:', pywebviewReady);
+        console.log('[DOMContentLoaded] 等待后 window.pywebview:', !!window.pywebview);
+        console.log('[DOMContentLoaded] 等待后 window.pywebview?.api:', !!(window.pywebview && window.pywebview.api));
         if (!pywebviewReady) {
             showBackendNotReadyBanner();
         }
@@ -569,7 +575,14 @@ async function _handlePywebviewBecameReady() {
 
 function waitForPywebview({ timeoutMs = 3500 } = {}) {
     return new Promise(resolve => {
-        if (window.pywebview && window.pywebview.api) {
+        // 检查 API 是否完全就绪（包括关键方法）
+        const isApiReady = () => {
+            return window.pywebview &&
+                   window.pywebview.api &&
+                   typeof window.pywebview.api.get_theme === 'function';
+        };
+
+        if (isApiReady()) {
             _pywebviewReady = true;
             _handlePywebviewBecameReady().catch(() => {});
             resolve(true);
@@ -583,7 +596,7 @@ function waitForPywebview({ timeoutMs = 3500 } = {}) {
                 // pywebviewready 事件不等于 api 已注入：事件触发后短暂轮询等待 api
                 const startedAt = Date.now();
                 const pollApi = setInterval(() => {
-                    if (window.pywebview && window.pywebview.api) {
+                    if (isApiReady()) {
                         clearInterval(pollApi);
                         _pywebviewReady = true;
                         _handlePywebviewBecameReady().catch(() => {});
@@ -607,7 +620,7 @@ function waitForPywebview({ timeoutMs = 3500 } = {}) {
         }, timeoutMs);
 
         const poll = setInterval(() => {
-            if (window.pywebview && window.pywebview.api) {
+            if (isApiReady()) {
                 clearTimeout(timer);
                 clearInterval(poll);
                 _pywebviewReady = true;
@@ -938,11 +951,18 @@ async function initTheme() {
     try {
         if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.get_theme === 'function') {
             savedTheme = await window.pywebview.api.get_theme();
+            console.log('[initTheme] 从后端获取主题:', savedTheme);
         } else {
             savedTheme = localStorage.getItem('theme') || 'dark';
+            console.log('[initTheme] pywebview 未就绪，使用 localStorage:', savedTheme);
         }
     } catch (e) {
         savedTheme = localStorage.getItem('theme') || 'dark';
+        console.error('[initTheme] 获取主题失败，使用 localStorage:', savedTheme, e);
+    }
+    if (!savedTheme) {
+        console.warn('[initTheme] 主题为空，使用默认值 dark');
+        savedTheme = 'dark';
     }
     setTheme(savedTheme, false);
 
@@ -1245,11 +1265,14 @@ async function initGlassMode() {
     try {
         if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.get_glass_mode === 'function') {
             enabled = await window.pywebview.api.get_glass_mode();
+            console.log('[initGlassMode] 从后端获取毛玻璃:', enabled);
         } else {
             enabled = localStorage.getItem('glass_mode') === 'true';
+            console.log('[initGlassMode] pywebview 未就绪，使用 localStorage:', enabled);
         }
     } catch (e) {
         enabled = localStorage.getItem('glass_mode') === 'true';
+        console.error('[initGlassMode] 获取毛玻璃失败:', e);
     }
     setGlassMode(enabled, false);
     // 加载透明度设置
@@ -1736,14 +1759,18 @@ async function initUIScale() {
     try {
         if (window.pywebview?.api?.get_ui_scale) {
             const backendScale = await window.pywebview.api.get_ui_scale();
+            console.log('[initUIScale] 从后端获取缩放:', backendScale);
             if (backendScale != null) {
                 scale = backendScale;
             }
+        } else {
+            console.log('[initUIScale] pywebview 未就绪，使用 localStorage:', scale);
         }
     } catch (e) {
-        // 后端读取失败，使用 localStorage 的值
+        console.error('[initUIScale] 获取缩放失败:', e);
     }
 
+    console.log('[initUIScale] 最终缩放值:', scale);
     // 应用缩放
     setUIScale(scale);
 }

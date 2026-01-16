@@ -628,9 +628,23 @@ function startPolling(messageId) {
 }
 
 /**
+ * 格式化消息时间戳（完整年月日时分秒）
+ */
+function formatMessageTime(date) {
+    const pad = n => String(n).padStart(2, '0');
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = pad(date.getSeconds());
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+/**
  * 添加消息到聊天列表
  */
-function addMessage(content, sender, isStreaming) {
+function addMessage(content, sender, isStreaming, timestamp = null) {
     const messagesContainer = document.getElementById('chat-messages');
     const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -647,7 +661,14 @@ function addMessage(content, sender, isStreaming) {
         contentDiv.innerHTML = renderMarkdown(content);
     }
 
+    // 添加时间戳
+    const timeDiv = document.createElement('div');
+    timeDiv.className = 'message-time';
+    const msgTime = timestamp ? new Date(timestamp) : new Date();
+    timeDiv.textContent = formatMessageTime(msgTime);
+
     bubble.appendChild(contentDiv);
+    bubble.appendChild(timeDiv);
     messagesContainer.appendChild(bubble);
 
     scrollToBottom();
@@ -1045,15 +1066,11 @@ function renderConversationList(filterText = '') {
     listContainer.innerHTML = filtered.map(conv => {
         const isActive = conv.id === currentConversationId;
         const title = conv.title || '未命名对话';
-        const time = formatTime(conv.last_message_at || conv.created_at);
-        const preview = `${conv.message_count || 0} 条消息`;
 
         return `
             <div class="history-item ${isActive ? 'active' : ''}" data-id="${conv.id}" onclick="switchConversation('${conv.id}')">
                 <div class="history-item-content">
                     <div class="history-title">${escapeHtml(title)}</div>
-                    <div class="history-preview">${preview}</div>
-                    <div class="history-time">${time}</div>
                 </div>
                 <div class="history-actions">
                     <button class="history-action-btn" onclick="event.stopPropagation(); renameConversation('${conv.id}')" title="重命名">
@@ -1164,7 +1181,7 @@ async function switchConversation(conversationId) {
             const messages = result.messages || [];
             messages.forEach(msg => {
                 const sender = msg.role === 'user' ? 'user' : 'ai';
-                addMessage(msg.content, sender, false);
+                addMessage(msg.content, sender, false, msg.created_at);
                 chatHistory.push({
                     role: msg.role,
                     content: msg.content
