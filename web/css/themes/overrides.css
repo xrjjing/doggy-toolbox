@@ -878,3 +878,155 @@
 [data-theme="void"] .dog-nose {
     background: #000000;
 }
+
+/* ========== 设置弹窗主题适配 ========== */
+
+/* 通用设置弹窗样式增强 */
+.settings-section {
+    border: 1px solid var(--border);
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.settings-modal .modal-header,
+.settings-modal .modal-footer {
+    background: var(--bg-card);
+}
+
+/* Cute 主题 - 圆润可爱 */
+[data-theme="cute"] .settings-modal .modal-content {
+    border-radius: 24px;
+}
+[data-theme="cute"] .settings-modal .modal-header {
+    border-radius: 24px 24px 0 0;
+}
+[data-theme="cute"] .settings-modal .modal-footer {
+    border-radius: 0 0 24px 24px;
+}
+[data-theme="cute"] .settings-section {
+    border-radius: 16px;
+    border-color: hsl(340, 50%, 85%);
+}
+[data-theme="cute"] .theme-item {
+    border-radius: 16px;
+}
+[data-theme="cute"] .theme-item.active {
+    border-color: hsl(340, 70%, 65%);
+    background: hsla(340, 70%, 65%, 0.15);
+}
+
+/* Office 主题 - 专业直角 */
+[data-theme="office"] .settings-modal .modal-content {
+    border-radius: 8px;
+}
+[data-theme="office"] .settings-modal .modal-header {
+    border-radius: 8px 8px 0 0;
+}
+[data-theme="office"] .settings-modal .modal-footer {
+    border-radius: 0 0 8px 8px;
+}
+[data-theme="office"] .settings-section {
+    border-radius: 6px;
+}
+[data-theme="office"] .theme-item {
+    border-radius: 6px;
+}
+
+/* Neon 主题 - 霓虹发光 */
+[data-theme="neon"] .settings-modal .modal-content {
+    border: 1px solid hsla(170, 100%, 50%, 0.3);
+    box-shadow: 0 0 30px hsla(170, 100%, 50%, 0.15);
+}
+[data-theme="neon"] .settings-section {
+    border-color: hsla(170, 80%, 50%, 0.2);
+    background: hsla(230, 25%, 16%, 0.6);
+}
+[data-theme="neon"] .theme-item.active {
+    border-color: hsl(170, 100%, 50%);
+    background: hsla(170, 100%, 50%, 0.15);
+    box-shadow: 0 0 10px hsla(170, 100%, 50%, 0.3);
+}
+
+/* Neon Light 主题 */
+[data-theme="neon-light"] .settings-section {
+    border-color: hsla(180, 50%, 60%, 0.3);
+}
+[data-theme="neon-light"] .theme-item.active {
+    border-color: hsl(170, 80%, 40%);
+    background: hsla(170, 80%, 40%, 0.15);
+}
+
+/* Cyberpunk 主题 - 赛博切角 */
+[data-theme="cyberpunk"] .settings-modal .modal-content {
+    border-radius: 4px;
+    border: 2px solid hsla(300, 100%, 65%, 0.4);
+    box-shadow: 4px 4px 0px hsla(190, 100%, 50%, 0.3);
+}
+[data-theme="cyberpunk"] .settings-modal .modal-header {
+    border-radius: 4px 4px 0 0;
+}
+[data-theme="cyberpunk"] .settings-modal .modal-footer {
+    border-radius: 0 0 4px 4px;
+}
+[data-theme="cyberpunk"] .settings-section {
+    border-radius: 4px;
+    border-color: hsla(300, 60%, 50%, 0.3);
+}
+[data-theme="cyberpunk"] .theme-item {
+    border-radius: 4px;
+}
+[data-theme="cyberpunk"] .theme-item.active {
+    border-color: hsl(300, 100%, 65%);
+    background: hsla(300, 100%, 65%, 0.15);
+    box-shadow: 2px 2px 0px hsla(190, 100%, 50%, 0.3);
+}
+
+/* Cyberpunk Light 主题 */
+[data-theme="cyberpunk-light"] .settings-modal .modal-content {
+    border-radius: 8px;
+}
+[data-theme="cyberpunk-light"] .settings-modal .modal-header {
+    border-radius: 8px 8px 0 0;
+}
+[data-theme="cyberpunk-light"] .settings-modal .modal-footer {
+    border-radius: 0 0 8px 8px;
+}
+[data-theme="cyberpunk-light"] .settings-section {
+    border-color: hsla(280, 50%, 70%, 0.3);
+}
+[data-theme="cyberpunk-light"] .theme-item.active {
+    border-color: hsl(280, 80%, 55%);
+    background: hsla(280, 80%, 55%, 0.15);
+}
+
+/* Void 主题 - 奢华金色 */
+[data-theme="void"] .settings-modal .modal-content {
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.1);
+}
+[data-theme="void"] .settings-section {
+    border-color: rgba(212, 175, 55, 0.2);
+    background: rgba(20, 18, 12, 0.8);
+}
+[data-theme="void"] .theme-item.active {
+    border-color: #D4AF37;
+    background: rgba(212, 175, 55, 0.15);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+}
+
+/* ========== 毛玻璃模式设置弹窗适配 ========== */
+[data-glass="true"] .settings-modal .modal-content {
+    background: rgba(var(--panel-glass-rgb), calc(var(--glass-opacity, 0.6) * 0.95));
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+[data-glass="true"] .settings-modal .modal-header,
+[data-glass="true"] .settings-modal .modal-footer {
+    background: transparent;
+}
+
+[data-glass="true"] .settings-section {
+    background: rgba(var(--panel-glass-rgb), calc(var(--glass-opacity, 0.6) * 0.5));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}

@@ -533,6 +533,9 @@ let _pywebviewReadyHandledOnce = false;
 
 async function _handlePywebviewBecameReady() {
     if (_pywebviewReadyHandledOnce) return;
+    // 注意：pywebviewready 事件可能早于 window.pywebview.api 注入完成
+    // 只有在 api 可用时才允许"只处理一次"，否则会错过后续真正就绪后的同步
+    if (!window.pywebview || !window.pywebview.api) return;
     _pywebviewReadyHandledOnce = true;
 
     // pywebview 就绪后再同步一次后端配置（主题/毛玻璃/标题栏等）
@@ -573,12 +576,24 @@ function waitForPywebview({ timeoutMs = 3500 } = {}) {
             return;
         }
 
-        // 安装一次性的全局监听：用于“超时后仍继续初始化”的兜底补刷新
+        // 安装一次性的全局监听：用于"超时后仍继续初始化"的兜底补刷新
         if (!_pywebviewReadyListenerInstalled) {
             _pywebviewReadyListenerInstalled = true;
             window.addEventListener('pywebviewready', () => {
-                _pywebviewReady = true;
-                _handlePywebviewBecameReady().catch(() => {});
+                // pywebviewready 事件不等于 api 已注入：事件触发后短暂轮询等待 api
+                const startedAt = Date.now();
+                const pollApi = setInterval(() => {
+                    if (window.pywebview && window.pywebview.api) {
+                        clearInterval(pollApi);
+                        _pywebviewReady = true;
+                        _handlePywebviewBecameReady().catch(() => {});
+                        return;
+                    }
+                    // 避免无限轮询（最多等 15 秒）
+                    if (Date.now() - startedAt > 15000) {
+                        clearInterval(pollApi);
+                    }
+                }, 50);
             });
         }
 
@@ -605,10 +620,16 @@ function waitForPywebview({ timeoutMs = 3500 } = {}) {
         }, 50);
 
         // 如果在 timeout 之前就绪，提前 resolve
+        // 注意：事件触发不代表 api 已注入，需要检查后再 resolve
         window.addEventListener('pywebviewready', () => {
-            clearTimeout(timer);
-            clearInterval(poll);
-            resolve(true);
+            if (window.pywebview && window.pywebview.api) {
+                clearTimeout(timer);
+                clearInterval(poll);
+                _pywebviewReady = true;
+                _handlePywebviewBecameReady().catch(() => {});
+                resolve(true);
+            }
+            // 如果 api 还没注入，继续依赖轮询兜底
         }, { once: true });
     });
 }

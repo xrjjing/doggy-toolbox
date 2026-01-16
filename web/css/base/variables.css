@@ -22,6 +22,7 @@
     --card-highlight: inset 0 1px 0 0 hsla(0, 0%, 100%, 0.15), 0 0 0 1px hsla(0, 0%, 0%, 0.05);
     --radius: 20px;
     --radius-lg: 28px;
+    --radius-md: 16px;
     --radius-sm: 12px;
     /* Zen-iOS Depth: Diffusion Shadow */
     --shadow: 0 24px 48px -12px hsla(0, 0%, 0%, 0.12);
