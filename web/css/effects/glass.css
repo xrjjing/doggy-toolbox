@@ -120,11 +120,29 @@
 [data-glass="true"] input[type="number"],
 [data-glass="true"] input[type="date"],
 [data-glass="true"] input[type="color"],
-[data-glass="true"] input[type="range"],
-[data-glass="true"] select {
+[data-glass="true"] input[type="range"] {
     background: rgba(15, 23, 42, 0.25) !important;
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
+}
+
+/* 下拉框半透明（暗色主题） - 更清晰可读 */
+[data-glass="true"] select {
+    background-color: rgba(30, 35, 45, 0.5) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    /* 保持下拉箭头 */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 14px;
+}
+
+[data-glass="true"] select:hover {
+    background-color: rgba(45, 50, 60, 0.6) !important;
+    border-color: rgba(255, 255, 255, 0.18);
 }
 
 /* 输入框半透明（亮色主题） */
@@ -135,7 +153,6 @@
 [data-theme="light"][data-glass="true"] input[type="date"],
 [data-theme="light"][data-glass="true"] input[type="color"],
 [data-theme="light"][data-glass="true"] input[type="range"],
-[data-theme="light"][data-glass="true"] select,
 [data-theme="cute"][data-glass="true"] textarea,
 [data-theme="cute"][data-glass="true"] input[type="text"],
 [data-theme="cute"][data-glass="true"] input[type="password"],
@@ -143,15 +160,42 @@
 [data-theme="cute"][data-glass="true"] input[type="date"],
 [data-theme="cute"][data-glass="true"] input[type="color"],
 [data-theme="cute"][data-glass="true"] input[type="range"],
-[data-theme="cute"][data-glass="true"] select,
 [data-theme="office"][data-glass="true"] textarea,
 [data-theme="office"][data-glass="true"] input[type="text"],
 [data-theme="office"][data-glass="true"] input[type="password"],
 [data-theme="office"][data-glass="true"] input[type="number"],
 [data-theme="office"][data-glass="true"] input[type="date"],
 [data-theme="office"][data-glass="true"] input[type="color"],
-[data-theme="office"][data-glass="true"] input[type="range"],
-[data-theme="office"][data-glass="true"] select,
+[data-theme="office"][data-glass="true"] input[type="range"] {
+    background: rgba(255, 255, 255, 0.65) !important;
+}
+
+/* 下拉框半透明（亮色主题） - 清晰可读 */
+[data-theme="light"][data-glass="true"] select,
+[data-theme="cute"][data-glass="true"] select,
+[data-theme="office"][data-glass="true"] select {
+    background-color: rgba(255, 255, 255, 0.75) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    color: #1e293b;
+    /* 保持下拉箭头 */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23555555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 14px;
+}
+
+[data-theme="light"][data-glass="true"] select:hover,
+[data-theme="cute"][data-glass="true"] select:hover,
+[data-theme="office"][data-glass="true"] select:hover {
+    background-color: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* 输入框半透明（极光/赛博亮色主题 - 更高不透明度） */
 [data-theme="neon-light"][data-glass="true"] textarea,
 [data-theme="neon-light"][data-glass="true"] input[type="text"],
 [data-theme="neon-light"][data-glass="true"] input[type="password"],
@@ -159,16 +203,37 @@
 [data-theme="neon-light"][data-glass="true"] input[type="date"],
 [data-theme="neon-light"][data-glass="true"] input[type="color"],
 [data-theme="neon-light"][data-glass="true"] input[type="range"],
-[data-theme="neon-light"][data-glass="true"] select,
 [data-theme="cyberpunk-light"][data-glass="true"] textarea,
 [data-theme="cyberpunk-light"][data-glass="true"] input[type="text"],
 [data-theme="cyberpunk-light"][data-glass="true"] input[type="password"],
 [data-theme="cyberpunk-light"][data-glass="true"] input[type="number"],
 [data-theme="cyberpunk-light"][data-glass="true"] input[type="date"],
 [data-theme="cyberpunk-light"][data-glass="true"] input[type="color"],
-[data-theme="cyberpunk-light"][data-glass="true"] input[type="range"],
+[data-theme="cyberpunk-light"][data-glass="true"] input[type="range"] {
+    background: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* 下拉框半透明（极光/赛博亮色主题） - 高不透明度 */
+[data-theme="neon-light"][data-glass="true"] select,
 [data-theme="cyberpunk-light"][data-glass="true"] select {
-    background: rgba(255, 255, 255, 0.35) !important;
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    color: #1e293b;
+    /* 保持下拉箭头 */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23555555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 14px;
+}
+
+[data-theme="neon-light"][data-glass="true"] select:hover,
+[data-theme="cyberpunk-light"][data-glass="true"] select:hover {
+    background-color: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 /* 卡片类元素半透明（暗色主题）- 使用变量保持与侧边栏色调一致 */
@@ -196,16 +261,31 @@
 [data-theme="office"][data-glass="true"] .credential-card,
 [data-theme="office"][data-glass="true"] .command-card,
 [data-theme="office"][data-glass="true"] .provider-card,
-[data-theme="office"][data-glass="true"] .card,
-[data-theme="neon-light"][data-glass="true"] .credential-card,
-[data-theme="neon-light"][data-glass="true"] .command-card,
-[data-theme="neon-light"][data-glass="true"] .provider-card,
-[data-theme="neon-light"][data-glass="true"] .card,
-[data-theme="cyberpunk-light"][data-glass="true"] .credential-card,
-[data-theme="cyberpunk-light"][data-glass="true"] .command-card,
-[data-theme="cyberpunk-light"][data-glass="true"] .provider-card,
-[data-theme="cyberpunk-light"][data-glass="true"] .card {
-    background: rgba(255, 255, 255, 0.35) !important;
+[data-theme="office"][data-glass="true"] .card {
+    background: rgba(255, 255, 255, 0.65) !important;
+}
+
+/* 卡片类元素半透明（极光/赛博亮色主题 - 淡渐变效果） */
+html[data-theme="neon-light"][data-glass="true"] .credential-card,
+html[data-theme="neon-light"][data-glass="true"] .command-card,
+html[data-theme="neon-light"][data-glass="true"] .node-card,
+html[data-theme="neon-light"][data-glass="true"] .tab-card,
+html[data-theme="neon-light"][data-glass="true"] .provider-card,
+html[data-theme="neon-light"][data-glass="true"] .card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 250, 255, 0.9) 100%) !important;
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+}
+
+html[data-theme="cyberpunk-light"][data-glass="true"] .credential-card,
+html[data-theme="cyberpunk-light"][data-glass="true"] .command-card,
+html[data-theme="cyberpunk-light"][data-glass="true"] .node-card,
+html[data-theme="cyberpunk-light"][data-glass="true"] .tab-card,
+html[data-theme="cyberpunk-light"][data-glass="true"] .provider-card,
+html[data-theme="cyberpunk-light"][data-glass="true"] .card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 245, 255, 0.9) 100%) !important;
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
 }
 
 /* 侧边栏收缩按钮毛玻璃效果 - 使用变量保持色调一致 */

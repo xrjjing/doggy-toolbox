@@ -1371,6 +1371,46 @@
     background: transparent !important;
 }
 
+/* 极光/赛博亮色主题 HTTP 面板 - 毛玻璃效果 */
+html[data-theme="neon-light"][data-glass="true"] .http-request-panel,
+html[data-theme="neon-light"][data-glass="true"] .http-response-panel,
+html[data-theme="cyberpunk-light"][data-glass="true"] .http-request-panel,
+html[data-theme="cyberpunk-light"][data-glass="true"] .http-response-panel {
+    background: rgba(255, 255, 255, 0.65) !important;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 16px;
+    box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    padding: 16px;
+}
+
+html[data-theme="neon-light"][data-glass="true"] .http-url-bar,
+html[data-theme="neon-light"][data-glass="true"] .http-response-header,
+html[data-theme="cyberpunk-light"][data-glass="true"] .http-url-bar,
+html[data-theme="cyberpunk-light"][data-glass="true"] .http-response-header {
+    background: linear-gradient(to bottom, rgba(255,255,255,0.6), rgba(255,255,255,0.2)) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+html[data-theme="neon-light"][data-glass="true"] .http-tabs,
+html[data-theme="neon-light"][data-glass="true"] .http-response-tabs,
+html[data-theme="cyberpunk-light"][data-glass="true"] .http-tabs,
+html[data-theme="cyberpunk-light"][data-glass="true"] .http-response-tabs {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme="neon-light"][data-glass="true"] .http-tab.active,
+html[data-theme="cyberpunk-light"][data-glass="true"] .http-tab.active {
+    background: rgba(255, 255, 255, 0.8) !important;
+    color: var(--accent);
+    font-weight: 600;
+}
+
 /* 毛玻璃兼容 - 集合项透明 */
 [data-glass="true"] .collection-item,
 [data-glass="true"] .collection-header,

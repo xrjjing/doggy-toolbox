@@ -300,11 +300,27 @@
     border-color: hsla(0, 0%, 100%, 0.5);
 }
 
+/* 赛博亮色主题卡片 - 淡渐变效果 */
 [data-theme="cyberpunk-light"] .credential-card,
 [data-theme="cyberpunk-light"] .command-card {
-    backdrop-filter: blur(10px);
-    border: 1px solid hsla(280, 50%, 70%, 0.3);
-    box-shadow: 0 4px 20px hsla(280, 60%, 50%, 0.1);
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 245, 255, 0.9) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 1);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+[data-theme="cyberpunk-light"] .credential-card:hover,
+[data-theme="cyberpunk-light"] .command-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow:
+        0 12px 32px hsla(280, 60%, 50%, 0.15),
+        0 4px 8px rgba(0, 0, 0, 0.03),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.8);
 }
 
 [data-theme="cyberpunk-light"] .btn-primary {
@@ -395,11 +411,27 @@
     border-color: hsla(0, 0%, 100%, 0.5);
 }
 
+/* 极光亮色主题卡片 - 淡渐变效果 */
 [data-theme="neon-light"] .credential-card,
 [data-theme="neon-light"] .command-card {
-    backdrop-filter: blur(10px);
-    border: 1px solid hsla(180, 45%, 65%, 0.3);
-    box-shadow: 0 4px 20px hsla(180, 50%, 45%, 0.08);
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 250, 255, 0.9) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 1);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+[data-theme="neon-light"] .credential-card:hover,
+[data-theme="neon-light"] .command-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow:
+        0 12px 32px hsla(180, 50%, 45%, 0.15),
+        0 4px 8px rgba(0, 0, 0, 0.03),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.8);
 }
 
 [data-theme="neon-light"] .btn-primary {
@@ -409,6 +441,98 @@
 
 [data-theme="neon-light"] .content {
     background: transparent;
+}
+
+/* 极光亮色主题 HTTP 请求页面 */
+[data-theme="neon-light"] .http-request-panel,
+[data-theme="neon-light"] .http-response-panel {
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: var(--radius, 16px);
+    box-shadow:
+        0 20px 40px -8px rgba(0, 0, 0, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    overflow: hidden;
+}
+
+[data-theme="neon-light"] .http-url-bar,
+[data-theme="neon-light"] .http-response-header {
+    background: linear-gradient(to bottom, rgba(255,255,255,0.6), rgba(255,255,255,0.2));
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="neon-light"] .http-tabs,
+[data-theme="neon-light"] .http-response-tabs {
+    background: transparent;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="neon-light"] .http-tab.active {
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--accent);
+    font-weight: 600;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.02);
+}
+
+[data-theme="neon-light"] .http-kv-editor input,
+[data-theme="neon-light"] #http-body-text {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="neon-light"] .http-kv-editor input:focus,
+[data-theme="neon-light"] #http-body-text:focus {
+    background: #ffffff;
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* 赛博亮色主题 HTTP 请求页面 */
+[data-theme="cyberpunk-light"] .http-request-panel,
+[data-theme="cyberpunk-light"] .http-response-panel {
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: var(--radius, 16px);
+    box-shadow:
+        0 20px 40px -8px rgba(0, 0, 0, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    overflow: hidden;
+}
+
+[data-theme="cyberpunk-light"] .http-url-bar,
+[data-theme="cyberpunk-light"] .http-response-header {
+    background: linear-gradient(to bottom, rgba(255,255,255,0.6), rgba(255,255,255,0.2));
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="cyberpunk-light"] .http-tabs,
+[data-theme="cyberpunk-light"] .http-response-tabs {
+    background: transparent;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="cyberpunk-light"] .http-tab.active {
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--accent);
+    font-weight: 600;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.02);
+}
+
+[data-theme="cyberpunk-light"] .http-kv-editor input,
+[data-theme="cyberpunk-light"] #http-body-text {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="cyberpunk-light"] .http-kv-editor input:focus,
+[data-theme="cyberpunk-light"] #http-body-text:focus {
+    background: #ffffff;
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 /* ========== 各主题按钮适配 ========== */
