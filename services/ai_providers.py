@@ -1,7 +1,11 @@
-# -*- coding: utf-8 -*-
-"""
-AI Provider 实现
-支持 OpenAI、Claude、第三方兼容 API
+"""AI Provider 实现层。
+
+这个文件只关心“怎么和不同 Provider 通信”：
+- 构造 HTTP 请求；
+- 兼容 OpenAI、Claude、OpenAI-compatible 的参数差异；
+- 解析 SSE 流式返回。
+
+如果 AI 返回异常、流式中断或模型接口兼容性有问题，通常要继续追到这里。
 """
 
 import httpx
@@ -13,6 +17,8 @@ from services import web_search
 
 logger = logging.getLogger(__name__)
 
+
+# ========== 流式解析与响应兼容辅助 ==========
 
 def _safe_json_loads(data_str: str) -> Optional[Dict[str, Any]]:
     """安全解析 JSON，失败返回 None。"""
@@ -157,7 +163,9 @@ def _extract_text_from_responses(data: Dict[str, Any]) -> str:
 
 
 class AIProvider:
-    """AI 提供商基类"""
+    """所有 Provider 的共同基类。
+
+    这里定义了统一的非流式 / 流式调用约定，具体差异由子类分别实现。"""
 
     def __init__(self, config: Dict[str, Any]):
         self.config = config
@@ -248,6 +256,9 @@ class AIProvider:
 
 
 class ClaudeProvider(AIProvider):
+    """Claude Provider 适配层。
+
+    负责把统一 messages 转成 Anthropic 所需格式，并兼容思考模式、搜索增强和流式解析。"""
     """Claude (Anthropic) API Provider"""
 
     def __init__(self, config: Dict[str, Any]):
@@ -479,6 +490,9 @@ class ClaudeProvider(AIProvider):
 
 
 class ThirdPartyProvider(AIProvider):
+    """OpenAI / OpenAI-compatible / Responses API 兼容 Provider。
+
+    这里统一处理不同兼容接口的 URL、Header、Payload 和流式事件差异。"""
     """
     OpenAI 风格 Provider（支持官方 OpenAI 与第三方兼容服务）。
 
@@ -802,6 +816,8 @@ class ThirdPartyProvider(AIProvider):
         if last_error:
             raise ValueError(f"连接失败，已重试 {max_retries} 次: {type(last_error).__name__}") from last_error
 
+
+# ========== Provider 工厂 ==========
 
 def create_provider(config: Dict[str, Any]) -> AIProvider:
     """工厂方法：根据配置创建对应的 Provider"""

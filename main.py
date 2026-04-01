@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""狗狗百宝箱 - 主入口"""
+"""狗狗百宝箱桌面应用入口。
+
+调用链：
+- main() 负责解析命令行参数、确定数据目录、初始化 SQLite 和旧数据迁移；
+- 随后创建 PyWebView 窗口，把 Api 实例暴露给前端页面；
+- 前端页面真正的业务调用都会继续进入 api.py，再分发到 services/。
+
+排查启动问题时，优先从这里确认 data_dir、数据库初始化、web 目录路径和窗口启动参数。
+"""
 
 import sys
 import argparse
@@ -15,6 +23,7 @@ from services.data_migration import DataMigration
 logger = logging.getLogger(__name__)
 
 
+# ==================== 启动参数与运行模式 ====================
 def parse_args():
     parser = argparse.ArgumentParser(description="狗狗百宝箱")
     parser.add_argument(
@@ -24,6 +33,7 @@ def parse_args():
 
 
 # 判断是否为打包环境
+# ==================== 打包环境与路径解析 ====================
 def is_bundled():
     return getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
 
@@ -48,10 +58,12 @@ def get_data_dir():
         return Path(__file__).parent
 
 
+# ==================== 应用启动主流程 ====================
 def main():
     args = parse_args()
     debug_mode = args.debug
 
+    # 运行期数据目录：开发环境落项目目录，打包后落用户主目录。
     data_dir = get_data_dir()
 
     # 初始化数据库并执行迁移
@@ -73,8 +85,10 @@ def main():
     except Exception as e:
         logger.error(f"数据库初始化失败: {e}")
 
+    # 创建前后端桥接对象：后续页面里的 window.pywebview.api.xxx() 都从这里进 Python。
     api = Api(data_dir, debug_mode=debug_mode)
 
+    # 前端静态资源根目录：index.html 会再按需加载 web/pages/*.html。
     web_dir = get_base_path() / "web"
     window = webview.create_window(
         title="狗狗百宝箱",

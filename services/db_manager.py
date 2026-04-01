@@ -1,7 +1,9 @@
+"""SQLite 数据访问层。
+
+这个文件负责初始化表结构，并为所有 service 提供统一的 CRUD、事务与查询入口。
+基本上所有需要落库的功能最终都会依赖这里，因此它是排查数据结构与持久化问题的基础层。
 """
-SQLite 数据库管理模块
-统一管理所有数据的增删改查操作
-"""
+
 import sqlite3
 import json
 from pathlib import Path
@@ -14,7 +16,9 @@ logger = logging.getLogger(__name__)
 
 
 class DatabaseManager:
-    """数据库管理器"""
+    """整个项目共用的 SQLite 访问层。
+
+    所有 service 依赖它建表、查询、更新和序列化 JSON 字段，因此它更像数据底座而不是单一业务模块。"""
 
     VERSION = "1.0.0"
 
@@ -36,6 +40,7 @@ class DatabaseManager:
         conn.execute("PRAGMA foreign_keys = ON")  # 启用外键约束
         return conn
 
+    # ========== 数据库连接与表结构初始化 ==========
     def _init_database(self):
         """初始化数据库表结构"""
         conn = self._get_connection()
@@ -348,6 +353,7 @@ class DatabaseManager:
 
     # ========== 通用增删改查方法 ==========
 
+    # ========== 通用 SQL 查询 / 更新执行器 ==========
     def execute_query(self, query: str, params: tuple = ()) -> List[Dict[str, Any]]:
         """
         执行查询并返回结果
@@ -392,6 +398,7 @@ class DatabaseManager:
         finally:
             conn.close()
 
+    # ========== 面向业务层的通用 CRUD 封装 ==========
     def insert(self, table: str, data: Dict[str, Any]) -> bool:
         """
         插入数据
@@ -636,6 +643,7 @@ class DatabaseManager:
             logger.error(f"数据库导出失败: {e}")
             return False
 
+    # ========== 应用级配置读写 ==========
     def get_app_config(self, key: str, default: Any = None) -> Any:
         """
         获取应用配置

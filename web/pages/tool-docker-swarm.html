@@ -1,13 +1,22 @@
+<!--
+页面总览：Docker Swarm 命令生成器 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：可视化生成 Docker Swarm 和 Stack 命令
+前端入口：app_core.js -> switchPage()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-docker-swarm -->
+<!-- 页面骨架：上方是标题说明，中间分为 Swarm / Stack 两层标签页，底部统一输出命令预览。 -->
 <section id="page-tool-docker-swarm" class="page">
-    <div class="page-header">
+<!-- 页面头部：说明这里用于生成 Swarm 集群与 Stack 部署相关命令。 -->
+<div class="page-header">
         <div class="page-title">
             <h1>Docker Swarm 命令生成器</h1>
             <p class="subtitle">可视化生成 Docker Swarm 和 Stack 命令</p>
         </div>
     </div>
+    <!-- 页面主体：先在 L1 选择 Swarm/Stack，再在 L2 选择具体子命令场景。 -->
     <div class="docker-swarm-tool">
-        <!-- Level 1 Tabs -->
+        <!-- 一级标签栏：在集群管理（Swarm）和应用编排（Stack）之间切换。 -->
         <div class="tool-tabs-modern" role="tablist" aria-label="Docker Swarm/Stack">
             <button type="button" class="tool-tab tool-tab-modern active" onclick="switchDockerSwarmL1Tab('swarm', event)" role="tab" aria-selected="true">
                 <span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
@@ -19,9 +28,9 @@
             </button>
         </div>
 
-        <!-- Level 1 Content: Swarm -->
+        <!-- Swarm 一级内容区：承载 init/join/leave/update/unlock 等集群级操作。 -->
         <div id="docker-swarm-l1-scene-swarm" class="docker-swarm-l1-scene active">
-            <!-- Level 2 Tabs: Swarm Operations -->
+            <!-- 二级标签栏：切换不同的 Swarm 集群管理命令。 -->
             <div class="tool-tabs-modern tool-tabs-modern-level2" role="tablist" aria-label="Swarm Operations">
                 <button type="button" class="tool-tab tool-tab-modern active" onclick="switchDockerSwarmL2Tab('swarm', 'init', event)" role="tab" aria-selected="true">
                     <span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
@@ -45,7 +54,7 @@
                 </button>
             </div>
 
-            <!-- Swarm Init Scene -->
+            <!-- Init 场景：初始化新的 Swarm 集群，配置广播地址、监听地址等参数。 -->
             <div id="docker-swarm-l2-scene-init" class="docker-swarm-l2-scene active">
                 <div class="converter-panel">
                     <div class="panel-header"><h3>初始化 Swarm</h3></div>
@@ -67,8 +76,8 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Swarm Join Scene -->
+
+            <!-- Join 场景：让节点作为 manager/worker 加入现有 Swarm 集群。 -->
             <div id="docker-swarm-l2-scene-join" class="docker-swarm-l2-scene">
                 <div class="converter-panel">
                     <div class="panel-header"><h3>加入 Swarm</h3></div>
@@ -93,7 +102,7 @@
                 </div>
             </div>
 
-            <!-- Swarm Leave Scene -->
+            <!-- Leave 场景：让当前节点退出 Swarm，可选强制离开。 -->
             <div id="docker-swarm-l2-scene-leave" class="docker-swarm-l2-scene">
                 <div class="converter-panel">
                     <div class="panel-header"><h3>离开 Swarm</h3></div>
@@ -107,8 +116,8 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Swarm Update Scene -->
+
+            <!-- Update 场景：更新自动锁定、证书有效期、调度心跳等 Swarm 设置。 -->
             <div id="docker-swarm-l2-scene-update" class="docker-swarm-l2-scene">
                 <div class="converter-panel">
                     <div class="panel-header"><h3>更新 Swarm 设置</h3></div>
@@ -135,7 +144,7 @@
                 </div>
             </div>
 
-            <!-- Swarm Unlock Scene -->
+            <!-- Unlock 场景：提示解锁操作流程，该命令本身没有复杂参数。 -->
             <div id="docker-swarm-l2-scene-unlock" class="docker-swarm-l2-scene">
                 <div class="converter-panel">
                     <div class="panel-header"><h3>解锁 Swarm</h3></div>
@@ -146,9 +155,9 @@
             </div>
         </div>
 
-        <!-- Level 1 Content: Stack -->
+        <!-- Stack 一级内容区：承载 stack deploy/ls/ps/services/rm 等编排级命令。 -->
         <div id="docker-swarm-l1-scene-stack" class="docker-swarm-l1-scene">
-            <!-- Level 2 Tabs: Stack Operations -->
+            <!-- 二级标签栏：切换不同的 Stack 操作子命令。 -->
             <div class="tool-tabs-modern tool-tabs-modern-level2" role="tablist" aria-label="Stack Operations">
                 <button type="button" class="tool-tab tool-tab-modern active" onclick="switchDockerSwarmL2Tab('stack', 'deploy', event)" role="tab" aria-selected="true">
                     <span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></span>
@@ -172,7 +181,7 @@
                 </button>
             </div>
 
-            <!-- Stack Deploy Scene -->
+            <!-- Deploy 场景：根据 compose 文件和 stack 名称生成部署命令。 -->
             <div id="docker-stack-l2-scene-deploy" class="docker-stack-l2-scene active">
                 <div class="converter-panel">
                     <div class="panel-header"><h3>部署 Stack</h3></div>
@@ -209,7 +218,7 @@
                 </div>
             </div>
 
-            <!-- Stack LS Scene -->
+            <!-- LS 场景：列出所有 Stack，该场景通常无需额外参数。 -->
             <div id="docker-stack-l2-scene-ls" class="docker-stack-l2-scene">
                  <div class="converter-panel">
                     <div class="panel-header"><h3>列出 Stacks</h3></div>
@@ -219,7 +228,7 @@
                 </div>
             </div>
 
-            <!-- Stack PS Scene -->
+            <!-- PS 场景：查看指定 Stack 下的任务列表。 -->
             <div id="docker-stack-l2-scene-ps" class="docker-stack-l2-scene">
                  <div class="converter-panel">
                     <div class="panel-header"><h3>列出 Stack 中的任务</h3></div>
@@ -232,7 +241,7 @@
                 </div>
             </div>
 
-            <!-- Stack Services Scene -->
+            <!-- Services 场景：列出指定 Stack 下的服务。 -->
             <div id="docker-stack-l2-scene-services" class="docker-stack-l2-scene">
                  <div class="converter-panel">
                     <div class="panel-header"><h3>列出 Stack 中的服务</h3></div>
@@ -244,8 +253,8 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Stack RM Scene -->
+
+            <!-- RM 场景：生成移除一个或多个 Stack 的命令。 -->
             <div id="docker-stack-l2-scene-rm" class="docker-stack-l2-scene">
                  <div class="converter-panel">
                     <div class="panel-header"><h3>移除 Stack</h3></div>
@@ -259,17 +268,21 @@
             </div>
         </div>
 
-        <!-- 命令预览 -->
+        <!-- 命令预览区：根据一级/二级场景和表单参数生成最终 Swarm/Stack 命令。 -->
         <div class="converter-panel">
             <div class="panel-header">
                 <h3>生成的命令</h3>
+                <!-- 面板按钮区：复制按钮用于带走最终生成的命令。 -->
                 <div class="panel-actions">
                     <button class="btn btn-sm btn-ghost" onclick="copyDockerSwarmCommand(this)">复制</button>
                 </div>
             </div>
             <div class="panel-body">
+                <!-- 预览容器：上方描述当前命令作用，下方文本框展示完整命令。 -->
                 <div class="docker-swarm-command-preview">
+                    <!-- 描述区：提示当前选择的子命令和必填项状态。 -->
                     <div class="docker-swarm-command-desc" id="docker-swarm-command-desc">选择操作类型并填写参数</div>
+                    <!-- 输出框：只读展示依据当前表单生成的 Docker Swarm / Stack 命令。 -->
                     <textarea id="docker-swarm-command-output" readonly placeholder="生成的 Docker Swarm 命令将显示在这里..." spellcheck="false"></textarea>
                 </div>
             </div>
@@ -277,6 +290,7 @@
     </div>
 </section>
 
+<!-- 页面私有样式：保证两层标签页切换时的显示逻辑与命令预览区样式稳定。 -->
 <style>
 /* 保证L1和L2场景切换的显示逻辑 */
 .docker-swarm-l1-scene,

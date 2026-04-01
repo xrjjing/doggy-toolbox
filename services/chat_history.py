@@ -1,6 +1,9 @@
+"""AI 聊天历史持久化服务。
+
+负责把聊天会话和消息写入 SQLite，并提供会话列表、消息查询、搜索、重命名、导出等能力。
+对应前端主要是 ai-chat.html 的历史侧边栏和会话详情读取。
 """
-聊天历史管理服务
-"""
+
 import json
 import logging
 import uuid
@@ -13,13 +16,16 @@ logger = logging.getLogger(__name__)
 
 
 class ChatHistoryService:
-    """聊天历史服务"""
+    """负责聊天会话与消息的数据库读写。
+
+    这里的返回结果直接影响 ai-chat 页面左侧历史列表、标题更新和消息导出。"""
 
     def __init__(self, db: DatabaseManager):
         if db is None:
             raise ValueError("数据库未就绪")
         self.db = db
 
+    # ========== 会话管理 ==========
     def create_session(
         self,
         title: Optional[str] = None,
@@ -97,6 +103,7 @@ class ChatHistoryService:
         )
         return {"success": rowcount > 0, "deleted": rowcount}
 
+    # ========== 消息写入与读取 ==========
     def _next_sequence(self, session_id: str) -> int:
         rows = self.db.execute_query(
             "SELECT COALESCE(MAX(sequence), 0) AS seq FROM chat_messages WHERE session_id = ?",
@@ -182,6 +189,7 @@ class ChatHistoryService:
         rows = self.db.execute_query(query, tuple(params))
         return [self.db._deserialize_json_fields(r) for r in rows]
 
+    # ========== 搜索与导出 ==========
     def export_session_markdown(self, session_id: str, include_system: bool = False) -> str:
         session = self.get_session(session_id) or {}
         title = session.get("title") or "未命名对话"

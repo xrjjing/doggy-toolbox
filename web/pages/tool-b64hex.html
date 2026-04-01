@@ -1,15 +1,29 @@
+<!--
+页面总览：Base64 ↔ Hex 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：支持单条与批量互转
+前端入口：app_tools_a.js -> initB64HexTool()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-b64hex -->
+<!-- 页面骨架：这是标准编解码工具页，上方是标题区，下方左右双栏分别负责输入与结果。 -->
 <section id="page-tool-b64hex" class="page">
-		                <div class="page-header">
+
+<!-- 页面头部：说明这是 Base64 与 Hex 互转页。 -->
+
+<div class="page-header">
 		                    <div class="page-title">
 		                        <h1>Base64 ↔ Hex</h1>
 		                        <p class="subtitle">支持单条与批量互转</p>
 		                    </div>
 		                </div>
-		                <div class="converter-layout">
+
+<!-- 主工作区：左侧录入原始内容并切换转换方向，右侧查看转换结果。 -->
+
+<div class="converter-layout">
 		                    <div class="converter-panel">
 		                        <div class="panel-header">
 		                            <h3>输入</h3>
+		                            <!-- 面板按钮区：切换 Base64→Hex 或 Hex→Base64，并提供清空入口。 -->
 		                            <div class="panel-actions">
 		                                <div class="format-toggle" title="选择转换方向">
 		                                    <button class="btn btn-sm btn-ghost format-btn" id="b64hex-b2h-btn" onclick="setB64HexMode('b64_to_hex')">Base64→Hex</button>
@@ -32,6 +46,7 @@
 		                    <div class="converter-panel">
 		                        <div class="panel-header">
 		                            <h3>输出</h3>
+		                            <!-- 面板按钮区：复制当前转换结果。 -->
 		                            <div class="panel-actions">
 		                                <button class="btn btn-sm btn-ghost" onclick="copyB64HexOutput(this)">复制</button>
 		                            </div>

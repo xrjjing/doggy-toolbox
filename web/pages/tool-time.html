@@ -1,15 +1,27 @@
+<!--
+页面总览：时间戳转换 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：仅支持 UTC / UTC+8（进入页面才实时刷新）
+前端入口：app_tools_a.js -> initTimeTool()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-time -->
+<!-- 页面骨架：这是单页时间戳工具，上方是标题区，下方依次完成时间输入、识别和多格式输出。 -->
 <section id="page-tool-time" class="page">
-		                <div class="page-header">
+
+<!-- 页面头部：说明当前工具用于 Unix 时间戳与标准时间互转。 -->
+
+<div class="page-header">
 		                    <div class="page-title">
 		                        <h1>时间戳转换</h1>
 		                        <p class="subtitle">仅支持 UTC / UTC+8（进入页面才实时刷新）</p>
 		                    </div>
 		                </div>
-		                <div class="tool-single time-tool">
+<!-- 主工作区：先选择时区和输入类型，再录入时间值并查看自动识别与转换结果。 -->
+<div class="tool-single time-tool">
 		                    <div class="converter-panel">
 		                        <div class="panel-header">
 		                            <h3>输入</h3>
+		                            <!-- 面板按钮区：围绕当前面板执行复制、清空、模式切换等局部操作。 -->
 		                            <div class="panel-actions">
 		                                <select id="time-zone" onchange="updateTimeTool(true)">
 		                                    <option value="utc">UTC</option>

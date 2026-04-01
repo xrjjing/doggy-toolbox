@@ -1,17 +1,31 @@
+<!--
+页面总览：Docker 命令生成器 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：可视化生成 Docker 命令
+前端入口：app_tools_c.js -> initDockerTool()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-docker -->
+<!-- 页面骨架：上方是标题与 AI 辅助入口，中间通过多场景表单生成 Docker 命令，底部统一展示命令预览。 -->
 <section id="page-tool-docker" class="page">
-		                <div class="page-header">
+
+<!-- 页面头部：说明当前是 Docker 命令生成页，真正的参数选择都在下方场景区完成。 -->
+
+<div class="page-header">
 		                    <div class="page-title">
 		                        <h1>Docker 命令生成器</h1>
 		                        <p class="subtitle">可视化生成 Docker 命令</p>
 		                    </div>
-		                    <div class="page-actions">
-		                        <!-- AI 辅助按钮容器 -->
+
+<!-- 页面操作区：当前主要放 AI 辅助入口。 -->
+
+<div class="page-actions">
+		                        <!-- AI 辅助按钮容器：由全局 helper 动态注入 Docker 命令解释或扩展动作。 -->
 		                        <div id="docker-ai-buttons" class="ai-helper-buttons"></div>
 		                    </div>
 		                </div>
+		                <!-- 页面主体：包裹场景标签栏、各类 Docker 表单和底部命令预览区。 -->
 		                <div class="docker-tool">
-		                    <!-- 场景选择器 -->
+		                    <!-- 场景标签栏：按 run/build/compose 等命令类型切换下方不同表单块。 -->
 		                    <div class="tool-tabs-modern" role="tablist" aria-label="Docker 场景">
 		                                                    <button type="button" class="tool-tab tool-tab-modern active" onclick="switchDockerScene('run', event)" role="tab" aria-selected="true">
 		                                                        <span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>
@@ -62,7 +76,7 @@
 		                                                        <span class="tab-label">CP</span>
 		                                                    </button>
 		                                                </div>
-		                    <!-- Run 场景 -->
+		                    <!-- Run 场景：生成 docker run 命令，配置镜像、容器名、端口、卷和环境变量等参数。 -->
 		                    <div id="docker-scene-run" class="docker-scene active">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>基本设置</h3></div>
@@ -160,7 +174,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Build 场景 -->
+		                    <!-- Build 场景：生成 docker build 命令，控制上下文目录、Dockerfile、标签和构建参数。 -->
 		                    <div id="docker-scene-build" class="docker-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>构建设置</h3></div>
@@ -201,7 +215,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Compose 场景 -->
+		                    <!-- Compose 场景：拼装 docker compose 常见子命令及项目文件相关参数。 -->
 		                    <div id="docker-scene-compose" class="docker-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>Compose 设置</h3></div>
@@ -249,7 +263,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Exec 场景 -->
+		                    <!-- Exec 场景：生成进入容器执行命令的参数，如交互模式、用户和工作目录。 -->
 		                    <div id="docker-scene-exec" class="docker-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>执行命令</h3></div>
@@ -280,7 +294,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Logs 场景 -->
+		                    <!-- Logs 场景：组合日志查看命令，控制 follow、tail、since 等选项。 -->
 		                    <div id="docker-scene-logs" class="docker-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>日志查看</h3></div>
@@ -313,7 +327,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- PS 场景 -->
+		                    <!-- PS 场景：生成 docker ps 相关命令，查看运行中或全部容器列表。 -->
 		                    <div id="docker-scene-ps" class="docker-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>容器列表</h3></div>
@@ -338,7 +352,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Images 场景 -->
+		                    <!-- Images 场景：生成 docker images 命令，查看镜像列表并配置过滤条件。 -->
 		                    <div id="docker-scene-images" class="docker-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>镜像列表</h3></div>
@@ -363,7 +377,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Container 场景 -->
+		                    <!-- Container 场景：管理容器 start/stop/restart/rm/inspect 等常见生命周期操作。 -->
 		                    <div id="docker-scene-container" class="docker-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>容器管理</h3></div>
@@ -394,7 +408,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Network 场景 -->
+		                    <!-- Network 场景：管理网络 create/connect/disconnect/inspect/rm 等命令。 -->
 		                    <div id="docker-scene-network" class="docker-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>网络管理</h3></div>
@@ -452,7 +466,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Volume 场景 -->
+		                    <!-- Volume 场景：处理卷的创建、查看、删除以及驱动与过滤参数。 -->
 		                    <div id="docker-scene-volume" class="docker-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>卷管理</h3></div>
@@ -496,7 +510,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Prune 场景 -->
+		                    <!-- Prune 场景：生成资源清理命令，涉及删除未使用资源，真正执行前仍应由用户确认。 -->
 		                    <div id="docker-scene-prune" class="docker-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>系统清理</h3></div>
@@ -527,7 +541,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- CP 场景 -->
+		                    <!-- CP 场景：生成容器与宿主机之间的文件复制命令。 -->
 		                    <div id="docker-scene-cp" class="docker-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>文件复制</h3></div>
@@ -567,17 +581,22 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- 命令预览 -->
+		                    <!-- 命令预览区：实时汇总当前场景配置，并给出最终可复制的 Docker 命令。 -->
 		                    <div class="converter-panel">
 		                        <div class="panel-header">
 		                            <h3>生成的命令</h3>
+		                            <!-- 面板按钮区：复制按钮用于带走最终生成的命令。 -->
 		                            <div class="panel-actions">
 		                                <button class="btn btn-sm btn-ghost" onclick="copyDockerCommand(this)">复制</button>
 		                            </div>
 		                        </div>
 		                        <div class="panel-body">
+		                            <!-- 预览容器：上方描述命令用途，下方文本框展示完整 Docker 命令。 -->
 		                            <div class="docker-command-preview">
+		                                <!-- 描述区：提示当前命令做什么，或提醒还缺少哪些关键输入。 -->
 		                                <div class="docker-command-desc" id="docker-command-desc">选择操作类型并填写参数</div>
+
+		                                <!-- 输出框：只读展示依据当前表单生成的最终 Docker 命令。 -->
 		                                <textarea id="docker-command-output" readonly placeholder="生成的 Docker 命令将显示在这里..." spellcheck="false"></textarea>
 		                            </div>
 		                        </div>

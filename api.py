@@ -1,4 +1,13 @@
-"""PyWebView API - 暴露给前端的接口"""
+"""PyWebView 桥接层。
+
+这个文件是前端 window.pywebview.api 的统一入口：
+- 命令管理、凭证管理、节点转换、HTTP 请求集合等页面的按钮，最终都会先进入这里；
+- AI 聊天、聊天流式轮询、Provider 配置、Prompt 模板等复杂功能，也先在这里做参数归一化和分发；
+- 之后再继续下沉到 ComputerUsageService、NodeConverterService、HttpCollectionsService、AIManager 等服务。
+
+因为它同时承担“前端桥接 + 部分编排”的职责，所以排查页面按钮无响应或后端逻辑没执行时，通常先看这里。
+"""
+
 import logging
 import os
 import json
@@ -16,6 +25,12 @@ logger = logging.getLogger(__name__)
 
 
 class Api:
+    """PyWebView 对外暴露的统一 API。
+
+    你可以把这个类理解为“前端页面进入 Python 的总闸门”：
+    - 页面按钮、弹窗提交、列表加载通常先命中这里；
+    - 这里再把请求转给对应 service；
+    - AI 流式聊天这类跨多层的能力，也会在这里保存少量运行时状态。"""
     # 流式聊天会话超时时间（秒）
     CHAT_SESSION_TTL_SECONDS = 300  # 5 分钟
 
@@ -136,7 +151,7 @@ class Api:
             "tabs_file": tabs_file,
             "nodes_file": nodes_file,
         }
-
+    # ==================== 窗口对象、运行时信息与窗口控制 ====================
     def set_window(self, window):
         """设置窗口引用"""
         self._window = window
@@ -149,7 +164,6 @@ class Api:
             for name, val in self.__class__.__dict__.items()
             if callable(val) and not name.startswith("_")
         ]
-
     def get_runtime_info(self):
         """获取运行时信息（用于排查“按钮无效/数据未识别”等问题）。"""
         def _p(path: Path) -> str:
@@ -169,8 +183,6 @@ class Api:
         except Exception as e:
             info["stats_error"] = str(e)
         return info
-
-    # ========== 窗口控制 ==========
     def window_close(self):
         """关闭窗口"""
         import threading
@@ -210,8 +222,7 @@ class Api:
         if self._window:
             self._window.evaluate_js('console.log("DevTools opened")')
         return {'success': True, 'message': '已启用调试模式，请右键点击页面选择"检查元素"'}
-
-    # ========== 页签管理 ==========
+    # ==================== 命令页签与命令管理 ====================
     def get_tabs(self):
         return self.computer_usage.get_tabs()
 
@@ -226,8 +237,6 @@ class Api:
 
     def reorder_tabs(self, tab_ids: List[str]):
         return self.computer_usage.reorder_tabs(tab_ids)
-
-    # ========== 命令块管理 ==========
     def get_commands(self):
         return self.computer_usage.get_commands()
 
@@ -251,8 +260,7 @@ class Api:
 
     def import_commands(self, text: str):
         return self.computer_usage.import_commands_txt(text)
-
-    # ========== 凭证管理 ==========
+    # ==================== 凭证管理 ====================
     def get_credentials(self):
         return self.computer_usage.get_credentials()
 
@@ -270,15 +278,12 @@ class Api:
 
     def reorder_credentials(self, credential_ids: List[str]):
         return self.computer_usage.reorder_credentials(credential_ids)
-
-    # ========== 节点转换 ==========
+    # ==================== 节点转换与节点管理 ====================
     def convert_links(self, links_text: str):
         return self.node_converter.convert_links(links_text)
 
     def fetch_subscription(self, url: str):
         return self.node_converter.fetch_subscription(url)
-
-    # ========== 节点管理 ==========
     def get_nodes(self):
         return self.node_converter.get_nodes()
 
@@ -316,8 +321,7 @@ class Api:
         """生成节点分享链接"""
         link = self.node_converter.generate_share_link(node)
         return {"success": True, "link": link} if link else {"success": False, "error": "不支持的节点类型"}
-
-    # ========== HTTP 请求集合管理 ==========
+    # ==================== HTTP 请求集合与环境变量 ====================
     def get_http_collections(self):
         return self.http_collections.get_collections()
 
@@ -369,8 +373,6 @@ class Api:
         except Exception as e:
             logger.error(f"导出 Postman 失败: {e}")
             return {"success": False, "error": str(e)}
-
-    # ========== HTTP 环境变量 ==========
     def get_http_environments(self):
         """获取所有 HTTP 环境变量"""
         return self.http_collections.get_environments()
@@ -431,8 +433,7 @@ class Api:
         except Exception as e:
             logger.error(f"打开文件对话框失败: {e}")
             return {"success": False, "error": str(e)}
-
-    # ========== 系统配置 ==========
+    # ==================== 外观、窗口与界面设置 ====================
     def get_theme(self):
         """获取保存的主题设置"""
         if self.ai_manager.db:
@@ -504,8 +505,7 @@ class Api:
         if self.ai_manager.db:
             return self.ai_manager.db.set_app_config("accent_color", color)
         return False
-
-    # ========== 数据备份与恢复 ==========
+    # ==================== 备份、导入导出与文件对话框 ====================
     def export_data(self):
         """导出所有数据为 JSON 格式"""
         from datetime import datetime
@@ -627,8 +627,6 @@ class Api:
             "credentials": len(self.computer_usage.get_credentials()),
             "nodes": len(self.node_converter.get_nodes())
         }
-
-    # ========== HTTP 请求代理 ==========
     def http_request(self, method: str, url: str, headers: dict = None, body: str = None,
                      timeout: int = 30, verify_ssl: bool = True):
         """
@@ -763,8 +761,6 @@ class Api:
                 "error": str(e),
                 "error_type": type(e).__name__
             }
-
-    # ========== 文件保存对话框 ==========
     def save_file_dialog(self, *args, **kwargs):
         """
         打开保存文件对话框，让用户选择保存位置。
@@ -779,7 +775,6 @@ class Api:
             return {"success": False, "error": "窗口未初始化"}
 
         try:
-            # ========= 参数归一化（兼容不同 pywebview 版本/前端封装差异）=========
             # pywebview 通常会把 JS 的入参序列化后按位置参数传入 Python：
             # - JS: api.f(a, b)         -> Python: args=(a, b)
             # 但在某些封装/版本中可能变成：
@@ -1140,8 +1135,7 @@ class Api:
 
         except Exception as e:
             return {"success": False, "error": str(e)}
-
-    # ========== AI 配置管理 ==========
+    # ==================== AI Provider、聊天与工具 AI ====================
     def get_ai_providers(self):
         """获取所有 AI Provider 列表"""
         try:
@@ -1150,6 +1144,10 @@ class Api:
             logger.error(f"获取 AI Provider 列表失败: {e}")
             return []
 
+    # 下面这几个方法主要服务 ai-settings.html：
+    # - 拉取模型列表
+    # - 测试 Provider 连通性
+    # - 保存 / 删除 / 切换当前 Provider
     def fetch_ai_models(self, temp_config: dict):
         """动态获取 AI 模型列表"""
         import asyncio
@@ -1204,6 +1202,7 @@ class Api:
             logger.error(f"切换 Provider 失败: {e}")
             return {'success': False, 'error': str(e)}
 
+    # 工具页里的 AI 辅助通常走这个非流式入口：一次请求、一次返回。
     def ai_chat(self, prompt: str, system_prompt: str = None, provider_id: str = None,
                 web_search: bool = False, thinking_enabled: bool = False, **kwargs):
         """
@@ -1300,7 +1299,7 @@ class Api:
         pid = provider_id or self.ai_manager.active_provider_id
         provider_config = self.ai_manager._get_provider_config(pid)
 
-        # 网络搜索：直接同步执行，避免事件循环问题
+        # 网络搜索：先在桥接层同步拿到结果，再决定是否注入消息，避免 Provider 内部重复搜索。
         search_results = []
         search_attempted = False
         search_error = None
@@ -1322,7 +1321,7 @@ class Api:
                 error_msg = str(e) or type(e).__name__
                 logger.warning(f"工具推荐失败: {error_msg}")
 
-        # 持久化：创建或复用会话
+        # 持久化：先写 user 消息，再在流式完成后写 assistant 消息，保证历史记录顺序稳定。
         if self.chat_history:
             if not conversation_id:
                 system_prompt = self.ai_manager.EXPLAINER_SYSTEM_PROMPT if mode == 'explain' else None
@@ -1378,7 +1377,7 @@ class Api:
         thinking_budget = provider_config.get('config', {}).get('thinking_budget', 32000)
         provider_type = provider_config.get('type', '')
 
-        # 后台任务
+        # 后台任务：真正的流式请求在独立线程 + 独立事件循环里执行。
         chat_history_ref = self.chat_history
         def stream_task():
             loop = asyncio.new_event_loop()
@@ -1454,7 +1453,7 @@ class Api:
             finally:
                 loop.close()
 
-        # 启动后台线程
+        # 启动后台线程后，前端会收到 session_id，并开始通过 get_chat_chunk() 轮询。
         thread = threading.Thread(target=stream_task, daemon=True)
         thread.start()
 
@@ -1516,9 +1515,7 @@ class Api:
             'done': done,
             'error': error
         }
-
-    # ========== 工具 AI 功能配置 ==========
-
+    # ==================== 工具 AI 配置与功能开关 ====================
     def get_tool_ai_definitions(self):
         """获取工具 AI 功能定义（包含所有工具及其支持的 AI 功能）"""
         return self.ai_manager.get_tool_ai_definitions()
@@ -1542,9 +1539,7 @@ class Api:
     def set_global_ai_enabled(self, enabled: bool):
         """设置全局 AI 功能开关"""
         return self.ai_manager.set_global_ai_enabled(enabled)
-
-    # ========== 聊天历史管理 ==========
-
+    # ==================== AI 历史会话管理 ====================
     def create_chat_session(self, title: str = None, mode: str = "chat",
                             provider_id: str = None, system_prompt: str = None):
         """创建新的聊天会话"""
@@ -1608,9 +1603,8 @@ class Api:
             return {"success": False, "error": "聊天历史服务不可用"}
         content = self.chat_history.export_session_markdown(session_id)
         return {"success": True, "content": content}
-
-    # ========== Prompt 模板管理 ==========
-
+    # ==================== Prompt 模板管理 ====================
+    # ==================== Prompt 模板管理 ====================
     def list_prompt_categories(self):
         """获取 Prompt 模板分类列表"""
         if not self.prompt_template:

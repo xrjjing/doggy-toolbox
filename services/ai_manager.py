@@ -1,7 +1,13 @@
-# -*- coding: utf-8 -*-
-"""
-AI Manager 统一管理器
-负责 Provider 管理、模型获取、请求统计
+"""AI 管理与调度中心。
+
+主要负责：
+- 维护 Provider 配置、当前激活 Provider 和工具 AI 开关；
+- 拉取模型列表、测试连接、记录调用统计；
+- 给 AI 聊天页和工具页提供普通聊天能力、工具推荐能力。
+
+对应前端：
+- web/pages/ai-settings.html + web/js/app_ai_settings.js
+- web/pages/ai-chat.html + web/js/app_ai_chat.js
 """
 
 import json
@@ -20,64 +26,246 @@ logger = logging.getLogger(__name__)
 
 
 class AIManager:
-    """统一的 AI 管理器"""
+    """AI 功能的总控层。
+
+    对上承接 api.py 的 Provider 管理与聊天请求，对下路由到具体 Provider、数据库配置与工具推荐逻辑。"""
 
     # 工具推荐目录（用于智能工具推荐功能）
     TOOL_RECOMMENDATION_CATALOG = [
         # 编码/解码
-        {'id': 'tool-base64', 'name': 'Base64 编解码', 'keywords': ['base64', '编码', '解码', 'encode', 'decode']},
-        {'id': 'tool-url', 'name': 'URL 编解码', 'keywords': ['url', 'urlencode', 'urldecode', '编码', '解码', '链接']},
-        {'id': 'tool-unicode', 'name': 'Unicode 转换', 'keywords': ['unicode', '转义', '\\u', '编码']},
-        {'id': 'tool-html-entity', 'name': 'HTML 实体', 'keywords': ['html', 'entity', '实体', '转义', '&amp;', '&lt;']},
-        {'id': 'tool-b64hex', 'name': 'Base64/Hex 转换', 'keywords': ['hex', '十六进制', 'base64']},
-        {'id': 'tool-radix', 'name': '进制转换', 'keywords': ['进制', '二进制', '八进制', '十六进制', 'binary', 'octal', 'hex']},
+        {
+            "id": "tool-base64",
+            "name": "Base64 编解码",
+            "keywords": ["base64", "编码", "解码", "encode", "decode"],
+        },
+        {
+            "id": "tool-url",
+            "name": "URL 编解码",
+            "keywords": ["url", "urlencode", "urldecode", "编码", "解码", "链接"],
+        },
+        {
+            "id": "tool-unicode",
+            "name": "Unicode 转换",
+            "keywords": ["unicode", "转义", "\\u", "编码"],
+        },
+        {
+            "id": "tool-html-entity",
+            "name": "HTML 实体",
+            "keywords": ["html", "entity", "实体", "转义", "&amp;", "&lt;"],
+        },
+        {
+            "id": "tool-b64hex",
+            "name": "Base64/Hex 转换",
+            "keywords": ["hex", "十六进制", "base64"],
+        },
+        {
+            "id": "tool-radix",
+            "name": "进制转换",
+            "keywords": [
+                "进制",
+                "二进制",
+                "八进制",
+                "十六进制",
+                "binary",
+                "octal",
+                "hex",
+            ],
+        },
         # 加密/安全
-        {'id': 'tool-hash', 'name': 'Hash 计算', 'keywords': ['hash', 'md5', 'sha', 'sha256', '哈希', '摘要']},
-        {'id': 'tool-crypto', 'name': '加密解密', 'keywords': ['加密', '解密', 'aes', 'des', 'encrypt', 'decrypt']},
-        {'id': 'tool-jwt', 'name': 'JWT 解析', 'keywords': ['jwt', 'token', '令牌', '解析']},
-        {'id': 'tool-password', 'name': '密码生成', 'keywords': ['密码', 'password', '生成', '随机']},
-        {'id': 'tool-hmac', 'name': 'HMAC 计算', 'keywords': ['hmac', '签名', 'signature']},
-        {'id': 'tool-rsa', 'name': 'RSA 工具', 'keywords': ['rsa', '公钥', '私钥', '非对称', '加密']},
+        {
+            "id": "tool-hash",
+            "name": "Hash 计算",
+            "keywords": ["hash", "md5", "sha", "sha256", "哈希", "摘要"],
+        },
+        {
+            "id": "tool-crypto",
+            "name": "加密解密",
+            "keywords": ["加密", "解密", "aes", "des", "encrypt", "decrypt"],
+        },
+        {
+            "id": "tool-jwt",
+            "name": "JWT 解析",
+            "keywords": ["jwt", "token", "令牌", "解析"],
+        },
+        {
+            "id": "tool-password",
+            "name": "密码生成",
+            "keywords": ["密码", "password", "生成", "随机"],
+        },
+        {
+            "id": "tool-hmac",
+            "name": "HMAC 计算",
+            "keywords": ["hmac", "签名", "signature"],
+        },
+        {
+            "id": "tool-rsa",
+            "name": "RSA 工具",
+            "keywords": ["rsa", "公钥", "私钥", "非对称", "加密"],
+        },
         # 数据处理
-        {'id': 'tool-json', 'name': 'JSON 格式化', 'keywords': ['json', '格式化', 'format', '美化', '压缩']},
-        {'id': 'tool-json-schema', 'name': 'JSON Schema', 'keywords': ['json', 'schema', '验证', '生成']},
-        {'id': 'tool-csv', 'name': 'CSV 工具', 'keywords': ['csv', '表格', 'excel', '转换']},
-        {'id': 'tool-mock', 'name': 'Mock 数据', 'keywords': ['mock', '测试数据', '假数据', '生成']},
-        {'id': 'tool-toml', 'name': 'TOML 工具', 'keywords': ['toml', '配置', 'config']},
-        {'id': 'tool-jsonpath', 'name': 'JSONPath', 'keywords': ['jsonpath', '查询', 'json', '提取']},
-        {'id': 'tool-data-convert', 'name': '数据转换', 'keywords': ['转换', 'json', 'yaml', 'xml', 'toml']},
+        {
+            "id": "tool-json",
+            "name": "JSON 格式化",
+            "keywords": ["json", "格式化", "format", "美化", "压缩"],
+        },
+        {
+            "id": "tool-json-schema",
+            "name": "JSON Schema",
+            "keywords": ["json", "schema", "验证", "生成"],
+        },
+        {
+            "id": "tool-csv",
+            "name": "CSV 工具",
+            "keywords": ["csv", "表格", "excel", "转换"],
+        },
+        {
+            "id": "tool-mock",
+            "name": "Mock 数据",
+            "keywords": ["mock", "测试数据", "假数据", "生成"],
+        },
+        {
+            "id": "tool-toml",
+            "name": "TOML 工具",
+            "keywords": ["toml", "配置", "config"],
+        },
+        {
+            "id": "tool-jsonpath",
+            "name": "JSONPath",
+            "keywords": ["jsonpath", "查询", "json", "提取"],
+        },
+        {
+            "id": "tool-data-convert",
+            "name": "数据转换",
+            "keywords": ["转换", "json", "yaml", "xml", "toml"],
+        },
         # 文本处理
-        {'id': 'tool-text', 'name': '文本处理', 'keywords': ['文本', '去重', '排序', '替换', 'text']},
-        {'id': 'tool-diff', 'name': '文本对比', 'keywords': ['diff', '对比', '比较', '差异']},
-        {'id': 'tool-regex', 'name': '正则表达式', 'keywords': ['regex', '正则', '匹配', '提取', 'pattern']},
-        {'id': 'tool-charcount', 'name': '字符统计', 'keywords': ['字符', '统计', '字数', 'count']},
-        {'id': 'tool-markdown', 'name': 'Markdown', 'keywords': ['markdown', 'md', '预览']},
-        {'id': 'tool-text-sort', 'name': '文本排序', 'keywords': ['排序', 'sort', '文本']},
-        {'id': 'tool-mask', 'name': '数据脱敏', 'keywords': ['脱敏', 'mask', '隐藏', '手机号', '身份证']},
-        {'id': 'tool-sql', 'name': 'SQL 格式化', 'keywords': ['sql', '格式化', '查询', 'mysql', 'postgresql']},
+        {
+            "id": "tool-text",
+            "name": "文本处理",
+            "keywords": ["文本", "去重", "排序", "替换", "text"],
+        },
+        {
+            "id": "tool-diff",
+            "name": "文本对比",
+            "keywords": ["diff", "对比", "比较", "差异"],
+        },
+        {
+            "id": "tool-regex",
+            "name": "正则表达式",
+            "keywords": ["regex", "正则", "匹配", "提取", "pattern"],
+        },
+        {
+            "id": "tool-charcount",
+            "name": "字符统计",
+            "keywords": ["字符", "统计", "字数", "count"],
+        },
+        {
+            "id": "tool-markdown",
+            "name": "Markdown",
+            "keywords": ["markdown", "md", "预览"],
+        },
+        {
+            "id": "tool-text-sort",
+            "name": "文本排序",
+            "keywords": ["排序", "sort", "文本"],
+        },
+        {
+            "id": "tool-mask",
+            "name": "数据脱敏",
+            "keywords": ["脱敏", "mask", "隐藏", "手机号", "身份证"],
+        },
+        {
+            "id": "tool-sql",
+            "name": "SQL 格式化",
+            "keywords": ["sql", "格式化", "查询", "mysql", "postgresql"],
+        },
         # 生成器
-        {'id': 'tool-uuid', 'name': 'UUID 生成', 'keywords': ['uuid', 'guid', '唯一标识']},
-        {'id': 'tool-time', 'name': '时间戳转换', 'keywords': ['时间戳', 'timestamp', '时间', '日期', 'unix']},
-        {'id': 'tool-datecalc', 'name': '日期计算', 'keywords': ['日期', '计算', '天数', '间隔']},
-        {'id': 'tool-naming', 'name': '命名转换', 'keywords': ['命名', 'camel', 'snake', '驼峰', '下划线']},
-        {'id': 'tool-curl', 'name': 'cURL 解析', 'keywords': ['curl', 'http', '请求', 'api']},
-        {'id': 'tool-color', 'name': '颜色转换', 'keywords': ['颜色', 'color', 'rgb', 'hex', 'hsl']},
-        {'id': 'tool-ip', 'name': 'IP 工具', 'keywords': ['ip', '地址', 'cidr', '子网']},
-        {'id': 'tool-cron', 'name': 'Cron 表达式', 'keywords': ['cron', '定时', '任务', '表达式']},
-        {'id': 'tool-qrcode', 'name': '二维码', 'keywords': ['二维码', 'qrcode', 'qr', '生成']},
-        {'id': 'tool-img-base64', 'name': '图片 Base64', 'keywords': ['图片', 'image', 'base64', '转换']},
-        {'id': 'tool-ua', 'name': 'User-Agent', 'keywords': ['ua', 'user-agent', '浏览器', '解析']},
+        {
+            "id": "tool-uuid",
+            "name": "UUID 生成",
+            "keywords": ["uuid", "guid", "唯一标识"],
+        },
+        {
+            "id": "tool-time",
+            "name": "时间戳转换",
+            "keywords": ["时间戳", "timestamp", "时间", "日期", "unix"],
+        },
+        {
+            "id": "tool-datecalc",
+            "name": "日期计算",
+            "keywords": ["日期", "计算", "天数", "间隔"],
+        },
+        {
+            "id": "tool-naming",
+            "name": "命名转换",
+            "keywords": ["命名", "camel", "snake", "驼峰", "下划线"],
+        },
+        {
+            "id": "tool-curl",
+            "name": "cURL 解析",
+            "keywords": ["curl", "http", "请求", "api"],
+        },
+        {
+            "id": "tool-color",
+            "name": "颜色转换",
+            "keywords": ["颜色", "color", "rgb", "hex", "hsl"],
+        },
+        {
+            "id": "tool-ip",
+            "name": "IP 工具",
+            "keywords": ["ip", "地址", "cidr", "子网"],
+        },
+        {
+            "id": "tool-cron",
+            "name": "Cron 表达式",
+            "keywords": ["cron", "定时", "任务", "表达式"],
+        },
+        {
+            "id": "tool-qrcode",
+            "name": "二维码",
+            "keywords": ["二维码", "qrcode", "qr", "生成"],
+        },
+        {
+            "id": "tool-img-base64",
+            "name": "图片 Base64",
+            "keywords": ["图片", "image", "base64", "转换"],
+        },
+        {
+            "id": "tool-ua",
+            "name": "User-Agent",
+            "keywords": ["ua", "user-agent", "浏览器", "解析"],
+        },
         # 命令生成器
-        {'id': 'tool-git', 'name': 'Git 命令', 'keywords': ['git', 'commit', 'merge', 'branch', '版本控制']},
-        {'id': 'tool-docker', 'name': 'Docker 命令', 'keywords': ['docker', '容器', 'container', 'image']},
-        {'id': 'tool-nginx', 'name': 'Nginx 配置', 'keywords': ['nginx', '反向代理', 'proxy', '配置']},
+        {
+            "id": "tool-git",
+            "name": "Git 命令",
+            "keywords": ["git", "commit", "merge", "branch", "版本控制"],
+        },
+        {
+            "id": "tool-docker",
+            "name": "Docker 命令",
+            "keywords": ["docker", "容器", "container", "image"],
+        },
+        {
+            "id": "tool-nginx",
+            "name": "Nginx 配置",
+            "keywords": ["nginx", "反向代理", "proxy", "配置"],
+        },
         # 网络
-        {'id': 'http-collections', 'name': 'HTTP 请求', 'keywords': ['http', 'api', '请求', 'request', 'post', 'get']},
-        {'id': 'tool-websocket', 'name': 'WebSocket', 'keywords': ['websocket', 'ws', '连接', '实时']},
+        {
+            "id": "http-collections",
+            "name": "HTTP 请求",
+            "keywords": ["http", "api", "请求", "request", "post", "get"],
+        },
+        {
+            "id": "tool-websocket",
+            "name": "WebSocket",
+            "keywords": ["websocket", "ws", "连接", "实时"],
+        },
     ]
 
     # 工具推荐系统提示词
-    TOOL_RECOMMEND_SYSTEM_PROMPT = '''你是开发者工具箱的意图识别助手。根据用户消息，判断是否需要推荐工具。
+    TOOL_RECOMMEND_SYSTEM_PROMPT = """你是开发者工具箱的意图识别助手。根据用户消息，判断是否需要推荐工具。
 
 可用工具列表：
 {tool_catalog}
@@ -89,52 +277,89 @@ class AIManager:
 1. 只推荐与用户需求高度相关的工具（最多 3 个）
 2. 如果用户只是闲聊或问题与工具无关，返回空数组：{{"tools": []}}
 3. reason 要简洁，说明为什么推荐这个工具
-4. 不要输出任何多余文字，只输出 JSON'''
+4. 不要输出任何多余文字，只输出 JSON"""
 
     # 代码/命令解释系统提示词
-    EXPLAINER_SYSTEM_PROMPT = '''你是代码和命令解释助手。请用中文解释用户提供的代码或命令。
+    EXPLAINER_SYSTEM_PROMPT = """你是代码和命令解释助手。请用中文解释用户提供的代码或命令。
 
 输出格式：
 1. **功能概述**：一句话说明这段代码/命令的作用
 2. **逐行解释**：解释关键部分的含义
 3. **注意事项**：可能的风险、常见错误或最佳实践建议
 
-保持简洁专业，使用 Markdown 格式。'''
+保持简洁专业，使用 Markdown 格式。"""
 
     # 工具 AI 功能配置的默认定义（仅包含前端实际支持的工具）
     TOOL_AI_DEFINITIONS = {
-        'categories': [
+        "categories": [
             {
-                'id': 'generators',
-                'name': '命令生成器',
-                'tools': [
-                    {'id': 'tool-git', 'name': 'Git 命令生成器', 'features': ['generate', 'fix']},
-                    {'id': 'tool-docker', 'name': 'Docker 命令生成器', 'features': ['generate', 'fix']},
-                    {'id': 'tool-nginx', 'name': 'nginx 配置生成器', 'features': ['generate', 'fix']},
-                ]
+                "id": "generators",
+                "name": "命令生成器",
+                "tools": [
+                    {
+                        "id": "tool-git",
+                        "name": "Git 命令生成器",
+                        "features": ["generate", "fix"],
+                    },
+                    {
+                        "id": "tool-docker",
+                        "name": "Docker 命令生成器",
+                        "features": ["generate", "fix"],
+                    },
+                    {
+                        "id": "tool-nginx",
+                        "name": "nginx 配置生成器",
+                        "features": ["generate", "fix"],
+                    },
+                ],
             },
             {
-                'id': 'data',
-                'name': '数据处理',
-                'tools': [
-                    {'id': 'tool-mock', 'name': 'Mock 数据生成', 'features': ['generate', 'analyze']},
-                    {'id': 'tool-json', 'name': 'JSON 格式化', 'features': ['generate', 'fix', 'analyze']},
-                    {'id': 'tool-json-schema', 'name': 'JSON Schema 生成', 'features': ['generate', 'fix']},
-                ]
+                "id": "data",
+                "name": "数据处理",
+                "tools": [
+                    {
+                        "id": "tool-mock",
+                        "name": "Mock 数据生成",
+                        "features": ["generate", "analyze"],
+                    },
+                    {
+                        "id": "tool-json",
+                        "name": "JSON 格式化",
+                        "features": ["generate", "fix", "analyze"],
+                    },
+                    {
+                        "id": "tool-json-schema",
+                        "name": "JSON Schema 生成",
+                        "features": ["generate", "fix"],
+                    },
+                ],
             },
             {
-                'id': 'text',
-                'name': '文本处理',
-                'tools': [
-                    {'id': 'tool-regex', 'name': '正则表达式测试', 'features': ['generate', 'fix']},
-                    {'id': 'tool-sql', 'name': 'SQL 格式化', 'features': ['generate', 'fix']},
-                    {'id': 'tool-curl', 'name': 'cURL 解析', 'features': ['generate', 'fix']},
-                    {'id': 'tool-cron', 'name': 'Cron 解析', 'features': ['generate']},
-                ]
+                "id": "text",
+                "name": "文本处理",
+                "tools": [
+                    {
+                        "id": "tool-regex",
+                        "name": "正则表达式测试",
+                        "features": ["generate", "fix"],
+                    },
+                    {
+                        "id": "tool-sql",
+                        "name": "SQL 格式化",
+                        "features": ["generate", "fix"],
+                    },
+                    {
+                        "id": "tool-curl",
+                        "name": "cURL 解析",
+                        "features": ["generate", "fix"],
+                    },
+                    {"id": "tool-cron", "name": "Cron 解析", "features": ["generate"]},
+                ],
             },
         ]
     }
 
+    # ========== 初始化、配置加载与 Provider 实例缓存 ==========
     def __init__(self, data_dir: Path, db: DatabaseManager | None = None):
         self.data_dir = data_dir
         self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -164,7 +389,9 @@ class AIManager:
     def _load_from_database(self):
         """从数据库加载配置"""
         try:
-            providers_config = self.db.get_all('ai_providers', order_by="updated_at DESC")
+            providers_config = self.db.get_all(
+                "ai_providers", order_by="updated_at DESC"
+            )
 
             # 清空现有 providers
             self.providers = {}
@@ -172,19 +399,22 @@ class AIManager:
 
             # 加载启用的 providers
             for provider_config in providers_config:
-                provider_id = provider_config.get('id')
+                provider_id = provider_config.get("id")
                 if not provider_id:
                     continue
 
                 # 加载统计缓存
-                self.stats_cache[provider_id] = provider_config.get('stats', {
-                    'total_requests': 0,
-                    'failed_requests': 0,
-                    'total_latency': 0,
-                    'avg_latency': 0
-                })
+                self.stats_cache[provider_id] = provider_config.get(
+                    "stats",
+                    {
+                        "total_requests": 0,
+                        "failed_requests": 0,
+                        "total_latency": 0,
+                        "avg_latency": 0,
+                    },
+                )
 
-                if not provider_config.get('enabled', True):
+                if not provider_config.get("enabled", True):
                     continue
 
                 try:
@@ -194,10 +424,16 @@ class AIManager:
                     logger.error(f"加载 Provider 失败: {e}")
 
             # 获取活跃 provider
-            active_record = self.db.get_by_id('active_config', 'active_ai_provider', 'key')
-            self.active_provider_id = active_record.get('value') if active_record else None
+            active_record = self.db.get_by_id(
+                "active_config", "active_ai_provider", "key"
+            )
+            self.active_provider_id = (
+                active_record.get("value") if active_record else None
+            )
 
-            logger.info(f"AI Manager 初始化完成，活跃 Provider: {self.active_provider_id}")
+            logger.info(
+                f"AI Manager 初始化完成，活跃 Provider: {self.active_provider_id}"
+            )
 
         except Exception as e:
             logger.error(f"从数据库加载配置失败: {e}")
@@ -215,29 +451,36 @@ class AIManager:
 
         return self.providers[pid]
 
-    async def chat(self, prompt: str, system_prompt: Optional[str] = None,
-                   provider_id: Optional[str] = None, web_search: Optional[bool] = None,
-                   thinking_enabled: Optional[bool] = None, thinking_budget: Optional[int] = None,
-                   **kwargs) -> Dict[str, Any]:
+    # ========== 普通对话入口 ==========
+    async def chat(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        provider_id: Optional[str] = None,
+        web_search: Optional[bool] = None,
+        thinking_enabled: Optional[bool] = None,
+        thinking_budget: Optional[int] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
         """统一的对话接口"""
         pid = provider_id or self.active_provider_id
         provider = self.get_provider(pid)
 
         # 获取 Provider 配置
         provider_config = self._get_provider_config(pid)
-        config_dict = provider_config.get('config', {})
+        config_dict = provider_config.get("config", {})
 
         # web_search：使用传入参数或配置中的默认值
         if web_search is None:
-            web_search = config_dict.get('web_search', False)
+            web_search = config_dict.get("web_search", False)
 
         # thinking：使用传入参数或配置中的默认值（仅 Claude）
         if thinking_enabled is None:
-            thinking_enabled = config_dict.get('thinking_enabled', False)
+            thinking_enabled = config_dict.get("thinking_enabled", False)
         if thinking_budget is None:
-            thinking_budget = config_dict.get('thinking_budget', 2048)
+            thinking_budget = config_dict.get("thinking_budget", 2048)
 
-        # 构建消息
+        # 构建消息：这里保持最小消息形态，复杂的历史编排由 api.py 的流式入口负责。
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
@@ -249,16 +492,18 @@ class AIManager:
 
         try:
             # 根据 Provider 类型传递不同参数
-            if provider_config.get('type') == 'claude':
+            if provider_config.get("type") == "claude":
                 result = await provider.chat(
                     messages,
                     web_search_enabled=web_search,
                     thinking_enabled=thinking_enabled,
                     thinking_budget=thinking_budget,
-                    **kwargs
+                    **kwargs,
                 )
             else:
-                result = await provider.chat(messages, web_search_enabled=web_search, **kwargs)
+                result = await provider.chat(
+                    messages, web_search_enabled=web_search, **kwargs
+                )
 
             latency = time.time() - start_time
 
@@ -266,22 +511,24 @@ class AIManager:
             self._update_stats(pid, success=True, latency=latency)
 
             # 适配 ThirdPartyProvider 返回的 Dict 格式
-            if isinstance(result, dict) and 'text' in result:
-                response_text = result.get('text', '')
-                response_id = result.get('response_id')
+            if isinstance(result, dict) and "text" in result:
+                response_text = result.get("text", "")
+                response_id = result.get("response_id")
             else:
                 response_text = result
                 response_id = None
 
             return {
-                'success': True,
-                'response': response_text,
-                'response_id': response_id,
-                'request_id': request_id,
-                'provider_id': pid,
-                'latency': latency,
-                'web_search': web_search,
-                'thinking_enabled': thinking_enabled if provider_config.get('type') == 'claude' else False
+                "success": True,
+                "response": response_text,
+                "response_id": response_id,
+                "request_id": request_id,
+                "provider_id": pid,
+                "latency": latency,
+                "web_search": web_search,
+                "thinking_enabled": thinking_enabled
+                if provider_config.get("type") == "claude"
+                else False,
             }
 
         except Exception as e:
@@ -291,10 +538,11 @@ class AIManager:
             logger.error(f"AI 请求失败: {error_msg}")
             raise
 
+    # ========== Provider 配置读取与切换 ==========
     def _get_provider_config(self, provider_id: str) -> Dict[str, Any]:
         """获取指定 Provider 的配置"""
         try:
-            provider = self.db.get_by_id('ai_providers', provider_id)
+            provider = self.db.get_by_id("ai_providers", provider_id)
             return provider or {}
         except Exception as e:
             logger.error(f"获取 Provider 配置失败: {e}")
@@ -317,38 +565,45 @@ class AIManager:
         result = []
 
         try:
-            providers_config = self.db.get_all('ai_providers', where="enabled = 1", order_by="updated_at DESC")
+            providers_config = self.db.get_all(
+                "ai_providers", where="enabled = 1", order_by="updated_at DESC"
+            )
 
             for provider_config in providers_config:
-                if not provider_config.get('enabled', True):
+                if not provider_config.get("enabled", True):
                     continue
 
-                provider_id = provider_config['id']
-                stats = self.stats_cache.get(provider_id, provider_config.get('stats', {}))
+                provider_id = provider_config["id"]
+                stats = self.stats_cache.get(
+                    provider_id, provider_config.get("stats", {})
+                )
 
-                result.append({
-                    'id': provider_id,
-                    'name': provider_config.get('name', provider_id),
-                    'type': provider_config.get('type'),
-                    'category': provider_config.get('category'),
-                    'active': provider_id == self.active_provider_id,
-                    'capabilities': provider_config.get('capabilities', {}),
-                    'config': provider_config.get('config', {}),
-                    'stats': stats
-                })
+                result.append(
+                    {
+                        "id": provider_id,
+                        "name": provider_config.get("name", provider_id),
+                        "type": provider_config.get("type"),
+                        "category": provider_config.get("category"),
+                        "active": provider_id == self.active_provider_id,
+                        "capabilities": provider_config.get("capabilities", {}),
+                        "config": provider_config.get("config", {}),
+                        "stats": stats,
+                    }
+                )
 
         except Exception as e:
             logger.error(f"获取 Provider 列表失败: {e}")
 
         return result
 
+    # ========== 模型发现与连接测试 ==========
     async def fetch_models(self, temp_config: Dict[str, Any]) -> List[Dict[str, Any]]:
         """动态获取可用模型列表"""
-        provider_type = temp_config.get('type')
+        provider_type = temp_config.get("type")
 
         try:
-            if provider_type == 'openai':
-                api_key = temp_config.get('api_key')
+            if provider_type == "openai":
+                api_key = temp_config.get("api_key")
                 if not api_key:
                     api_key = os.environ.get("OPENAI_API_KEY")
 
@@ -357,11 +612,11 @@ class AIManager:
                 else:
                     # 没有 API Key，返回固定模型列表
                     return self._get_openai_models()
-            elif provider_type == 'openai-compatible':
+            elif provider_type == "openai-compatible":
                 return await self._fetch_openai_models(temp_config)
-            elif provider_type == 'claude':
+            elif provider_type == "claude":
                 # 尝试从 API 获取模型列表
-                api_key = temp_config.get('api_key')
+                api_key = temp_config.get("api_key")
                 if not api_key:
                     api_key = os.environ.get("ANTHROPIC_API_KEY")
 
@@ -380,12 +635,14 @@ class AIManager:
             logger.error(f"获取模型列表失败: {e}")
             raise e
 
-    async def _fetch_openai_models(self, config: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _fetch_openai_models(
+        self, config: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """从 OpenAI API 获取模型列表"""
-        base_url = config.get('base_url', 'https://api.openai.com/v1')
+        base_url = config.get("base_url", "https://api.openai.com/v1")
         url = f"{base_url.rstrip('/')}/models"
 
-        api_key = config.get('api_key')
+        api_key = config.get("api_key")
         if not api_key:
             api_key = os.environ.get("OPENAI_API_KEY")
 
@@ -393,17 +650,17 @@ class AIManager:
             raise ValueError("未找到 OpenAI API Key")
 
         headers = {
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type': 'application/json'
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
         }
 
         # 多组织/多项目场景
-        organization = config.get('organization')
-        project = config.get('project')
+        organization = config.get("organization")
+        project = config.get("project")
         if organization:
-            headers['OpenAI-Organization'] = organization
+            headers["OpenAI-Organization"] = organization
         if project:
-            headers['OpenAI-Project'] = project
+            headers["OpenAI-Project"] = project
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(url, headers=headers)
@@ -420,19 +677,25 @@ class AIManager:
 
             # 提取模型信息
             models = []
-            model_list = data.get('data') if isinstance(data, dict) else None
-            for model in (model_list or []):
-                models.append({
-                    'id': model['id'],
-                    'name': model.get('id'),
-                    'created': model.get('created'),
-                    'owned_by': model.get('owned_by', 'unknown')
-                })
+            model_list = data.get("data") if isinstance(data, dict) else None
+            for model in model_list or []:
+                models.append(
+                    {
+                        "id": model["id"],
+                        "name": model.get("id"),
+                        "created": model.get("created"),
+                        "owned_by": model.get("owned_by", "unknown"),
+                    }
+                )
 
             # 过滤和排序（优先显示对话模型）
-            chat_models = [m for m in models if any(
-                keyword in m['id'].lower() for keyword in ['gpt', 'chat', 'turbo']
-            )]
+            chat_models = [
+                m
+                for m in models
+                if any(
+                    keyword in m["id"].lower() for keyword in ["gpt", "chat", "turbo"]
+                )
+            ]
             other_models = [m for m in models if m not in chat_models]
 
             return chat_models + other_models
@@ -440,52 +703,46 @@ class AIManager:
     def _get_openai_models(self) -> List[Dict[str, Any]]:
         """返回 OpenAI 固定的模型列表（无 API Key 时使用）"""
         return [
+            {"id": "gpt-5.2", "name": "GPT-5.2", "description": "最新旗舰模型"},
+            {"id": "gpt-5.1", "name": "GPT-5.1", "description": "稳定旗舰模型"},
             {
-                'id': 'gpt-5.2',
-                'name': 'GPT-5.2',
-                'description': '最新旗舰模型'
+                "id": "gpt-5.1-codex",
+                "name": "GPT-5.1 Codex",
+                "description": "Codex 专用模型",
             },
-            {
-                'id': 'gpt-5.1',
-                'name': 'GPT-5.1',
-                'description': '稳定旗舰模型'
-            },
-            {
-                'id': 'gpt-5.1-codex',
-                'name': 'GPT-5.1 Codex',
-                'description': 'Codex 专用模型'
-            }
         ]
 
-    async def _fetch_claude_models(self, config: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _fetch_claude_models(
+        self, config: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """从 Claude API 获取模型列表"""
-        base_url = config.get('base_url', 'https://api.anthropic.com')
-        base = base_url.rstrip('/')
+        base_url = config.get("base_url", "https://api.anthropic.com")
+        base = base_url.rstrip("/")
         # 智能 URL 构建
-        if base.endswith('/v1/models') or base.endswith('/models'):
+        if base.endswith("/v1/models") or base.endswith("/models"):
             url = base
-        elif base.endswith('/v1'):
+        elif base.endswith("/v1"):
             url = f"{base}/models"
         else:
             url = f"{base}/v1/models"
 
-        api_key = config.get('api_key')
+        api_key = config.get("api_key")
         if not api_key:
             api_key = os.environ.get("ANTHROPIC_API_KEY")
 
         if not api_key:
             raise ValueError("未找到 Claude API Key")
 
-        api_version = config.get('api_version', '2023-06-01')
+        api_version = config.get("api_version", "2023-06-01")
 
         # 兼容第三方 Claude API，同时发送 x-api-key 和 Authorization 头部
         headers = {
-            'x-api-key': api_key,
-            'Authorization': f'Bearer {api_key}',
-            'anthropic-version': api_version,
-            'anthropic-beta': 'output-128k-2025-02-19',
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            "x-api-key": api_key,
+            "Authorization": f"Bearer {api_key}",
+            "anthropic-version": api_version,
+            "anthropic-beta": "output-128k-2025-02-19",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
         }
 
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -502,20 +759,22 @@ class AIManager:
                 raise ValueError("API 返回无效 JSON")
 
             models = []
-            model_list = data.get('data') if isinstance(data, dict) else None
-            for model in (model_list or []):
-                model_id = model.get('id')
+            model_list = data.get("data") if isinstance(data, dict) else None
+            for model in model_list or []:
+                model_id = model.get("id")
                 if not model_id:
                     continue
                 # 只保留 Claude 模型
-                if 'claude' not in model_id.lower():
+                if "claude" not in model_id.lower():
                     continue
-                models.append({
-                    'id': model_id,
-                    'name': model_id,  # 直接显示真实模型 ID
-                    'created': model.get('created_at') or model.get('created'),
-                    'owned_by': model.get('owned_by', 'anthropic')
-                })
+                models.append(
+                    {
+                        "id": model_id,
+                        "name": model_id,  # 直接显示真实模型 ID
+                        "created": model.get("created_at") or model.get("created"),
+                        "owned_by": model.get("owned_by", "anthropic"),
+                    }
+                )
 
             return models
 
@@ -523,20 +782,20 @@ class AIManager:
         """返回 Claude 固定的模型列表（API 获取失败时的备用）"""
         return [
             {
-                'id': 'claude-opus-4-5-20251101',
-                'name': 'claude-opus-4-5-20251101',
-                'description': '最强推理能力'
+                "id": "claude-opus-4-5-20251101",
+                "name": "claude-opus-4-5-20251101",
+                "description": "最强推理能力",
             },
             {
-                'id': 'claude-sonnet-4-5-20250929',
-                'name': 'claude-sonnet-4-5-20250929',
-                'description': '平衡性能与速度'
+                "id": "claude-sonnet-4-5-20250929",
+                "name": "claude-sonnet-4-5-20250929",
+                "description": "平衡性能与速度",
             },
             {
-                'id': 'claude-haiku-4-5-20251001',
-                'name': 'claude-haiku-4-5-20251001',
-                'description': '最快响应速度'
-            }
+                "id": "claude-haiku-4-5-20251001",
+                "name": "claude-haiku-4-5-20251001",
+                "description": "最快响应速度",
+            },
         ]
 
     async def test_connection(self, temp_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -554,122 +813,131 @@ class AIManager:
             latency = time.time() - start_time
 
             # 适配 ThirdPartyProvider 返回的 Dict 格式
-            if isinstance(response, dict) and 'text' in response:
-                response_text = response.get('text', '')
+            if isinstance(response, dict) and "text" in response:
+                response_text = response.get("text", "")
             else:
                 response_text = response
 
             return {
-                'success': True,
-                'response': response_text,
-                'latency': round(latency, 2)
+                "success": True,
+                "response": response_text,
+                "latency": round(latency, 2),
             }
 
         except Exception as e:
             logger.error(f"连接测试失败: {e}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
+            return {"success": False, "error": str(e)}
 
     def save_provider(self, provider_config: Dict[str, Any]) -> Dict[str, Any]:
         """保存 Provider 配置"""
         try:
-            provider_id = provider_config['id']
+            provider_id = provider_config["id"]
 
             data = {
-                'id': provider_id,
-                'type': provider_config.get('type', ''),
-                'name': provider_config.get('name', provider_id),
-                'enabled': 1 if provider_config.get('enabled', True) else 0,
-                'config': provider_config.get('config', {}),
-                'capabilities': provider_config.get('capabilities', {}),
-                'stats': provider_config.get('stats', {}),
-                'compatibility': provider_config.get('compatibility')
+                "id": provider_id,
+                "type": provider_config.get("type", ""),
+                "name": provider_config.get("name", provider_id),
+                "enabled": 1 if provider_config.get("enabled", True) else 0,
+                "config": provider_config.get("config", {}),
+                "capabilities": provider_config.get("capabilities", {}),
+                "stats": provider_config.get("stats", {}),
+                "compatibility": provider_config.get("compatibility"),
             }
 
-            existing = self.db.get_by_id('ai_providers', provider_id)
+            existing = self.db.get_by_id("ai_providers", provider_id)
             if existing:
-                self.db.update('ai_providers', data, 'id = ?', (provider_id,))
+                self.db.update("ai_providers", data, "id = ?", (provider_id,))
             else:
-                self.db.insert('ai_providers', data)
+                self.db.insert("ai_providers", data)
                 # 如果是第一个 provider，自动设为活跃
-                all_providers = self.db.get_all('ai_providers', order_by="")
+                all_providers = self.db.get_all("ai_providers", order_by="")
                 if len(all_providers) == 1:
                     self._save_active_provider(provider_id)
 
             # 重新加载配置
             self.load_config()
-            return {'success': True}
+            return {"success": True}
 
         except Exception as e:
             logger.error(f"保存 Provider 失败: {e}")
-            return {'success': False, 'error': str(e)}
+            return {"success": False, "error": str(e)}
 
     def delete_provider(self, provider_id: str) -> Dict[str, Any]:
         """删除 Provider"""
         try:
-            if not self.db.get_by_id('ai_providers', provider_id):
-                return {'success': False, 'error': 'Provider 不存在'}
+            if not self.db.get_by_id("ai_providers", provider_id):
+                return {"success": False, "error": "Provider 不存在"}
 
-            self.db.delete('ai_providers', 'id = ?', (provider_id,))
+            self.db.delete("ai_providers", "id = ?", (provider_id,))
 
             # 如果删除的是活跃 provider，清空活跃状态
-            active_record = self.db.get_by_id('active_config', 'active_ai_provider', 'key')
-            if active_record and active_record.get('value') == provider_id:
-                self.db.delete('active_config', 'key = ?', ('active_ai_provider',))
+            active_record = self.db.get_by_id(
+                "active_config", "active_ai_provider", "key"
+            )
+            if active_record and active_record.get("value") == provider_id:
+                self.db.delete("active_config", "key = ?", ("active_ai_provider",))
 
             # 重新加载配置
             self.load_config()
-            return {'success': True}
+            return {"success": True}
 
         except Exception as e:
             logger.error(f"删除 Provider 失败: {e}")
-            return {'success': False, 'error': str(e)}
+            return {"success": False, "error": str(e)}
 
     def _update_stats(self, provider_id: str, success: bool, latency: float):
         """更新统计信息"""
         if provider_id not in self.stats_cache:
             self.stats_cache[provider_id] = {
-                'total_requests': 0,
-                'failed_requests': 0,
-                'total_latency': 0,
-                'avg_latency': 0
+                "total_requests": 0,
+                "failed_requests": 0,
+                "total_latency": 0,
+                "avg_latency": 0,
             }
 
         stats = self.stats_cache[provider_id]
-        stats['total_requests'] += 1
+        stats["total_requests"] += 1
 
         if not success:
-            stats['failed_requests'] += 1
+            stats["failed_requests"] += 1
 
-        stats['total_latency'] += latency
-        stats['avg_latency'] = round(stats['total_latency'] / stats['total_requests'], 2)
+        stats["total_latency"] += latency
+        stats["avg_latency"] = round(
+            stats["total_latency"] / stats["total_requests"], 2
+        )
 
         # 每 5 次请求保存一次统计
-        if stats['total_requests'] % 5 == 0:
+        if stats["total_requests"] % 5 == 0:
             self._save_stats(provider_id, stats)
 
     def _save_stats(self, provider_id: str, stats: Dict[str, Any]):
         """保存统计到数据库"""
         try:
-            self.db.update('ai_providers', {'stats': stats}, 'id = ?', (provider_id,))
+            self.db.update("ai_providers", {"stats": stats}, "id = ?", (provider_id,))
         except Exception as e:
             logger.error(f"保存统计失败: {e}")
 
     def _save_active_provider(self, provider_id: str):
         """保存活跃 Provider"""
         try:
-            existing = self.db.get_by_id('active_config', 'active_ai_provider', 'key')
+            existing = self.db.get_by_id("active_config", "active_ai_provider", "key")
             if existing:
-                self.db.update('active_config', {'value': provider_id}, 'key = ?', ('active_ai_provider',))
+                self.db.update(
+                    "active_config",
+                    {"value": provider_id},
+                    "key = ?",
+                    ("active_ai_provider",),
+                )
             else:
-                self.db.insert('active_config', {'key': 'active_ai_provider', 'value': provider_id})
+                self.db.insert(
+                    "active_config", {"key": "active_ai_provider", "value": provider_id}
+                )
         except Exception as e:
             logger.error(f"保存活跃 Provider 失败: {e}")
 
     # ========== 工具 AI 功能配置管理 ==========
 
+    # ========== 工具 AI 配置与工具推荐 ==========
     def get_tool_ai_definitions(self) -> Dict[str, Any]:
         """获取工具 AI 功能定义（包含所有工具及其支持的 AI 功能）"""
         return self.TOOL_AI_DEFINITIONS
@@ -688,106 +956,117 @@ class AIManager:
 
     def _load_tool_ai_config_from_db(self) -> Dict[str, Any]:
         """从数据库加载工具 AI 配置"""
-        global_record = self.db.get_by_id('active_config', 'tool_ai_global_enabled', 'key')
+        global_record = self.db.get_by_id(
+            "active_config", "tool_ai_global_enabled", "key"
+        )
         global_enabled = True
         if global_record:
-            global_enabled = str(global_record.get('value', 'true')).lower() == 'true'
+            global_enabled = str(global_record.get("value", "true")).lower() == "true"
 
-        tool_rows = self.db.get_all('tool_ai_config', order_by="tool_id ASC")
+        tool_rows = self.db.get_all("tool_ai_config", order_by="tool_id ASC")
         if not tool_rows and not global_record:
             return self._get_default_tool_ai_config()
 
         tools = {}
         for row in tool_rows:
-            tool_id = row.get('tool_id')
+            tool_id = row.get("tool_id")
             if tool_id:
                 tools[tool_id] = {
-                    'enabled': bool(row.get('enabled', 1)),
-                    'features': row.get('features', {}) or {}
+                    "enabled": bool(row.get("enabled", 1)),
+                    "features": row.get("features", {}) or {},
                 }
 
-        return {'global_enabled': global_enabled, 'tools': tools}
+        return {"global_enabled": global_enabled, "tools": tools}
 
     def _get_default_tool_ai_config(self) -> Dict[str, Any]:
         """生成默认的工具 AI 配置（全部启用）"""
-        config = {
-            'global_enabled': True,
-            'tools': {}
-        }
+        config = {"global_enabled": True, "tools": {}}
 
-        for category in self.TOOL_AI_DEFINITIONS['categories']:
-            for tool in category['tools']:
-                tool_id = tool['id']
-                features = {f: True for f in tool['features']}
-                config['tools'][tool_id] = {
-                    'enabled': True,
-                    'features': features
-                }
+        for category in self.TOOL_AI_DEFINITIONS["categories"]:
+            for tool in category["tools"]:
+                tool_id = tool["id"]
+                features = {f: True for f in tool["features"]}
+                config["tools"][tool_id] = {"enabled": True, "features": features}
 
         return config
 
     def save_tool_ai_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """保存工具 AI 功能配置"""
         try:
-            global_enabled = config.get('global_enabled', True)
-            existing = self.db.get_by_id('active_config', 'tool_ai_global_enabled', 'key')
+            global_enabled = config.get("global_enabled", True)
+            existing = self.db.get_by_id(
+                "active_config", "tool_ai_global_enabled", "key"
+            )
             if existing:
-                self.db.update('active_config', {'value': 'true' if global_enabled else 'false'}, 'key = ?', ('tool_ai_global_enabled',))
+                self.db.update(
+                    "active_config",
+                    {"value": "true" if global_enabled else "false"},
+                    "key = ?",
+                    ("tool_ai_global_enabled",),
+                )
             else:
-                self.db.insert('active_config', {'key': 'tool_ai_global_enabled', 'value': 'true' if global_enabled else 'false'})
+                self.db.insert(
+                    "active_config",
+                    {
+                        "key": "tool_ai_global_enabled",
+                        "value": "true" if global_enabled else "false",
+                    },
+                )
 
-            tools = config.get('tools', {})
-            existing_tools = self.db.get_all('tool_ai_config', order_by="")
-            existing_ids = {row.get('tool_id') for row in existing_tools if row.get('tool_id')}
+            tools = config.get("tools", {})
+            existing_tools = self.db.get_all("tool_ai_config", order_by="")
+            existing_ids = {
+                row.get("tool_id") for row in existing_tools if row.get("tool_id")
+            }
 
             for tool_id in existing_ids - set(tools.keys()):
-                self.db.delete('tool_ai_config', 'tool_id = ?', (tool_id,))
+                self.db.delete("tool_ai_config", "tool_id = ?", (tool_id,))
 
             for tool_id, tool_config in tools.items():
                 data = {
-                    'tool_id': tool_id,
-                    'enabled': 1 if tool_config.get('enabled', True) else 0,
-                    'features': tool_config.get('features', {})
+                    "tool_id": tool_id,
+                    "enabled": 1 if tool_config.get("enabled", True) else 0,
+                    "features": tool_config.get("features", {}),
                 }
                 if tool_id in existing_ids:
-                    self.db.update('tool_ai_config', data, 'tool_id = ?', (tool_id,))
+                    self.db.update("tool_ai_config", data, "tool_id = ?", (tool_id,))
                 else:
-                    self.db.insert('tool_ai_config', data)
+                    self.db.insert("tool_ai_config", data)
 
             self.tool_ai_config_cache = config
             logger.info("工具 AI 配置保存成功")
-            return {'success': True}
+            return {"success": True}
 
         except Exception as e:
             logger.error(f"保存工具 AI 配置失败: {e}")
-            return {'success': False, 'error': str(e)}
+            return {"success": False, "error": str(e)}
 
     def get_tool_ai_enabled(self, tool_id: str) -> Dict[str, Any]:
         """获取指定工具的 AI 功能启用状态"""
         config = self.get_tool_ai_config()
 
         # 全局开关关闭时，所有工具都禁用
-        if not config.get('global_enabled', True):
+        if not config.get("global_enabled", True):
             return {
-                'enabled': False,
-                'features': {'generate': False, 'fix': False, 'analyze': False}
+                "enabled": False,
+                "features": {"generate": False, "fix": False, "analyze": False},
             }
 
         # 获取工具配置
-        tool_config = config.get('tools', {}).get(tool_id)
+        tool_config = config.get("tools", {}).get(tool_id)
         if tool_config is None:
             # 工具未配置，查找定义中的默认功能
-            for category in self.TOOL_AI_DEFINITIONS['categories']:
-                for tool in category['tools']:
-                    if tool['id'] == tool_id:
+            for category in self.TOOL_AI_DEFINITIONS["categories"]:
+                for tool in category["tools"]:
+                    if tool["id"] == tool_id:
                         return {
-                            'enabled': True,
-                            'features': {f: True for f in tool['features']}
+                            "enabled": True,
+                            "features": {f: True for f in tool["features"]},
                         }
             # 未知工具，返回禁用
             return {
-                'enabled': False,
-                'features': {'generate': False, 'fix': False, 'analyze': False}
+                "enabled": False,
+                "features": {"generate": False, "fix": False, "analyze": False},
             }
 
         return tool_config
@@ -796,26 +1075,26 @@ class AIManager:
         """设置指定工具的 AI 功能启用状态"""
         config = self.get_tool_ai_config()
 
-        if tool_id not in config.get('tools', {}):
+        if tool_id not in config.get("tools", {}):
             # 初始化工具配置
-            for category in self.TOOL_AI_DEFINITIONS['categories']:
-                for tool in category['tools']:
-                    if tool['id'] == tool_id:
-                        config.setdefault('tools', {})[tool_id] = {
-                            'enabled': enabled,
-                            'features': {f: True for f in tool['features']}
+            for category in self.TOOL_AI_DEFINITIONS["categories"]:
+                for tool in category["tools"]:
+                    if tool["id"] == tool_id:
+                        config.setdefault("tools", {})[tool_id] = {
+                            "enabled": enabled,
+                            "features": {f: True for f in tool["features"]},
                         }
                         break
 
-        if tool_id in config.get('tools', {}):
-            config['tools'][tool_id]['enabled'] = enabled
+        if tool_id in config.get("tools", {}):
+            config["tools"][tool_id]["enabled"] = enabled
 
         return self.save_tool_ai_config(config)
 
     def set_global_ai_enabled(self, enabled: bool) -> Dict[str, Any]:
         """设置全局 AI 功能开关"""
         config = self.get_tool_ai_config()
-        config['global_enabled'] = enabled
+        config["global_enabled"] = enabled
         return self.save_tool_ai_config(config)
 
     # ========== 智能工具推荐功能 ==========
@@ -823,6 +1102,7 @@ class AIManager:
     def _parse_json_response(self, raw: str) -> Dict[str, Any]:
         """安全解析 AI 返回的 JSON"""
         import re
+
         if not raw:
             return {}
         text = raw.strip()
@@ -838,51 +1118,63 @@ class AIManager:
         except Exception:
             return {}
 
-    async def recommend_tools(self, user_message: str, provider_id: Optional[str] = None) -> Dict[str, Any]:
+    async def recommend_tools(
+        self, user_message: str, provider_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """根据用户消息推荐工具"""
         try:
             # 构建工具目录字符串
-            tool_catalog = "\n".join([
-                f"- {t['id']}: {t['name']} (关键词: {', '.join(t['keywords'][:3])})"
-                for t in self.TOOL_RECOMMENDATION_CATALOG
-            ])
-            system_prompt = self.TOOL_RECOMMEND_SYSTEM_PROMPT.format(tool_catalog=tool_catalog)
+            tool_catalog = "\n".join(
+                [
+                    f"- {t['id']}: {t['name']} (关键词: {', '.join(t['keywords'][:3])})"
+                    for t in self.TOOL_RECOMMENDATION_CATALOG
+                ]
+            )
+            system_prompt = self.TOOL_RECOMMEND_SYSTEM_PROMPT.format(
+                tool_catalog=tool_catalog
+            )
 
             result = await self.chat(
                 user_message,
                 system_prompt=system_prompt,
                 provider_id=provider_id,
                 web_search=False,
-                thinking_enabled=False
+                thinking_enabled=False,
             )
 
-            if result.get('success'):
-                parsed = self._parse_json_response(result.get('response', ''))
-                tools = parsed.get('tools', [])
+            if result.get("success"):
+                parsed = self._parse_json_response(result.get("response", ""))
+                tools = parsed.get("tools", [])
                 # 验证工具 ID 是否有效
-                valid_ids = {t['id'] for t in self.TOOL_RECOMMENDATION_CATALOG}
-                valid_tools = [t for t in tools if t.get('id') in valid_ids]
-                return {'tools': valid_tools[:3]}  # 最多返回 3 个
+                valid_ids = {t["id"] for t in self.TOOL_RECOMMENDATION_CATALOG}
+                valid_tools = [t for t in tools if t.get("id") in valid_ids]
+                return {"tools": valid_tools[:3]}  # 最多返回 3 个
 
-            return {'tools': []}
+            return {"tools": []}
 
         except Exception as e:
             error_msg = str(e) or type(e).__name__
             logger.warning(f"工具推荐失败: {error_msg}")
-            return {'tools': []}
+            return {"tools": []}
 
-    def recommend_tools_sync(self, user_message: str, provider_id: Optional[str] = None) -> Dict[str, Any]:
+    def recommend_tools_sync(
+        self, user_message: str, provider_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """同步版本的工具推荐（用于非异步上下文）"""
         import asyncio
+
         try:
             # 尝试获取运行中的事件循环
             try:
                 loop = asyncio.get_running_loop()
                 # 如果成功，说明在异步上下文中，需要创建新线程执行
                 import concurrent.futures
+
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     future = executor.submit(
-                        lambda: asyncio.run(self.recommend_tools(user_message, provider_id))
+                        lambda: asyncio.run(
+                            self.recommend_tools(user_message, provider_id)
+                        )
                     )
                     return future.result(timeout=30)
             except RuntimeError:
@@ -891,4 +1183,4 @@ class AIManager:
         except Exception as e:
             error_msg = str(e) or type(e).__name__
             logger.warning(f"同步工具推荐失败: {error_msg}")
-            return {'tools': []}
+            return {"tools": []}

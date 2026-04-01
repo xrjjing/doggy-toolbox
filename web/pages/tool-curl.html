@@ -1,65 +1,99 @@
+<!--
+页面总览：cURL 解析 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：解析 cURL 命令，生成多语言代码
+前端入口：app_tools_b.js -> initCurlTool()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-curl -->
+<!-- 页面骨架：上方是标题与页面级操作，中间先解析 cURL，再在下方生成多语言请求代码。 -->
 <section id="page-tool-curl" class="page">
-		                <div class="page-header">
-		                    <div class="page-title">
-		                        <h1>cURL 解析</h1>
-		                        <p class="subtitle">解析 cURL 命令，生成多语言代码</p>
-		                    </div>
-		                    <div class="page-actions">
-		                        <!-- AI 辅助按钮容器 -->
-		                        <div id="curl-ai-buttons" class="ai-helper-buttons"></div>
-		                        <button class="btn btn-secondary" onclick="clearCurlTool()">清空</button>
-		                    </div>
-		                </div>
+    <!-- 页面头部：说明当前工具用途，并放置 AI 辅助与清空按钮。 -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>cURL 解析</h1>
+            <p class="subtitle">解析 cURL 命令，生成多语言代码</p>
+        </div>
 
-		                <div class="curl-tool">
-		                    <div class="converter-layout curl-layout">
-		                        <div class="converter-panel">
-		                            <div class="panel-header">
-		                                <h3>cURL 命令</h3>
-		                                <div class="panel-actions">
-		                                    <button class="btn btn-sm btn-primary" onclick="parseCurlCommand()">解析</button>
-		                                </div>
-		                            </div>
-		                            <div class="panel-body">
-		                                <textarea id="curl-input" placeholder="粘贴 cURL 命令...&#10;例如: curl -X POST https://api.example.com -H 'Content-Type: application/json' -d '{&quot;key&quot;: &quot;value&quot;}'"></textarea>
-		                                <div id="curl-errors" class="error-list"></div>
-		                            </div>
-		                        </div>
-		                        <div class="converter-panel">
-		                            <div class="panel-header">
-		                                <h3>解析结果</h3>
-		                                <div class="panel-actions">
-		                                    <button class="btn btn-sm btn-ghost" onclick="copyCurlParsed(this)">复制</button>
-		                                    <button class="btn btn-sm btn-ghost" onclick="sendCurlToHttpCollections()" title="发送到 HTTP 集合">发送到集合 →</button>
-		                                </div>
-		                            </div>
-		                            <div class="panel-body">
-		                                <textarea id="curl-parsed" readonly placeholder="解析后的请求信息..."></textarea>
-		                            </div>
-		                        </div>
-		                    </div>
+        <!-- 页面操作区：页面级动作放这里。 -->
+        <div class="page-actions">
+            <!-- AI 辅助按钮容器：由全局 helper 动态注入解释、改写或补全动作。 -->
+            <div id="curl-ai-buttons" class="ai-helper-buttons"></div>
 
-		                    <div class="curl-code-panel">
-		                        <div class="converter-panel">
-		                            <div class="panel-header">
-		                                <h3>代码生成</h3>
-		                                <div class="panel-actions">
-		                                    <div class="format-toggle">
-		                                        <button id="curl-lang-fetch" class="btn btn-sm btn-ghost format-btn active" onclick="setCurlLang('fetch')">Fetch</button>
-		                                        <button id="curl-lang-axios" class="btn btn-sm btn-ghost format-btn" onclick="setCurlLang('axios')">Axios</button>
-		                                        <button id="curl-lang-python" class="btn btn-sm btn-ghost format-btn" onclick="setCurlLang('python')">Python</button>
-		                                        <button id="curl-lang-node" class="btn btn-sm btn-ghost format-btn" onclick="setCurlLang('node')">Node.js</button>
-		                                        <button id="curl-lang-php" class="btn btn-sm btn-ghost format-btn" onclick="setCurlLang('php')">PHP</button>
-		                                        <button id="curl-lang-go" class="btn btn-sm btn-ghost format-btn" onclick="setCurlLang('go')">Go</button>
-		                                    </div>
-		                                    <button class="btn btn-sm btn-ghost" onclick="copyCurlCode(this)">复制</button>
-		                                </div>
-		                            </div>
-		                            <div class="panel-body">
-		                                <textarea id="curl-code" readonly placeholder="生成的代码..."></textarea>
-		                            </div>
-		                        </div>
-		                    </div>
-		                </div>
-		            </section>
+            <!-- 清空按钮：重置输入命令、解析结果、错误信息和代码生成区。 -->
+            <button class="btn btn-secondary" onclick="clearCurlTool()">清空</button>
+        </div>
+    </div>
+
+    <!-- 页面主体：包裹 cURL 输入、解析结果和代码生成区。 -->
+    <div class="curl-tool">
+        <!-- 主工作区：左侧输入 cURL 命令，右侧查看解析出的请求结构。 -->
+        <div class="converter-layout curl-layout">
+            <!-- 输入面板：粘贴原始 cURL 命令，并手动触发解析。 -->
+            <div class="converter-panel">
+                <div class="panel-header">
+                    <h3>cURL 命令</h3>
+
+                    <!-- 面板按钮区：解析按钮会把输入命令拆成方法、URL、Header、Body 等结构。 -->
+                    <div class="panel-actions">
+                        <button class="btn btn-sm btn-primary" onclick="parseCurlCommand()">解析</button>
+                    </div>
+                </div>
+
+                <div class="panel-body">
+                    <!-- 输入框：粘贴完整 cURL 命令文本，供解析器做结构化拆解。 -->
+                    <textarea id="curl-input" placeholder="粘贴 cURL 命令...&#10;例如: curl -X POST https://api.example.com -H 'Content-Type: application/json' -d '{&quot;key&quot;: &quot;value&quot;}'"></textarea>
+
+                    <!-- 错误提示区：用于显示命令不完整、引号不匹配或参数无法识别等问题。 -->
+                    <div id="curl-errors" class="error-list"></div>
+                </div>
+            </div>
+
+            <!-- 解析结果面板：展示拆解后的请求结构，并支持复制或发送到 HTTP 集合。 -->
+            <div class="converter-panel">
+                <div class="panel-header">
+                    <h3>解析结果</h3>
+
+                    <!-- 面板按钮区：可复制解析结果，也可以把它转交到 HTTP 集合页继续编辑。 -->
+                    <div class="panel-actions">
+                        <button class="btn btn-sm btn-ghost" onclick="copyCurlParsed(this)">复制</button>
+                        <button class="btn btn-sm btn-ghost" onclick="sendCurlToHttpCollections()" title="发送到 HTTP 集合">发送到集合 →</button>
+                    </div>
+                </div>
+
+                <div class="panel-body">
+                    <!-- 结果框：只读展示方法、URL、Header、Body 等解析结果。 -->
+                    <textarea id="curl-parsed" readonly placeholder="解析后的请求信息..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 代码生成区：把解析后的请求继续转换成多语言示例代码。 -->
+        <div class="curl-code-panel">
+            <div class="converter-panel">
+                <div class="panel-header">
+                    <h3>代码生成</h3>
+
+                    <!-- 面板按钮区：语言切换决定生成哪种代码，复制按钮可直接带走结果。 -->
+                    <div class="panel-actions">
+                        <!-- 语言切换组：在 Fetch、Axios、Python、Node.js、PHP、Go 之间切换。 -->
+                        <div class="format-toggle">
+                            <button id="curl-lang-fetch" class="btn btn-sm btn-ghost format-btn active" onclick="setCurlLang('fetch')">Fetch</button>
+                            <button id="curl-lang-axios" class="btn btn-sm btn-ghost format-btn" onclick="setCurlLang('axios')">Axios</button>
+                            <button id="curl-lang-python" class="btn btn-sm btn-ghost format-btn" onclick="setCurlLang('python')">Python</button>
+                            <button id="curl-lang-node" class="btn btn-sm btn-ghost format-btn" onclick="setCurlLang('node')">Node.js</button>
+                            <button id="curl-lang-php" class="btn btn-sm btn-ghost format-btn" onclick="setCurlLang('php')">PHP</button>
+                            <button id="curl-lang-go" class="btn btn-sm btn-ghost format-btn" onclick="setCurlLang('go')">Go</button>
+                        </div>
+
+                        <button class="btn btn-sm btn-ghost" onclick="copyCurlCode(this)">复制</button>
+                    </div>
+                </div>
+
+                <div class="panel-body">
+                    <!-- 输出框：只读展示针对当前语言生成的请求代码样例。 -->
+                    <textarea id="curl-code" readonly placeholder="生成的代码..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

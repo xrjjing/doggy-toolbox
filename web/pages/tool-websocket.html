@@ -1,63 +1,89 @@
+<!--
+页面总览：WebSocket 测试 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：WebSocket 连接测试与消息收发
+前端入口：app_tools_c.js -> initWebSocketTool()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-websocket -->
+<!-- 页面骨架：上方是标题与清空按钮，中间依次是连接配置、消息发送区和消息历史区。 -->
 <section id="page-tool-websocket" class="page">
-		                <div class="page-header">
-		                    <div class="page-title">
-		                        <h1>WebSocket 测试</h1>
-		                        <p class="subtitle">WebSocket 连接测试与消息收发</p>
-		                    </div>
-		                    <div class="page-actions">
-		                        <button class="btn btn-ghost" onclick="clearWebSocketTool()">清空</button>
-		                    </div>
-		                </div>
-		                <div class="websocket-tool">
-		                    <!-- 连接配置 -->
-		                    <div class="websocket-connection">
-		                        <div class="websocket-url-bar">
-		                            <input type="text" id="ws-url" placeholder="wss://ws.postman-echo.com/raw" class="ws-url-input">
-		                            <button class="btn btn-primary" id="ws-connect-btn" onclick="toggleWebSocketConnection()">连接</button>
-		                            <span class="ws-status" id="ws-status">未连接</span>
-		                        </div>
-		                        <div class="websocket-options">
-		                            <label class="tool-check">
-		                                <input type="checkbox" id="ws-auto-reconnect">
-		                                <span>自动重连</span>
-		                            </label>
-		                            <label class="tool-check">
-		                                <input type="checkbox" id="ws-format-json" checked>
-		                                <span>自动格式化 JSON</span>
-		                            </label>
-		                        </div>
-		                    </div>
+    <!-- 页面头部：说明这是一个 WebSocket 调试页。 -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>WebSocket 测试</h1>
+            <p class="subtitle">WebSocket 连接测试与消息收发</p>
+        </div>
 
-		                    <!-- 消息发送 -->
-		                    <div class="websocket-send">
-		                        <div class="websocket-send-header">
-		                            <h3>发送消息</h3>
-		                            <div class="websocket-send-type">
-		                                <label>
-		                                    <input type="radio" name="ws-message-type" value="text" checked>
-		                                    <span>文本</span>
-		                                </label>
-		                                <label>
-		                                    <input type="radio" name="ws-message-type" value="json">
-		                                    <span>JSON</span>
-		                                </label>
-		                            </div>
-		                        </div>
-		                        <textarea id="ws-message-input" placeholder="输入要发送的消息..." spellcheck="false"></textarea>
-		                        <div class="websocket-send-actions">
-		                            <button class="btn btn-primary" onclick="sendWebSocketMessage()">发送</button>
-		                            <button class="btn btn-ghost" onclick="sendWebSocketPing()">Ping</button>
-		                        </div>
-		                    </div>
+        <!-- 页面操作区：清空按钮会重置地址、消息输入和历史记录显示。 -->
+        <div class="page-actions">
+            <button class="btn btn-ghost" onclick="clearWebSocketTool()">清空</button>
+        </div>
+    </div>
 
-		                    <!-- 消息历史 -->
-		                    <div class="websocket-messages">
-		                        <div class="websocket-messages-header">
-		                            <h3>消息历史</h3>
-		                            <button class="btn btn-sm btn-ghost" onclick="clearWebSocketMessages()">清空历史</button>
-		                        </div>
-		                        <div class="websocket-messages-list" id="ws-messages-list"></div>
-		                    </div>
-		                </div>
-		            </section>
+    <!-- 页面主体：包裹连接控制、发消息区域和下方收发历史。 -->
+    <div class="websocket-tool">
+        <!-- 连接配置区：填写 WebSocket 地址、切换连接状态，并控制自动重连与 JSON 格式化。 -->
+        <div class="websocket-connection">
+            <div class="websocket-url-bar">
+                <input type="text" id="ws-url" placeholder="wss://ws.postman-echo.com/raw" class="ws-url-input">
+
+                <!-- 连接按钮：在连接/断开之间切换当前 WebSocket 状态。 -->
+                <button class="btn btn-primary" id="ws-connect-btn" onclick="toggleWebSocketConnection()">连接</button>
+
+                <!-- 状态文本：动态显示未连接、连接中、已连接等状态。 -->
+                <span class="ws-status" id="ws-status">未连接</span>
+            </div>
+
+            <div class="websocket-options">
+                <label class="tool-check">
+                    <input type="checkbox" id="ws-auto-reconnect">
+                    <span>自动重连</span>
+                </label>
+                <label class="tool-check">
+                    <input type="checkbox" id="ws-format-json" checked>
+                    <span>自动格式化 JSON</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 发送区：选择消息类型、填写内容，并主动发送普通消息或 Ping。 -->
+        <div class="websocket-send">
+            <div class="websocket-send-header">
+                <h3>发送消息</h3>
+
+                <!-- 消息类型切换：决定按普通文本还是 JSON 内容去发送。 -->
+                <div class="websocket-send-type">
+                    <label>
+                        <input type="radio" name="ws-message-type" value="text" checked>
+                        <span>文本</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="ws-message-type" value="json">
+                        <span>JSON</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 消息输入框：填写即将发送给服务端的内容。 -->
+            <textarea id="ws-message-input" placeholder="输入要发送的消息..." spellcheck="false"></textarea>
+
+            <div class="websocket-send-actions">
+                <button class="btn btn-primary" onclick="sendWebSocketMessage()">发送</button>
+                <button class="btn btn-ghost" onclick="sendWebSocketPing()">Ping</button>
+            </div>
+        </div>
+
+        <!-- 消息历史区：动态渲染连接事件、发送记录和服务端返回消息。 -->
+        <div class="websocket-messages">
+            <div class="websocket-messages-header">
+                <h3>消息历史</h3>
+
+                <!-- 清空历史按钮：只清理当前显示记录，不改变连接状态。 -->
+                <button class="btn btn-sm btn-ghost" onclick="clearWebSocketMessages()">清空历史</button>
+            </div>
+
+            <!-- 历史列表容器：由 JS 动态插入收发消息和状态变更条目。 -->
+            <div class="websocket-messages-list" id="ws-messages-list"></div>
+        </div>
+    </div>
+</section>

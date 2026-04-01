@@ -1,66 +1,95 @@
-<!-- 自动拆分自 web/index.html：tool-unicode -->
-<section id="page-tool-unicode" class="page">
-		                <div class="page-header">
-		                    <div class="page-title">
-		                        <h1>Unicode 编解码</h1>
-		                        <p class="subtitle">支持 \uXXXX、\xXX、&#xXXXX;、&#NNNN; 多种格式</p>
-		                    </div>
-		                    <div class="page-actions">
-		                        <button class="btn btn-ghost" onclick="clearUnicodeTool()">清空</button>
-		                    </div>
-		                </div>
-		                <div class="tool-single unicode-tool">
-		                    <div class="converter-panel">
-		                        <div class="panel-header">
-		                            <h3>输入</h3>
-		                            <div class="panel-actions">
-		                                <div class="btn-group">
-		                                    <button class="btn btn-sm active" id="unicode-encode-btn" onclick="setUnicodeMode('encode')">编码</button>
-		                                    <button class="btn btn-sm" id="unicode-decode-btn" onclick="setUnicodeMode('decode')">解码</button>
-		                                </div>
-		                            </div>
-		                        </div>
-		                        <div class="panel-body">
-		                            <textarea id="unicode-input" placeholder="输入要转换的文本..." oninput="updateUnicodeTool()"></textarea>
-		                            <div class="unicode-format-row" id="unicode-format-row" style="display:none;">
-		                                <label>解码格式：</label>
-		                                <select id="unicode-decode-format" onchange="updateUnicodeTool()">
-		                                    <option value="auto">自动检测</option>
-		                                    <option value="unicode">\uXXXX</option>
-		                                    <option value="hex">\xXX</option>
-		                                    <option value="html">HTML 实体</option>
-		                                </select>
-		                                <span class="unicode-detect" id="unicode-detect"></span>
-		                            </div>
-		                            <div class="unicode-encode-format" id="unicode-encode-format">
-		                                <label>编码格式：</label>
-		                                <select id="unicode-format" onchange="updateUnicodeTool()">
-		                                    <option value="unicode">\uXXXX (Unicode)</option>
-		                                    <option value="hex">\xXX (Hex UTF-8)</option>
-		                                    <option value="html_hex">&#xXXXX; (HTML Hex)</option>
-		                                    <option value="html_dec">&#NNNN; (HTML Dec)</option>
-		                                </select>
-		                            </div>
-		                            <div class="tool-options">
-		                                <label class="checkbox-label">
-		                                    <input type="checkbox" id="unicode-batch" onchange="updateUnicodeTool()">
-		                                    <span>逐行处理</span>
-		                                </label>
-		                            </div>
-		                            <div id="unicode-errors" class="error-list"></div>
-		                        </div>
-		                    </div>
+<!--
+页面总览：Unicode 编解码 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：支持 \uXXXX、\xXX、&#xXXXX;、&#NNNN; 多种格式
+前端入口：app_tools_b.js -> initUnicodeTool()
+-->
 
-		                    <div class="converter-panel">
-		                        <div class="panel-header">
-		                            <h3>输出</h3>
-		                            <div class="panel-actions">
-		                                <button class="btn btn-sm btn-ghost" onclick="copyUnicodeOutput(this)">复制</button>
-		                            </div>
-		                        </div>
-		                        <div class="panel-body">
-		                            <textarea id="unicode-output" readonly placeholder="转换结果..."></textarea>
-		                        </div>
-		                    </div>
-		                </div>
-		            </section>
+<!-- 自动拆分自 web/index.html：tool-unicode -->
+<!-- 页面骨架：这是单工具页结构，上方是标题与全局操作，下方是输入/输出两块核心面板。 -->
+<section id="page-tool-unicode" class="page">
+    <!-- 页面头部：展示工具标题和格式范围说明。 -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Unicode 编解码</h1>
+            <p class="subtitle">支持 \uXXXX、\xXX、&#xXXXX;、&#NNNN; 多种格式</p>
+        </div>
+
+        <!-- 页面操作区：这里保留页面级清空按钮，用于一键重置当前工具。 -->
+        <div class="page-actions">
+            <button class="btn btn-ghost" onclick="clearUnicodeTool()">清空</button>
+        </div>
+    </div>
+
+    <!-- 主工作区：单页工具的核心交互区域，左侧负责输入和配置，右侧负责输出结果。 -->
+    <div class="tool-single unicode-tool">
+        <!-- 输入面板：输入原始文本或转义串，并切换当前是编码还是解码。 -->
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>输入</h3>
+                <!-- 面板按钮区：编码/解码切换决定本页当前处理方向。 -->
+                <div class="panel-actions">
+                    <!-- 模式切换组：调用 setUnicodeMode()，切换 Unicode 编码与解码流程。 -->
+                    <div class="btn-group">
+                        <button class="btn btn-sm active" id="unicode-encode-btn" onclick="setUnicodeMode('encode')">编码</button>
+                        <button class="btn btn-sm" id="unicode-decode-btn" onclick="setUnicodeMode('decode')">解码</button>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-body">
+                <!-- 输入框：录入待转换文本，输入时会实时触发 updateUnicodeTool() 刷新结果。 -->
+                <textarea id="unicode-input" placeholder="输入要转换的文本..." oninput="updateUnicodeTool()"></textarea>
+
+                <!-- 解码配置区：仅在解码模式下显示，用于指定或自动检测输入转义格式。 -->
+                <div class="unicode-format-row" id="unicode-format-row" style="display:none;">
+                    <label>解码格式：</label>
+                    <select id="unicode-decode-format" onchange="updateUnicodeTool()">
+                        <option value="auto">自动检测</option>
+                        <option value="unicode">\uXXXX</option>
+                        <option value="hex">\xXX</option>
+                        <option value="html">HTML 实体</option>
+                    </select>
+
+                    <!-- 检测结果提示：由 JS 动态显示自动识别到的格式或辅助说明。 -->
+                    <span class="unicode-detect" id="unicode-detect"></span>
+                </div>
+
+                <!-- 编码配置区：编码模式下选择输出采用哪一种 Unicode/HTML 实体格式。 -->
+                <div class="unicode-encode-format" id="unicode-encode-format">
+                    <label>编码格式：</label>
+                    <select id="unicode-format" onchange="updateUnicodeTool()">
+                        <option value="unicode">\uXXXX (Unicode)</option>
+                        <option value="hex">\xXX (Hex UTF-8)</option>
+                        <option value="html_hex">&#xXXXX; (HTML Hex)</option>
+                        <option value="html_dec">&#NNNN; (HTML Dec)</option>
+                    </select>
+                </div>
+
+                <!-- 附加配置区：逐行处理开关适合批量处理多行文本。 -->
+                <div class="tool-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="unicode-batch" onchange="updateUnicodeTool()">
+                        <span>逐行处理</span>
+                    </label>
+                </div>
+
+                <!-- 错误提示区：由 JS 动态写入非法转义串、解码失败等错误。 -->
+                <div id="unicode-errors" class="error-list"></div>
+            </div>
+        </div>
+
+        <!-- 输出面板：展示当前编码或解码后的结果，并提供复制能力。 -->
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>输出</h3>
+                <!-- 面板按钮区：复制按钮把当前转换结果复制到剪贴板。 -->
+                <div class="panel-actions">
+                    <button class="btn btn-sm btn-ghost" onclick="copyUnicodeOutput(this)">复制</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <!-- 输出框：只读展示 Unicode 工具的最终转换结果。 -->
+                <textarea id="unicode-output" readonly placeholder="转换结果..."></textarea>
+            </div>
+        </div>
+    </div>
+</section>

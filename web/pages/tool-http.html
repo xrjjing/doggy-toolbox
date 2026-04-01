@@ -1,14 +1,28 @@
+<!--
+页面总览：兼容占位页：提示 HTTP 测试能力已经并入 HTTP 请求集合页。
+补充说明：已合并到「HTTP 请求集合」页面
+前端入口：app_tools_c.js -> initHttpTool() / switchPage()
+后端链路：跳转到 http-collections 后进入 api.py -> HttpCollectionsService
+-->
+
 <!-- 自动拆分自 web/index.html：tool-http -->
+<!-- 页面骨架：这是一个兼容占位页，上方说明旧入口已迁移，下方提供跳转提示与入口按钮。 -->
 <section id="page-tool-http" class="page">
+    <!-- 页面头部：告诉用户旧版 HTTP 工具已并入新的集合页。 -->
     <div class="page-header">
         <div class="page-title">
             <h1>HTTP 请求测试</h1>
             <p class="subtitle">已合并到「HTTP 请求集合」页面</p>
         </div>
+
+        <!-- 页面操作区：只保留一个跳转按钮，把用户带到新的 HTTP 请求集合页。 -->
         <div class="page-actions">
+            <!-- 跳转按钮：切换到 http-collections 页面，后续真正的请求编辑与发送都在那边完成。 -->
             <button class="btn btn-primary" onclick="switchPage('http-collections')">前往集合页</button>
         </div>
     </div>
+
+    <!-- 占位提示区：显示迁移说明，避免用户误以为这个工具失效。 -->
     <div class="empty-state" style="height: 400px;">
         <div style="text-align: center;">
             <p style="font-size: 18px; margin-bottom: 16px;">此工具已与 HTTP 请求集合合并</p>

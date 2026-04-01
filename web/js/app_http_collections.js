@@ -1,4 +1,21 @@
-// HTTP 请求集合管理
+/*
+ * 文件总览：HTTP 请求集合工作台前端逻辑。
+ *
+ * 服务页面：web/pages/http-collections.html。
+ * 主要职责：
+ * - 维护左侧集合树、文件夹和请求节点；
+ * - 在右侧编辑请求方法、URL、Header、Body，并发送请求；
+ * - 处理导入导出、环境变量、响应查看与本地请求历史。
+ *
+ * 调用链：页面按钮/树节点 -> 本文件 -> window.pywebview.api 或后端 HTTP 代理接口 -> api.py -> HttpCollectionsService / http_request。
+ *
+ * 排查建议：
+ * - 左侧集合树不刷新：先看 loadHttpCollections()/renderCollectionsList()；
+ * - 右侧请求内容没切换：看 loadRequest()；
+ * - 发送请求没结果：看 sendHttpRequestFromCollection() 和响应渲染相关逻辑。
+ */
+
+// HTTP 请求集合管理：这里的顶层状态决定左侧集合树和右侧编辑器当前在操作哪个对象。
 let allCollections = [];
 let currentCollection = null;
 let currentRequest = null;
@@ -7,12 +24,12 @@ let newRequestCollectionId = '';
 let newRequestFolderPath = [];
 let sidebarCollapsed = false;
 
-// HTTP 请求历史
+// HTTP 请求历史：保存最近的请求回放信息，主要用于调试回看，不是后端持久化主数据。
 const HTTP_HISTORY_KEY = 'http_request_history';
 const HTTP_HISTORY_MAX = 50;
 let lastHttpResponse = null;
 
-// 下拉菜单切换
+// 下拉菜单切换：集合树节点上的更多操作菜单由这里统一控制打开/关闭。
 function toggleDropdown(btn) {
     const dropdown = btn.closest('.dropdown');
     if (!dropdown) return;
@@ -51,7 +68,10 @@ function toggleCollectionsSidebar() {
     }
 }
 
-// 加载所有集合
+// HTTP 集合页首屏数据加载：
+// 页面位置：进入 http-collections 页面后的首轮初始化。
+// - 进入页面后，先拉左侧集合树，再补环境变量下拉框；
+// - 如果页面骨架正常但左侧目录空白，通常先看这里是否成功拿到了 pywebview 数据。
 async function loadHttpCollections() {
     if (!window.pywebview || !window.pywebview.api) return;
     if (!document.getElementById('collections-list')) return;
@@ -63,7 +83,10 @@ async function loadHttpCollections() {
     await loadHttpEnvironments();
 }
 
-// 渲染集合列表
+// 渲染左侧集合树根节点：
+// 页面位置：HTTP 集合页左侧目录树。
+// - 这里只负责把 collection 级别的数据变成树的第一层；
+// - folder/request 的递归展开分别交给 renderFolders()/renderRequests()。
 function renderCollectionsList() {
     const listEl = document.getElementById('collections-list');
     if (!listEl) return;
@@ -160,7 +183,11 @@ function toggleFolder(folderId) {
     }
 }
 
-// 加载请求详情
+// 把某个请求节点加载到右侧编辑器：
+// 页面触发：左侧请求节点点击。
+// - 先在集合树里递归找到目标请求；
+// - 再把方法、URL、参数、Header、Body 依次回填到右侧编辑区；
+// - 这是“左侧点一项 -> 右侧出现详情”的核心桥接函数。
 function loadRequest(collectionId, requestId) {
     const collection = allCollections.find(c => c.id === collectionId);
     if (!collection) return;
@@ -228,7 +255,10 @@ function loadRequest(collectionId, requestId) {
     if (responseMetaEl) responseMetaEl.innerHTML = '';
 }
 
-// 渲染 HTTP 工具的键值对编辑器
+// 渲染键值对编辑器：
+// 页面位置：右侧请求编辑器中的 Params / Headers / FormData 行编辑区。
+// - Params / Headers / FormData 这几类编辑器都复用这套 DOM 模板；
+// - 每一行都保留 key、value、enabled 三元结构，便于后续收集和发送请求。
 function renderHttpKvEditor(editorId, items, keyPlaceholder, valuePlaceholder, addHandler) {
     const editorEl = document.getElementById(editorId);
     if (!editorEl) return;
@@ -257,7 +287,9 @@ function renderHttpKvEditor(editorId, items, keyPlaceholder, valuePlaceholder, a
     editorEl.innerHTML = html;
 }
 
-// 收集 HTTP 编辑器数据
+// 收集键值对编辑器当前值：
+// - 把 DOM 中的多行输入重新组装成统一数组结构；
+// - saveCurrentRequest() 和真正发送请求前都会依赖它。
 function collectHttpEditorItems(editorId) {
     const editorEl = document.getElementById(editorId);
     if (!editorEl) return [];
@@ -285,7 +317,10 @@ function collectHttpEditorItems(editorId) {
     return items;
 }
 
-// 发送 HTTP 请求（从集合）
+// 从集合页右侧编辑器触发实际发送：
+// 页面触发：右侧请求编辑器里的“发送”按钮。
+// - 当前页面本身负责“保存请求定义”和“选中哪个请求”；
+// - 真正发送仍然复用 app_tools_c.js 里的 sendHttpRequest() 逻辑。
 async function sendHttpRequestFromCollection() {
     if (!currentCollection || !currentRequest) {
         alert('请先选择一个请求');
@@ -358,7 +393,10 @@ async function pickImportCollectionFile() {
     }
 }
 
-// 导入集合
+// 导入外部集合定义：
+// 页面触发：导入弹窗中的“确认导入”按钮。
+// - 这里根据用户选择的格式，分发到 Postman / Apifox / OpenAPI 对应后端接口；
+// - 导入成功后统一刷新左侧集合树。
 async function importCollection() {
     const format = document.getElementById('import-format').value;
 
@@ -387,7 +425,10 @@ async function importCollection() {
     }
 }
 
-// 保存当前请求
+// 保存当前右侧编辑器中的请求定义：
+// 页面触发：右侧请求编辑器里的“保存”按钮。
+// - 把页面上的名称、方法、URL、Params、Headers、Body 重新组装成 requestData；
+// - 再回写到 api.py -> HttpCollectionsService 持久化。
 async function saveCurrentRequest() {
     if (!currentCollection || !currentRequest) return;
 
@@ -524,7 +565,8 @@ async function createNewRequest() {
     alert('请求已创建');
 }
 
-// ==================== 导出功能 ====================
+// ==================== 导出功能：把集合结构导出到外部文件 ====================
+// 这里对应页面中的导出按钮和格式选择，是对外分享/备份集合的主要入口。
 
 /**
  * 导出集合为 OpenAPI 3.0 格式
@@ -600,11 +642,16 @@ function downloadAsFile(data, filename, mimeType) {
     URL.revokeObjectURL(url);
 }
 
-// ==================== 环境变量管理 ====================
+// ==================== 环境变量管理：请求发送前的变量替换配置 ====================
+// 当 URL、Header、Body 里使用 {{变量}} 时，实际值通常来自这里维护的环境。
 
 let httpEnvironments = [];
 let activeEnvironmentId = null;
 
+// 加载环境变量集合：
+// 页面位置：顶部环境选择器与环境管理弹窗的数据来源。
+// - 用于支撑 {{变量}} 替换；
+// - 页面初次进入、环境新增/删除/保存后都会重新走这里刷新本地缓存。
 async function loadHttpEnvironments() {
     if (!window.pywebview?.api?.get_http_environments) return;
 
@@ -618,6 +665,10 @@ async function loadHttpEnvironments() {
     }
 }
 
+// 渲染顶部环境下拉框：
+// 页面位置：右侧请求编辑器顶部的环境选择框。
+// - 这里只关心当前有哪些环境和哪个是活跃环境；
+// - 真正的环境编辑在下方管理弹窗里处理。
 function renderEnvironmentSelector() {
     const selector = document.getElementById('env-selector');
     if (!selector) return;
@@ -630,6 +681,10 @@ function renderEnvironmentSelector() {
     selector.innerHTML = html;
 }
 
+// 切换当前活跃环境：
+// 页面触发：顶部环境下拉框 onchange。
+// - 切换后后续 URL/Header/Body 中的 {{变量}} 都会走新的环境值替换；
+// - 不会立即重发请求，真正生效通常发生在下一次发送时。
 async function switchHttpEnvironment(envId) {
     if (!window.pywebview?.api?.set_active_http_environment) return;
 
@@ -656,6 +711,10 @@ function closeEnvManagerModal() {
     if (modal) modal.classList.remove('active');
 }
 
+// 渲染环境管理弹窗列表：
+// 页面位置：环境管理弹窗主体区域。
+// - 展示环境名称、活跃状态和变量预览；
+// - 编辑/删除按钮也在这里一起渲染。
 function renderEnvManagerList() {
     const list = document.getElementById('env-manager-list');
     if (!list) return;
@@ -793,6 +852,11 @@ function removeEnvVar(idx) {
     }
 }
 
+// 保存环境变量编辑弹窗：
+// 页面触发：环境编辑弹窗中的“保存”按钮。
+// - 先从 DOM 表单重新收集变量行；
+// - 再统一提交给后端保存；
+// - 保存成功后刷新顶部下拉框和环境管理列表。
 async function saveEnvironment() {
     const envId = document.getElementById('env-edit-id')?.value;
     const name = document.getElementById('env-edit-name')?.value?.trim();
@@ -854,6 +918,10 @@ async function deleteEnvironment(envId) {
     }
 }
 
+// 在文本里执行环境变量替换：
+// 典型调用方：sendHttpRequest()、URL 输入框、Header/Body 发送前处理。
+// - 典型输入是 URL、Header、Body 中的 {{baseUrl}} 这类占位符；
+// - 只会替换当前活跃环境中启用的变量。
 function replaceVariablesInText(text) {
     if (!text || !activeEnvironmentId) return text;
 
@@ -877,7 +945,12 @@ function replaceVariablesInText(text) {
     return result;
 }
 
-// ==================== JSON 树形视图 ====================
+// ==================== JSON 树形视图：把响应 JSON 以树形方式展开查看 ====================
+// 如果“响应有数据但用户看不懂结构”，通常就是这里负责的展示层。
+// 响应 JSON 树形视图渲染：
+// 页面位置：右侧响应区的 JSON Tree 标签或树形容器。
+// - 文本响应框负责原始文本，这里负责“结构化可展开查看”；
+// - 如果用户说“JSON 文本有了，但树形视图没出来”，优先看这里和 M16 模块是否加载。
 function renderHttpJsonTreeView(jsonText) {
     const container = document.getElementById('http-response-tree');
     if (!container) return;
@@ -908,7 +981,12 @@ function updateHttpResponseTree() {
     renderHttpJsonTreeView(responseBody);
 }
 
-// ==================== 请求历史记录 ====================
+// ==================== 请求历史记录：记录最近的调试痕迹，便于回放和复核 ====================
+// 适合排查“刚才发过什么请求、返回了什么”的问题。
+// 记录最近请求历史：
+// 页面位置：不是直接可见的 UI，而是为“请求历史”标签页准备本地缓存。
+// - 这里只写 localStorage，目的是方便调试回放，不是正式集合数据；
+// - 每次请求成功返回后通常都会走这里，把关键元数据压缩保存。
 function saveHttpRequestHistory(method, url, headers, body, response) {
     try {
         const raw = localStorage.getItem(HTTP_HISTORY_KEY);
@@ -945,6 +1023,10 @@ function loadHttpRequestHistory() {
     }
 }
 
+// 渲染“最近请求历史”标签页：
+// 页面位置：右侧响应区中的历史列表面板。
+// - 负责把 localStorage 里的最近请求转成可点击列表；
+// - 点击后会触发 replayHttpRequest() 回填到当前请求编辑器。
 function renderHttpRequestHistory() {
     const container = document.getElementById('http-request-history');
     if (!container) return;
@@ -989,6 +1071,10 @@ function renderHttpRequestHistory() {
     }
 }
 
+// 回放一条历史请求到当前编辑器：
+// 页面触发：历史列表中的“回放/再次使用”按钮。
+// - 这一步不会自动发送，只是帮助用户把当时的 method/url/header/body 快速恢复出来；
+// - 恢复后仍然需要用户再次点击发送。
 function replayHttpRequest(historyId) {
     const entries = loadHttpRequestHistory();
     const entry = entries.find(e => e.id === historyId);

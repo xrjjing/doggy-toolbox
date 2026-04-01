@@ -1,4 +1,21 @@
 /*
+ * 文件总览：前端壳层主入口。
+ *
+ * 这个文件负责把拆分后的页面和各模块脚本真正串起来，核心职责包括：
+ * - 处理页面切换、导航高亮和页面片段按需加载；
+ * - 管理 pywebview 就绪检测、前端运行错误提示、窗口控制、主题/设置同步；
+ * - 在进入不同页面时，调用对应模块的 initXxx() 入口完成首屏或懒初始化。
+ *
+ * 调用链大致是：
+ * index.html -> app_state.js -> app_core.js -> 根据 pageId 调用 app_computer_usage.js / app_tools_*.js / app_ai_*.js 中的初始化函数。
+ *
+ * 排查建议：
+ * - 页面切不过去、切页后空白、导航状态不对：优先看 switchPage()、ensurePageDom()、ensurePageInitialized()；
+ * - pywebview API 一直不可用：优先看 waitForPywebview() 和 _handlePywebviewBecameReady()；
+ * - 页面片段加载失败或按钮完全没反应：先看这里的错误边界和页面加载逻辑。
+ */
+
+/*
 ==================== 性能瓶颈与优化建议（文档区，不影响运行逻辑） ====================
 
 现状（以当前仓库文件为准）：
@@ -27,6 +44,7 @@
 */
 
 // 脚本加载标记（供开机自检使用）
+// 诊断面板会用它确认 app_core.js 本身是否已成功加载执行。
 window.__DOG_TOOLBOX_CORE_LOADED__ = true;
 
 // 毛玻璃透明度映射：用户设置值 -> 实际 CSS 值（幂函数让高值更不透明）
@@ -35,6 +53,7 @@ function mapGlassOpacity(percent) {
 }
 
 // ==================== 模块加载错误边界 ====================
+// 这里负责把“脚本报错/资源没加载/Promise 未处理异常”转成可见提示，避免用户只感知为按钮无反应。
 
 function showJsRuntimeErrorBanner(error, extraTitle = '') {
     const banner = document.getElementById('global-error-banner');
@@ -76,7 +95,9 @@ window.addEventListener('unhandledrejection', (event) => {
     showJsRuntimeErrorBanner(reason, 'unhandledrejection');
 });
 
-// 页面到模块的映射表
+// 页面到工具 utils 模块的映射表：
+// 用于开机自检时判断“某个工具为什么点开后没反应”，
+// 也帮助定位 page-id 背后依赖了哪一个 tools_m*_utils.js 模块。
 const PAGE_MODULE_MAP = {
     'tool-base64': 'DogToolboxM2Utils',
     'tool-jwt': 'DogToolboxM3Utils',
@@ -224,6 +245,7 @@ function hideAppLoading() {
 }
 
 // ==================== 窗口控制 ====================
+// 这一段直接对应标题栏上的关闭、最小化、最大化操作，实际会走 pywebview 的窗口 API。
 function windowClose() {
     if (window.pywebview && window.pywebview.api) {
         _pywebviewReady = true;
@@ -245,7 +267,9 @@ function windowMaximize() {
     }
 }
 
-// 页面懒初始化：按需初始化工具页，避免启动时初始化全部工具
+// 页面懒初始化：按需初始化工具页，避免启动时初始化全部工具。
+// 这里维护的是“页面 id -> 初始化函数名”的映射。
+// 注意使用字符串而不是直接引用函数，目的是避免脚本加载顺序尚未完成时直接抛 ReferenceError。
 const PAGE_INIT_MAP = Object.freeze({
     // 重要：这里必须使用“函数名字符串”，避免在拆分为多文件后提前引用未定义标识符导致脚本直接报错。
     'tool-base64': 'initBase64Tool',
@@ -296,6 +320,9 @@ const PAGE_INIT_MAP = Object.freeze({
     'prompt-templates': 'initPromptTemplates',
 });
 
+// 页面初始化守门函数：
+// - PAGE_INIT_MAP 只声明“进入某页时应该调用哪个初始化函数”；
+// - 这里负责避免重复初始化，并处理短时间内多次切页到同一页面时的并发问题。
 async function ensurePageInitialized(page) {
     const initFnName = PAGE_INIT_MAP[page];
     if (!initFnName) return;
@@ -323,6 +350,10 @@ async function ensurePageInitialized(page) {
 }
 
 // ==================== 页面片段按需注入（拆分 index.html） ====================
+// 所有 web/pages/*.html 都通过这里按需拉取、缓存并注入，是“页面 DOM 从哪里来”的关键入口。
+// 当前应用不是把全部页面 DOM 一次性塞进 index.html，
+// 而是在真正进入某页时，再从 web/pages/{page}.html 拉取片段并注入 page-root。
+// 只有 DOM 注入成功后，switchPage() 才会继续执行页面激活和业务初始化。
 async function ensurePageDom(page) {
     if (!page) return;
     const pageId = `page-${page}`;
@@ -385,6 +416,7 @@ function showPageLoadError(page, error) {
 }
 
 // 窗口关闭前保存配置（修复 Command+W 配置丢失问题）
+// 这层兜底只负责“尽可能把当前界面设置落盘”，不处理复杂业务保存。
 window.addEventListener('beforeunload', () => {
     try {
         // 保存当前主题
@@ -416,7 +448,12 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
-// 初始化
+// 应用启动主流程：
+// 1. 先做前端自检与错误边界挂载；
+// 2. 初始化不依赖后端的导航；
+// 3. 等待 pywebview/api 真正就绪；
+// 4. 回填主题/毛玻璃/标题栏等全局设置；
+// 5. 进入默认页 credentials，并由 handlePageEnter() 继续触发首屏数据加载。
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         checkCriticalGlobals();
@@ -495,6 +532,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+// 页面自检：逐个 fetch pages/*.html，适合排查“某个页面片段丢了/没被打包进去/注入后找不到根节点”。
 async function runPagesIntegrityCheck() {
     const pages = Array.from(document.querySelectorAll('.nav-item[data-page]'))
         .map(el => el.getAttribute('data-page'))
@@ -534,9 +572,17 @@ async function runPagesIntegrityCheck() {
     return lines.join('\n');
 }
 
+// pywebview 就绪链路状态：
+// - 一个标记是否已经挂过监听；
+// - 一个标记“真正可用后的补同步流程”是否已经执行过。
 let _pywebviewReadyListenerInstalled = false;
 let _pywebviewReadyHandledOnce = false;
 
+// pywebview 真正就绪后的补偿动作：
+// - 同步后端保存的设置；
+// - 如有需要刷新当前页数据；
+// - 关闭“后端未就绪”横幅；
+// - 尝试抓取运行时诊断信息。
 async function _handlePywebviewBecameReady() {
     if (_pywebviewReadyHandledOnce) return;
     // 注意：pywebviewready 事件可能早于 window.pywebview.api 注入完成
@@ -573,6 +619,9 @@ async function _handlePywebviewBecameReady() {
     }
 }
 
+// 等待 pywebview API 可用：
+// 这是前端与桌面宿主之间最关键的“桥接等待点”。
+// 只有确认 window.pywebview.api 以及关键方法已出现，后续页面数据加载才值得继续。
 function waitForPywebview({ timeoutMs = 3500 } = {}) {
     return new Promise(resolve => {
         // 检查 API 是否完全就绪（包括关键方法）
@@ -647,7 +696,11 @@ function waitForPywebview({ timeoutMs = 3500 } = {}) {
     });
 }
 
-// 同步后端配置：优先使用后端保存值（数据库为权威），仅在后端不可用时回退到 localStorage
+// 同步后端配置：优先使用后端保存值（数据库为权威），仅在后端不可用时回退到 localStorage。
+// 这一步让“桌面端真正保存的主题/毛玻璃/标题栏/UI 缩放”重新回到前端界面。
+// 从后端回填全局设置：
+// - 当前端刚检测到 pywebview 已真正可用时，会重新把数据库中的主题、毛玻璃、标题栏、缩放配置同步回来；
+// - 这样可以避免“首屏先用了 localStorage，稍后又被后端真实配置覆盖”时的状态不一致。
 async function syncSettingsFromBackend() {
     if (!window.pywebview || !window.pywebview.api) return;
 
@@ -709,7 +762,10 @@ async function syncSettingsFromBackend() {
     } catch {}
 }
 
-// 导航
+// 导航初始化：
+// - 叶子项负责切页；
+// - 分组头负责展开/收起；
+// - 真正的数据加载与页面初始化不在这里做，而是在 switchPage -> handlePageEnter 里做。
 function initNavigation() {
     // 叶子页面：点击切换页面
     document.querySelectorAll('.nav-item[data-page]').forEach(item => {
@@ -741,6 +797,7 @@ function initNavigation() {
 }
 
 // ==================== 工具联动函数 ====================
+// 用于跨页面传递内容，例如在一个工具页生成结果后，跳去另一个工具页继续加工。
 
 /**
  * 将数据传递到目标工具
@@ -748,6 +805,9 @@ function initNavigation() {
  * @param {any} data - 要传递的数据
  * @param {string} dataType - 数据类型标识
  */
+// 工具联动入口：
+// - 某些工具页会把当前结果“带着数据跳转到另一个工具”；例如一个页面生成的文本想直接送到另一个页面继续处理；
+// - 这里只保存桥接状态，不直接切页，真正消费发生在 populateToolWithData()。
 function transferDataToTool(targetToolId, data, dataType) {
     // 检查是否有未消费的数据
     if (toolDataBridge.data !== null && toolDataBridge.status === 'pending') {
@@ -769,6 +829,9 @@ function transferDataToTool(targetToolId, data, dataType) {
  * 在目标工具中填充联动数据
  * @param {string} toolId - 工具 ID
  */
+// 工具联动消费器：
+// - 页面进入后，如果发现 toolDataBridge 里有待处理数据，就按目标工具的输入约定回填到对应输入框；
+// - 如果用户反馈“页面切过去了，但数据没自动带过去”，优先看这里。
 function populateToolWithData(toolId) {
     // 使用 !== null 避免过滤 falsy 值（如空字符串、0）
     if (toolDataBridge.data === null || toolDataBridge.targetToolId !== toolId) return;
@@ -819,6 +882,9 @@ function populateToolWithData(toolId) {
     toolDataBridge = { sourceToolId: null, targetToolId: null, data: null, dataType: null, timestamp: null, status: null };
 }
 
+// 页面切换主入口：
+// 这是“导航点击 -> 页面显示 -> 页面进入逻辑”的总调度点。
+// 如果用户反馈“切到某页后空白/未加载/激活态不对”，优先从这里往下追。
 async function switchPage(page) {
     if (!page) return;
     await ensurePageDom(page);
@@ -862,6 +928,11 @@ async function switchPage(page) {
     document.dispatchEvent(new CustomEvent('pageChanged', { detail: { page } }));
 }
 
+// 页面进入钩子：
+// 这里负责把“显示页面”进一步变成“页面真正可用”：
+// - 普通管理页会先拉数据；
+// - 工具页会按需初始化；
+// - 部分工具页还会在进入时主动刷新结果区或启动定时器。
 async function handlePageEnter(page) {
     try {
         // 业务页面：进入时加载数据（避免启动时访问不存在的 DOM）
@@ -932,13 +1003,16 @@ async function handlePageEnter(page) {
     }
 }
 
+// 页面离开钩子：
+// 这里只放“必须在离开时清理”的页面级副作用，例如时间工具的定时器。
 function handlePageLeave(page) {
     if (page === 'tool-time') {
         stopTimeNowTicker();
     }
 }
 
-// 主题切换
+// 主题切换：
+// 这块既处理前端 DOM 状态，也负责把用户选择同步到 pywebview 后端保存。
 const THEME_ICONS = {
     'light': '☀️', 'cute': '🐶', 'office': '📊',
     'neon-light': '🌊', 'cyberpunk-light': '🌸',
@@ -1015,12 +1089,19 @@ function updateThemeSelector(activeTheme) {
 }
 
 // ==================== 设置弹窗（预览/保存） ====================
+// 这部分负责主题、玻璃效果、标题栏样式等全局体验设置，与具体业务页无关。
+// 这里把设置分成“原始快照”和“当前草稿”两套状态：
+// - 原始快照用于判断用户有没有改动；
+// - 当前草稿用于先预览主题/毛玻璃/UI 缩放，再决定是否真正保存。
 let _settingsOriginal = null;
 let _settingsDraft = null;
 
 const ALLOWED_THEMES = ['light', 'cute', 'office', 'neon-light', 'cyberpunk-light', 'dark', 'neon', 'cyberpunk', 'void'];
 const ALLOWED_TITLEBAR_MODES = ['fixed', 'minimal'];
 
+// 读取当前界面设置快照：
+// - 这里读的是“当前浏览器/DOM 已呈现状态”，不是表单草稿；
+// - 打开设置弹窗时，会先拿这份快照做 _settingsOriginal 和 _settingsDraft 的初始值。
 function _readCurrentSettings() {
     const theme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('theme') || 'dark';
     const glassMode = document.documentElement.getAttribute('data-glass') === 'true';
@@ -1052,6 +1133,9 @@ function _areSettingsEqual(a, b) {
            a.titlebarMode === b.titlebarMode;
 }
 
+// 将一份设置草稿直接预览到界面：
+// - 不要求用户先点保存，就可以即时看到主题、毛玻璃、缩放等变化；
+// - 这也是为什么设置弹窗关闭前需要比较原始值和草稿值，判断是否有未保存修改。
 function _applySettingsPreview(settings) {
     // 主题
     document.documentElement.setAttribute('data-theme', settings.theme);
@@ -1238,6 +1322,10 @@ function discardAndCloseSettingsModal() {
     _closeSettingsModalCleanup();
 }
 
+// 保存设置弹窗：
+// - 先把当前草稿应用到 localStorage 和 DOM；
+// - 再通过 pywebview.api 持久化到后端；
+// - 保存完成后关闭弹窗并清理 ESC 监听等临时状态。
 function saveSettingsModal() {
     if (!_settingsDraft) return;
 
@@ -1260,6 +1348,8 @@ function _closeSettingsModalCleanup() {
 }
 
 // ==================== 毛玻璃模式 ====================
+// 处理视觉层的玻璃透明度与启停逻辑，页面看起来“毛玻璃失效”时优先检查这里。
+// 这组函数围绕窗口视觉效果工作：初始化、切换开关、透明度持久化。
 async function initGlassMode() {
     let enabled = false;
     try {
@@ -1279,6 +1369,9 @@ async function initGlassMode() {
     await loadGlassOpacity();
 }
 
+// 开关毛玻璃模式：
+// - 直接操作 documentElement 上的 data-glass 属性，让全局 CSS 选择器立即生效；
+// - save=true 时会把最终开关同步给后端保存，false 则用于初始化/预览场景。
 function setGlassMode(enabled, save = true) {
     document.documentElement.setAttribute('data-glass', enabled ? 'true' : 'false');
     localStorage.setItem('glass_mode', enabled);
@@ -1335,6 +1428,8 @@ async function loadGlassOpacity() {
 }
 
 // ==================== 标题栏模式 ====================
+// 管理自定义标题栏/简约模式等窗口外观切换，对桌面壳层体验影响最大。
+// 标题栏模式会影响顶部拖拽/固定/融合表现，属于典型的“前端 UI + 桌面宿主配置”双向同步项。
 async function initTitlebarMode() {
     let mode = 'fixed';
     try {
@@ -1349,6 +1444,9 @@ async function initTitlebarMode() {
     setTitlebarMode(mode, false);
 }
 
+// 切换标题栏模式：
+// - fixed / minimal 本质上是切换顶栏 DOM 的展示策略；
+// - 与毛玻璃类似，既要改前端 DOM 状态，也要视情况把结果回写到后端。
 function setTitlebarMode(mode, save = true) {
     document.documentElement.setAttribute('data-titlebar-mode', mode);
     localStorage.setItem('titlebar_mode', mode);
@@ -1363,6 +1461,11 @@ function setTitlebarMode(mode, save = true) {
 }
 
 // ==================== 诊断面板快捷键 ====================
+// 方便开发或排障时快速打开诊断信息，适合定位模块加载和环境就绪问题。
+// 这里不是业务功能，而是给开发/排障时使用的快捷诊断入口。
+// 全局快捷键初始化：
+// - 这里负责把搜索、设置、诊断等“无论当前在哪个页面都能触发”的热键挂起来；
+// - 如果某个快捷键在所有页面都失效，通常先从这里看而不是去具体业务文件里找。
 function initShortcut() {
     document.addEventListener('keydown', function(e) {
         if (e.repeat) return;
@@ -1429,6 +1532,8 @@ function toggleDiagnosticsPanel() {
 }
 
 // ==================== Toast 通知 ====================
+// 全局轻提示统一走这里；如果多个页面的“保存成功/复制成功”样式不一致，也要回看这一段。
+// 各业务模块成功/失败提示尽量统一走这里，避免每个页面重复实现自己的轻提示。
 const TOAST_ICONS = {
     success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
     error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
@@ -1776,10 +1881,17 @@ async function initUIScale() {
 }
 
 // ==================== 全局搜索 ====================
+// 负责搜索框、结果面板和页面跳转，是跨页面定位功能的统一入口。
+// 全局搜索并不直接依赖后端，而是基于侧边栏导航构建工具注册表，
+// 再结合本地收藏/最近使用/使用频次做前端内搜索与跳转。
 
 const TOOLS_REGISTRY = {};
 let searchDebounceTimer = null;
 
+// 从导航 DOM 构建工具注册表：
+// - 避免重复维护一份独立的工具搜索配置；
+// - 也让“导航里能点开的页面”和“搜索里能搜到的页面”天然保持一致；
+// - 后续 performSearch()、selectSearchResult() 都依赖这份注册表做排序和跳转。
 function buildToolsRegistry() {
     if (Object.keys(TOOLS_REGISTRY).length > 0) return;
 
@@ -1818,6 +1930,9 @@ function generateKeywords(name, id) {
     return keywords;
 }
 
+// 初始化搜索弹窗输入逻辑：
+// - 负责绑定防抖输入与键盘上下选择；
+// - 真正的排序、分组和结果渲染由 performSearch() 完成。
 function initGlobalSearch() {
     buildToolsRegistry();
     loadSearchPreferences();
@@ -1883,6 +1998,10 @@ function closeSearchModal() {
     globalSearchState.isOpen = false;
 }
 
+// 执行搜索与结果渲染：
+// - 无关键字时展示收藏、最近使用和全量分类；
+// - 有关键字时按名称、关键词和使用频次综合排序；
+// - 最终点击结果仍会回到 switchPage() 完成页面切换。
 function performSearch() {
     const query = globalSearchState.query.toLowerCase().trim();
     const resultsContainer = document.getElementById('search-results');
@@ -2034,6 +2153,9 @@ function updateSearchSelection() {
     });
 }
 
+// 选择搜索结果：
+// - 搜索弹窗里的条目最终都会落到这里；
+// - 这里会关闭弹窗、记录最近使用和使用频次，并回到 switchPage() 完成实际跳转。
 function selectSearchResult(toolId) {
     trackToolUsage(toolId);
     closeSearchModal();
@@ -2052,6 +2174,9 @@ function toggleToolFavorite(toolId) {
     performSearch();
 }
 
+// 记录工具使用频次：
+// - 只维护轻量统计，用于全局搜索排序和“最近使用”展示；
+// - 不涉及后端持久化，因此适合做快速交互反馈。
 function trackToolUsage(toolId) {
     const count = globalSearchState.usageStats.get(toolId) || 0;
     globalSearchState.usageStats.set(toolId, count + 1);

@@ -1,13 +1,25 @@
+<!--
+页面总览：节点转换页：把订阅链接或节点文本转换成 YAML / JSON，并支持批量导入。
+补充说明：将订阅链接转换为 Clash/Mihomo YAML
+前端入口：app_nodes_converter.js -> convertLinks() / batchImportSubscriptions()
+后端链路：api.py -> NodeConverterService
+-->
+
 <!-- 自动拆分自 web/index.html：converter -->
+<!-- 页面骨架：左侧负责输入订阅和批量导入，右侧负责展示转换结果、校验结果和保存动作。 -->
 <section id="page-converter" class="page">
-                <div class="page-header">
-                    <div class="page-title">
-                        <h1>节点转换</h1>
-                        <p class="subtitle">将订阅链接转换为 Clash/Mihomo YAML</p>
-                    </div>
-                </div>
-                <div class="converter-layout">
-                    <div class="converter-panel">
+    <!-- 页面头部：说明当前模块用途。 -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>节点转换</h1>
+            <p class="subtitle">将订阅链接转换为 Clash/Mihomo YAML</p>
+        </div>
+    </div>
+
+    <!-- 主工作区：左侧收集订阅链接与节点文本，右侧展示转换结果。 -->
+    <div class="converter-layout">
+        <!-- 输入面板：支持单条订阅拉取、节点文本粘贴和批量订阅导入。 -->
+        <div class="converter-panel">
                         <div class="panel-header">
                             <h3>输入</h3>
                         </div>
@@ -15,19 +27,23 @@
                             <div class="form-group">
                                 <label>订阅链接（可选）</label>
                                 <div class="input-with-btn">
+                                    <!-- 订阅链接输入框：可直接填远程订阅地址。 -->
                                     <input type="text" id="subscription-url" placeholder="https://...">
+                                    <!-- 拉取按钮：先请求订阅内容，再回填到输入区参与转换。 -->
                                     <button class="btn btn-secondary" onclick="fetchSubscription()">拉取</button>
                                 </div>
                             </div>
                             <div class="form-group flex-1">
+                                <!-- 节点文本输入区：支持一次粘贴多行节点链接。 -->
                                 <label>节点链接（每行一个）</label>
                                 <textarea id="links-input" placeholder="vless://...&#10;hysteria2://...&#10;ss://..."></textarea>
                             </div>
+                            <!-- 转换按钮：把输入内容交给 NodeConverterService 转成 YAML/JSON。 -->
                             <button class="btn btn-primary btn-block" onclick="convertLinks()">
                                 <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>转换为 YAML
                             </button>
 
-                            <!-- 批量导入区域 -->
+                            <!-- 批量导入区：用于一次导入多个订阅链接，并查看结果。 -->
                             <div class="batch-import-section">
                                 <div class="section-divider">批量导入</div>
                                 <div class="form-group">
@@ -39,24 +55,32 @@
                             </div>
                         </div>
                     </div>
-                    <div class="converter-panel">
+        <!-- 输出面板：展示转换结果、错误信息和保存/复制/校验操作。 -->
+        <div class="converter-panel">
                         <div class="panel-header">
                             <h3>输出</h3>
+                            <!-- 局部操作区：当前面板的按钮一般放在这里，例如复制、清空、切换模式。 -->
                             <div class="panel-actions">
+                                <!-- 验证按钮：对当前输出中的节点做连通性或格式校验。 -->
                                 <button class="btn btn-sm btn-ghost" onclick="validateAllConvertedNodes()" title="验证节点">🔍 验证</button>
+                                <!-- 格式切换：在 YAML 和 JSON 两种输出视图之间切换。 -->
                                 <div class="format-toggle" title="切换输出格式">
                                     <button class="btn btn-sm btn-ghost format-btn" id="format-yaml-btn" onclick="setConvertOutputFormat('yaml')">YAML</button>
                                     <button class="btn btn-sm btn-ghost format-btn" id="format-json-btn" onclick="setConvertOutputFormat('json')">JSON</button>
                                 </div>
+                                <!-- 复制与保存：一个面向临时使用，一个面向持久化到节点库。 -->
                                 <button class="btn btn-sm btn-ghost" onclick="copyYaml()">复制</button>
                                 <button class="btn btn-sm btn-primary" onclick="saveConvertedNodes()">保存</button>
                             </div>
                         </div>
                         <div class="panel-body">
+                            <!-- 转换结果文本区：当前选中的输出格式会显示在这里。 -->
                             <textarea id="yaml-output" readonly placeholder="转换结果..."></textarea>
+                            <!-- 错误列表：转换失败时显示原因，方便回头排查输入问题。 -->
                             <div id="convert-errors" class="error-list"></div>
+                            <!-- 校验结果区：批量验证节点后在这里展示成功/失败明细。 -->
                             <div id="validation-results" class="validation-results" style="display: none;"></div>
                         </div>
-                    </div>
-                </div>
-            </section>
+        </div>
+    </div>
+</section>

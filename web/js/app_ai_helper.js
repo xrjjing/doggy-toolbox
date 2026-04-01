@@ -1,7 +1,24 @@
-// AI 辅助功能通用组件
-// 提供工具页面中的 AI 生成和 AI 修复功能
+/*
+ * 文件总览：工具页 AI 辅助能力公共组件。
+ *
+ * 服务范围：多个工具页右上角或面板内的“AI 生成 / AI 修复 / AI 分析”按钮。
+ * 主要职责：
+ * - 统一等待 pywebview API 就绪；
+ * - 读取工具 AI 开关配置；
+ * - 根据当前工具注入 AI 辅助按钮；
+ * - 组织 prompt、打开弹窗、提交请求并把 AI 结果回填到页面。
+ *
+ * 调用链通常是：工具页按钮 -> 本文件 -> window.pywebview.api.ai_chat() / get_tool_ai_config() -> api.py -> AIManager。
+ *
+ * 排查建议：
+ * - 工具页没有 AI 按钮：先看 checkToolAIEnabled()、createAIHelperButtons()；
+ * - 点了 AI 按钮没结果：看 executeAIGenerate()/executeAIFix()/executeAIAnalyze()。
+ */
 
-// AI 辅助功能配置缓存
+// AI 辅助功能通用组件
+// 提供工具页面中的 AI 生成、AI 修复、AI 分析，以及按钮注入与结果回填流程。
+
+// AI 辅助功能配置缓存：避免每个工具页都重复向后端读取同一份开关配置。
 let _aiHelperConfigCache = null;
 
 /**
@@ -10,6 +27,8 @@ let _aiHelperConfigCache = null;
  * @param {number} delayMs - 每次重试间隔（毫秒）
  * @returns {Promise<boolean>}
  */
+// 这是工具页 AI 按钮链路最前面的“桥接等待点”。
+// 如果页面上 AI 按钮完全不出现，除了开关配置外，也要先看这里有没有等到 API。
 async function waitForAIHelperAPI(maxRetries = 15, delayMs = 200) {
     for (let i = 0; i < maxRetries; i++) {
         if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.get_tool_ai_enabled === 'function') {
@@ -21,7 +40,7 @@ async function waitForAIHelperAPI(maxRetries = 15, delayMs = 200) {
     return false;
 }
 
-// 工具特定的 AI Prompt 配置
+// 工具特定的 AI Prompt 配置：决定每个工具页点下“AI 生成/修复/分析”后给模型的上下文。
 const TOOL_AI_PROMPTS = {
     // ========== 命令生成器类 ==========
     'tool-git': {
@@ -305,6 +324,9 @@ interface DataType {
  * @param {string} toolId - 工具 ID
  * @returns {Promise<{enabled: boolean, features: {generate: boolean, fix: boolean}}>}
  */
+// 页面位置：不是直接可见的 UI，而是 AI 按钮注入前的权限/配置守门逻辑。
+// 后端链路：window.pywebview.api.get_tool_ai_enabled(toolId)
+//        -> api.py / 配置读取层 -> 返回当前工具是否显示生成/修复/分析按钮。
 async function checkToolAIEnabled(toolId) {
     try {
         // 等待 API 就绪
@@ -342,6 +364,9 @@ function cleanAICodeBlockOutput(text) {
  * @param {object} context - 上下文信息（可选）
  * @returns {Promise<{success: boolean, result?: string, error?: string}>}
  */
+// 调用链：工具页“AI 生成”按钮 -> 本函数 -> pywebview.api.ai_chat() -> api.py -> AIManager。
+// 这里只负责准备 prompt 和拿结果，不负责弹窗和页面回填。
+// 外行排查建议：如果弹窗能打开但总提示 AI 请求失败，先看这里的 result.error 和后端 ai_chat 链路。
 async function executeAIGenerate(toolId, userInput, context = {}) {
     const config = TOOL_AI_PROMPTS[toolId];
     if (!config || !config.generate) {
@@ -380,6 +405,8 @@ async function executeAIGenerate(toolId, userInput, context = {}) {
  * @param {string} errorMessage - 错误信息（可选）
  * @returns {Promise<{success: boolean, result?: string, error?: string}>}
  */
+// 调用链：工具页“AI 修复”按钮 -> 本函数 -> pywebview.api.ai_chat() -> api.py -> AIManager。
+// 这里输入的是“当前工具已有内容 + 可选错误信息”，适合排查“为什么 AI 修复建议不贴合当前报错”。
 async function executeAIFix(toolId, content, errorMessage = '') {
     const config = TOOL_AI_PROMPTS[toolId];
     if (!config || !config.fix) {
@@ -417,6 +444,8 @@ async function executeAIFix(toolId, content, errorMessage = '') {
  * @param {string} content - 需要分析的内容
  * @returns {Promise<{success: boolean, result?: string, error?: string}>}
  */
+// 调用链：工具页“AI 分析”按钮 -> 本函数 -> pywebview.api.ai_chat() -> api.py -> AIManager。
+// 和 generate/fix 不同，这里通常保留 Markdown 结果，供后续分析结果弹窗继续渲染。
 async function executeAIAnalyze(toolId, content) {
     const config = TOOL_AI_PROMPTS[toolId];
     if (!config || !config.analyze) {
@@ -448,6 +477,9 @@ async function executeAIAnalyze(toolId, content) {
  * @param {object} callbacks - 回调函数 { onGenerate, onFix, getContent }
  * @returns {HTMLElement} - 按钮组元素
  */
+// 页面位置：各工具页结果区上方或右上角的 AI 按钮条。
+// 这里只负责创建按钮 DOM，不决定按钮是否可见；显示与否还要看 checkToolAIEnabled()。
+// 也就是说：这个函数负责“画按钮”，initToolAIButtons()/initToolAIHelper() 负责“把按钮塞到哪个页面块里”。
 function createAIHelperButtons(toolId, callbacks) {
     const container = document.createElement('div');
     container.className = 'ai-helper-buttons';
@@ -488,6 +520,8 @@ function createAIHelperButtons(toolId, callbacks) {
 /**
  * 显示 AI 生成弹窗
  */
+// 页面位置：点击“AI 生成”按钮后弹出的需求输入对话框。
+// 负责内容：需求 textarea、示例 chip、生成按钮、取消按钮。
 function showAIGenerateModal(toolId, callbacks) {
     const config = TOOL_AI_PROMPTS[toolId];
     if (!config || !config.generate) return;
@@ -563,6 +597,9 @@ function escapeHtml(text) {
 /**
  * 提交 AI 生成请求
  */
+// 页面触发：AI 生成弹窗里的“生成”按钮。
+// 这里会把弹窗输入、加载状态、AI 请求和结果回填串起来。
+// 完整链路：弹窗 textarea -> executeAIGenerate() -> onGenerate 回调 -> 具体工具页输入框/输出框。
 async function submitAIGenerate(toolId) {
     const modal = document.querySelector('.ai-generate-modal');
     if (!modal) return;
@@ -606,6 +643,9 @@ async function submitAIGenerate(toolId) {
 /**
  * 执行 AI 修复并更新 UI
  */
+// 页面触发：工具页的“AI 修复”按钮。
+// executeAIFix() 只负责拿结果，这里则负责 toast 提示和把结果回填给具体工具页。
+// 如果用户说“AI 修复成功提示出来了，但页面内容没变化”，优先检查 onFix 回调是否正确传入。
 async function executeAIFixWithUI(toolId, content, onFix) {
     showToast('🔧 AI 正在修复...', 'info');
 
@@ -625,6 +665,9 @@ async function executeAIFixWithUI(toolId, content, onFix) {
  * 显示 AI 分析结果弹窗
  * @param {string} content - 分析结果内容（Markdown 格式）
  */
+// 页面位置：点击“AI 分析”后出现的结果弹窗。
+// 如果用户说“分析成功了但没地方看结果”，优先先看这里是否正确渲染和挂到 body。
+// 弹窗主体分为：标题栏、Markdown 结果区、底部关闭按钮。
 function showAIAnalyzeResultModal(content) {
     // 移除已存在的弹窗
     const existingModal = document.querySelector('.ai-analyze-modal');
@@ -677,6 +720,8 @@ function showAIAnalyzeResultModal(content) {
  * 简单的 Markdown 渲染（用于分析结果）
  * 安全处理：先转义所有 HTML，再做安全的 Markdown 替换
  */
+// 这是 AI 分析结果弹窗里的正文渲染器。
+// 它不是通用 Markdown 引擎，而是一个够用的轻量渲染器；如果显示格式怪异，先从这里看支持了哪些语法。
 function renderAnalyzeMarkdown(text) {
     if (!text) return '';
 
@@ -717,6 +762,9 @@ function renderAnalyzeMarkdown(text) {
  * @param {string} toolId - 工具 ID
  * @param {string} content - 需要分析的内容
  */
+// 页面触发：工具页的“AI 分析”按钮。
+// 它把 executeAIAnalyze() 和 showAIAnalyzeResultModal() 串成一条完整 UI 链。
+// 换句话说：executeAIAnalyze() 负责“问后端拿分析结果”，这里负责“把结果展示给用户看”。
 async function executeAIAnalyzeWithUI(toolId, content) {
     if (!content.trim()) {
         showToast('请先输入内容', 'warning');
@@ -740,6 +788,9 @@ async function executeAIAnalyzeWithUI(toolId, content) {
  * @param {string} toolId - 工具 ID
  * @param {object} options - 配置选项
  */
+// 页面位置：某个具体工具页的 AI 按钮容器。
+// 这是“给某个工具页注入 AI 按钮”的通用入口，常见于独立工具页初始化阶段。
+// 适合看作“轻量注入版”入口：你告诉它容器节点、回调和工具 ID，它就把 AI 按钮插进去。
 async function initToolAIHelper(toolId, options = {}) {
     // 检查 AI 功能是否启用
     const aiStatus = await checkToolAIEnabled(toolId);
@@ -971,6 +1022,9 @@ const TOOL_AI_BUTTON_CONFIG = {
  * 初始化指定工具的 AI 按钮
  * @param {string} toolId - 工具 ID
  */
+// 页面位置：TOOL_AI_BUTTON_CONFIG 里声明过 containerId 的那些工具页。
+// 如果功能开关已经开了，但按钮还是没显示，除了看配置，还要看这里是否成功找到容器并完成注入。
+// 完整链路：页面 DOM 准备完成 -> initToolAIButtons(toolId) -> checkToolAIEnabled() -> createAIHelperButtons() -> append 到容器。
 async function initToolAIButtons(toolId) {
     const config = TOOL_AI_BUTTON_CONFIG[toolId];
     if (!config) return;
@@ -1075,6 +1129,8 @@ async function initToolAIButtons(toolId) {
  * 刷新所有已加载工具页面的 AI 按钮
  * 当全局开关或工具开关变化时调用
  */
+// 典型触发方：app_ai_settings.js 里的 toggleGlobalAI()/toggleToolAI()。
+// 它的作用不是重新计算 AI 结果，而是把已经打开的工具页按钮显示状态重新同步一遍。
 async function refreshAllToolAIButtons() {
     for (const toolId of Object.keys(TOOL_AI_BUTTON_CONFIG)) {
         const config = TOOL_AI_BUTTON_CONFIG[toolId];
@@ -1090,6 +1146,9 @@ async function refreshAllToolAIButtons() {
  * 在 app_core.js 的 handlePageEnter 中调用
  * @param {string} pageId - 页面 ID
  */
+// 这是 app_core.js 和本文件之间的衔接点：
+// 页面切进来以后，会在这里把 pageId 翻译成 toolId，再决定要不要注入 AI 按钮。
+// 如果用户说“切换到工具页第一次没按钮，刷新后才有”，通常就要沿着 app_core.js -> initPageAIButtons() 这条入口排查。
 async function initPageAIButtons(pageId) {
     // 将页面 ID 转换为工具 ID（去掉 page- 前缀）
     const toolId = pageId.replace(/^page-/, '');

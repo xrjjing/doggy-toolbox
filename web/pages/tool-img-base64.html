@@ -1,3 +1,9 @@
+<!--
+页面总览：图片 Base64 转换 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：图片与 Base64 Data URI 互转，支持 PNG/JPG/GIF/WebP/SVG
+前端入口：app_tools_c.js -> initImgBase64Tool()
+-->
+
 <!-- 图片 Base64 转换工具 -->
 <style>
 /* M37 图片 Base64 专用样式 */
@@ -147,23 +153,32 @@
     resize: vertical;
 }
 </style>
+<!-- 页面骨架：这是带上传与预览能力的图片转换页，左侧处理图片→Base64，右侧处理 Base64→图片。 -->
 <section id="page-tool-img-base64" class="page">
-    <div class="page-header">
+
+<!-- 页面头部：说明当前工具用于图片文件与 Data URI/Base64 文本互转。 -->
+
+<div class="page-header">
         <div class="page-title">
             <h1>图片 Base64 转换</h1>
             <p class="subtitle">图片与 Base64 Data URI 互转，支持 PNG/JPG/GIF/WebP/SVG</p>
         </div>
     </div>
-    <div class="converter-layout">
+
+<!-- 主工作区：左侧上传图片并生成 Base64，右侧粘贴 Base64 并预览还原图片。 -->
+
+<div class="converter-layout">
         <!-- 图片转 Base64 -->
         <div class="converter-panel">
             <div class="panel-header">
                 <h3>图片 → Base64</h3>
+                <!-- 面板按钮区：围绕当前面板执行复制、清空、模式切换等局部操作。 -->
                 <div class="panel-actions">
                     <button type="button" class="btn btn-sm btn-ghost" onclick="clearImgToBase64()">清空</button>
                 </div>
             </div>
             <div class="panel-body">
+                <!-- 上传区域：支持点击选择或拖拽图片文件，读取后在下方预览并生成 Base64。 -->
                 <div class="img-upload-zone" id="img-upload-zone"
                      tabindex="0"
                      role="button"
@@ -198,6 +213,7 @@
                     <label for="img-base64-output">Base64 输出</label>
                     <textarea id="img-base64-output" readonly placeholder="Base64 输出将显示在这里..." aria-label="Base64 输出结果"></textarea>
                 </div>
+                <!-- 面板按钮区：围绕当前面板执行复制、清空、模式切换等局部操作。 -->
                 <div class="panel-actions" style="justify-content: flex-end;">
                     <button type="button" id="copy-base64-btn" class="btn btn-sm btn-ghost" onclick="copyImgBase64(this)" disabled>复制</button>
                 </div>
@@ -207,6 +223,7 @@
         <div class="converter-panel">
             <div class="panel-header">
                 <h3>Base64 → 图片</h3>
+                <!-- 面板按钮区：围绕当前面板执行复制、清空、模式切换等局部操作。 -->
                 <div class="panel-actions">
                     <button type="button" class="btn btn-sm btn-ghost" onclick="clearBase64ToImg()">清空</button>
                 </div>
@@ -217,6 +234,7 @@
                     <textarea id="base64-img-input" placeholder="粘贴 Base64 字符串或 Data URI..." oninput="updateBase64Preview()"></textarea>
                 </div>
                 <div id="base64-img-errors" class="error-list" aria-live="assertive"></div>
+                <!-- 图片预览区域：根据右侧输入的 Data URI/Base64 动态渲染图片或错误状态。 -->
                 <div class="base64-preview-zone" id="base64-preview-zone">
                     <div class="preview-placeholder" id="base64-preview-placeholder">
                         <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -231,6 +249,7 @@
                         <div class="img-info" id="base64-img-info" aria-live="polite"></div>
                     </div>
                 </div>
+                <!-- 面板按钮区：围绕当前面板执行复制、清空、模式切换等局部操作。 -->
                 <div class="panel-actions" style="justify-content: flex-end; margin-top: 12px;">
                     <button type="button" id="download-img-btn" class="btn btn-sm btn-ghost" onclick="downloadBase64Img()" disabled>下载图片</button>
                 </div>

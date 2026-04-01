@@ -1,27 +1,49 @@
+<!--
+页面总览：命令管理页：维护命令页签、命令卡片、搜索和批量导入入口。
+补充说明：管理常用的命令组合
+前端入口：app_computer_usage.js -> loadTabs() / loadCommands()
+后端链路：api.py -> ComputerUsageService
+-->
+
 <!-- 自动拆分自 web/index.html：commands -->
+<!-- 页面骨架：上方是标题和全局操作，中间依次是命令页签、搜索栏，底部是按分类渲染的命令卡片区。 -->
 <section id="page-commands" class="page">
-                <div class="page-header">
-                    <div class="page-title">
-                        <h1>命令管理</h1>
-                        <p class="subtitle">管理常用的命令组合</p>
-                    </div>
-                    <div class="page-actions">
-                        <button class="btn btn-ghost" onclick="showTabModal()">
-                            <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>管理页签
-                        </button>
-                        <button class="btn btn-ghost" onclick="showImportModal('commands')">
-                            <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>批量导入
-                        </button>
-                        <button class="btn btn-primary" onclick="showCommandModal()">
-                            <span class="btn-icon">+</span>添加命令
-                        </button>
-                    </div>
-                </div>
-                <div class="tabs-bar" id="command-tabs">
-                    <!-- 页签将由JS动态渲染 -->
-                </div>
-                <div class="search-bar">
-                    <input type="text" id="command-search" placeholder="搜索命令标题..." oninput="filterCommands()">
-                </div>
-                <div id="commands-list" class="commands-grid"></div>
-            </section>
+    <!-- 页面头部：展示标题说明，并集中放置命令管理的全局操作。 -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>命令管理</h1>
+            <p class="subtitle">管理常用的命令组合</p>
+        </div>
+
+        <!-- 页面操作区：管理页签、导入命令文本、创建新的命令卡片。 -->
+        <div class="page-actions">
+            <!-- 页签管理按钮：进入页签新增、重命名、排序等二级流程。 -->
+            <button class="btn btn-ghost" onclick="showTabModal()">
+                <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>管理页签
+            </button>
+            <!-- 批量导入按钮：把文本格式命令一次性解析成命令卡片。 -->
+            <button class="btn btn-ghost" onclick="showImportModal('commands')">
+                <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>批量导入
+            </button>
+            <!-- 添加命令按钮：打开命令编辑弹窗，创建新的命令卡片。 -->
+            <button class="btn btn-primary" onclick="showCommandModal()">
+                <span class="btn-icon">+</span>添加命令
+            </button>
+        </div>
+    </div>
+
+    <!-- 页面主体：这里不直接写死命令内容，而是把“分类切换 + 关键字过滤 + 命令卡片渲染”集中在同一工作区域。 -->
+
+    <!-- 命令页签区：由 app_computer_usage.js 动态渲染页签，切换当前命令分类。 -->
+    <div class="tabs-bar" id="command-tabs">
+        <!-- 页签将由 JS 动态渲染 -->
+    </div>
+
+    <!-- 搜索栏：按标题关键字过滤当前页签下的命令卡片。 -->
+    <div class="search-bar">
+        <input type="text" id="command-search" placeholder="搜索命令标题..." oninput="filterCommands()">
+    </div>
+
+    <!-- 命令卡片列表：真正的命令块由 app_computer_usage.js 拉取并渲染到这里。 -->
+    <div id="commands-list" class="commands-grid"></div>
+</section>

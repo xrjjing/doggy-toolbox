@@ -1,17 +1,31 @@
+<!--
+页面总览：HTTP 请求集合页：左侧管理集合树，右侧编辑请求并查看响应。
+补充说明：管理和测试 API 请求集合
+前端入口：app_http_collections.js -> loadHttpCollections() / loadRequest()
+后端链路：api.py -> HttpCollectionsService / http_request()
+-->
+
 <!-- 自动拆分自 web/index.html：http-collections -->
+<!-- 页面骨架：上方是集合级操作区，中间是“集合树 + 请求编辑器 + 响应面板”的双栏工作台。 -->
 <section id="page-http-collections" class="page">
+    <!-- 页面头部：显示模块说明，并提供环境切换、导入导出、新建集合等入口。 -->
     <div class="page-header">
         <div class="page-title">
             <h1>HTTP 请求集合</h1>
             <p class="subtitle">管理和测试 API 请求集合</p>
         </div>
+
+        <!-- 顶部操作区：环境切换决定变量替换上下文，其余按钮负责导入导出与集合创建。 -->
         <div class="page-actions">
+            <!-- 环境选择区：切换当前请求使用的环境变量，并进入环境管理流程。 -->
             <div class="env-selector-wrapper">
                 <select id="env-selector" class="env-selector" onchange="switchHttpEnvironment(this.value)">
                     <option value="">无环境</option>
                 </select>
                 <button class="btn btn-sm btn-ghost" onclick="openEnvManagerModal()" title="管理环境">⚙️</button>
             </div>
+
+            <!-- 导出下拉：把当前集合导出为 OpenAPI 或 Postman 格式。 -->
             <div class="dropdown">
                 <button class="btn btn-ghost dropdown-toggle" onclick="toggleDropdown(this)">导出 ▼</button>
                 <div class="dropdown-menu">
@@ -19,40 +33,56 @@
                     <a class="dropdown-item" onclick="exportCollectionPostman()">Postman Collection</a>
                 </div>
             </div>
+
+            <!-- 导入入口：打开导入弹窗，从外部平台导入集合定义。 -->
             <button class="btn btn-primary" onclick="showImportCollectionModal()">导入</button>
+
+            <!-- 新建集合入口：新增一个根级集合节点。 -->
             <button class="btn btn-primary" onclick="showNewCollectionModal()">新建集合</button>
         </div>
     </div>
 
+    <!-- 主工作区：左侧是集合树，右侧是请求编辑与响应查看。 -->
     <div class="http-collections-container">
-        <!-- 左侧：集合树 -->
+        <!-- 集合树侧栏：展示集合、文件夹与请求节点，点选后驱动右侧编辑区刷新。 -->
         <div class="collections-sidebar" id="collections-sidebar">
             <div class="collections-sidebar-header">
                 <h3>集合</h3>
+                <!-- 侧栏收起按钮：给请求编辑区留更多空间。 -->
                 <button class="btn-icon" onclick="toggleCollectionsSidebar()" title="收起/展开">◀</button>
             </div>
+
+            <!-- 集合列表容器：树节点由 app_http_collections.js 动态渲染并维护展开状态。 -->
             <div class="collections-list" id="collections-list">
                 <!-- 动态生成 -->
             </div>
         </div>
 
-        <!-- 右侧：请求详情 + 测试工具 -->
+        <!-- 右侧详情区：没有选中请求时显示空状态，选中后进入请求编辑器。 -->
         <div class="request-detail">
+            <!-- 空状态区：当前没有可展示数据时，会在这里给出下一步提示。 -->
             <div class="empty-state" id="empty-state">
                 <p>选择一个请求或创建新请求</p>
             </div>
+
+            <!-- 请求编辑器：维护请求名称、方法、URL、参数、Header、Body 和 cURL。 -->
             <div class="request-editor" id="request-editor" style="display: none;">
+                <!-- 请求头部：修改当前请求名称，并执行保存/删除。 -->
                 <div class="request-header">
                     <input type="text" id="request-name" placeholder="请求名称" class="request-name-input">
                     <div class="request-actions">
+                        <!-- 保存按钮：把右侧编辑器中的请求定义写回集合。 -->
                         <button class="btn btn-ghost" onclick="saveCurrentRequest()">保存</button>
+                        <!-- 删除按钮：删除当前选中的请求节点。 -->
                         <button class="btn btn-ghost" onclick="deleteCurrentRequest()">删除</button>
                     </div>
                 </div>
 
+                <!-- 请求测试工作台：左侧配置请求，右侧查看响应与历史。 -->
                 <div class="http-tool-horizontal">
-                    <!-- 左侧：请求配置 -->
+                    <!-- 请求配置区：填写方法、URL、Query、Header、Body 与 cURL。 -->
                     <div class="http-request-panel">
+                        <!-- URL 工具条：选择方法、填写 URL，并发起一次实际请求。 -->
                         <div class="http-url-bar">
                             <select id="http-method" class="http-method-select">
                                 <option value="GET">GET</option>
@@ -64,9 +94,11 @@
                                 <option value="OPTIONS">OPTIONS</option>
                             </select>
                             <input type="text" id="http-url" placeholder="请求 URL" class="http-url-input">
+                            <!-- 发送按钮：读取当前编辑器内容，通过 api.py -> http_request() 发送请求。 -->
                             <button class="btn btn-primary" onclick="sendHttpRequestFromCollection()">发送</button>
                         </div>
 
+                        <!-- 请求设置条：控制 SSL 校验等执行期参数。 -->
                         <div class="http-settings-bar">
                             <label class="http-setting-item" title="取消勾选可测试自签名证书的接口">
                                 <input type="checkbox" id="http-verify-ssl" checked>
@@ -74,6 +106,7 @@
                             </label>
                         </div>
 
+                        <!-- 请求配置 Tab：在 Query、Header、Body 与 cURL 之间切换编辑。 -->
                         <div class="http-tabs">
                             <button class="http-tab active" data-tab="params" onclick="switchHttpTab('params')">Query 参数</button>
                             <button class="http-tab" data-tab="headers" onclick="switchHttpTab('headers')">请求头</button>
@@ -81,6 +114,7 @@
                             <button class="http-tab" data-tab="curl" onclick="switchHttpTab('curl')">cURL</button>
                         </div>
 
+                        <!-- Query 参数编辑器：动态增删键值对并控制是否启用。 -->
                         <div class="http-tab-content active" id="http-tab-params">
                             <div class="http-kv-editor" id="http-params-editor">
                                 <div class="http-kv-row">
@@ -92,6 +126,7 @@
                             </div>
                         </div>
 
+                        <!-- 请求头编辑器：维护 Header 键值对。 -->
                         <div class="http-tab-content" id="http-tab-headers">
                             <div class="http-kv-editor" id="http-headers-editor">
                                 <div class="http-kv-row">
@@ -103,6 +138,7 @@
                             </div>
                         </div>
 
+                        <!-- 请求体编辑器：按 none/json/form/raw 切换不同的 body 输入方式。 -->
                         <div class="http-tab-content" id="http-tab-body">
                             <div class="http-body-type">
                                 <label>
@@ -127,6 +163,7 @@
                             </div>
                         </div>
 
+                        <!-- cURL 面板：把 cURL 解析成表单，或把当前表单反向导出为 cURL。 -->
                         <div class="http-tab-content" id="http-tab-curl">
                             <textarea id="http-curl-input" placeholder="粘贴 cURL 命令，点击「解析」按钮将自动填充到请求表单中..." spellcheck="false"></textarea>
                             <div class="http-curl-actions">
@@ -136,28 +173,40 @@
                         </div>
                     </div>
 
-                    <!-- 右侧：响应 -->
+                    <!-- 响应展示区：查看响应正文、树形、响应头和发送历史。 -->
                     <div class="http-response-panel">
                         <div class="http-response-header">
                             <h3>响应</h3>
+                            <!-- 响应摘要：一般显示状态码、耗时、大小等元信息。 -->
                             <div class="http-response-meta" id="http-response-meta"></div>
                         </div>
+
+                        <!-- 响应 Tab：在原文、树形、Headers、历史之间切换。 -->
                         <div class="http-response-tabs">
                             <button class="http-tab active" data-tab="response-body" onclick="switchHttpResponseTab('response-body')">Body</button>
                             <button class="http-tab" data-tab="response-tree" onclick="switchHttpResponseTab('response-tree')">树形</button>
                             <button class="http-tab" data-tab="response-headers" onclick="switchHttpResponseTab('response-headers')">Headers</button>
                             <button class="http-tab" data-tab="response-history" onclick="switchHttpResponseTab('response-history')">历史</button>
                         </div>
+
+                        <!-- 响应内容区：根据当前响应 Tab 渲染不同的查看方式。 -->
                         <div class="http-response-content">
+                            <!-- 原始响应正文：直接查看文本内容。 -->
                             <div class="http-tab-content active" id="http-tab-response-body">
                                 <textarea id="http-response-body" readonly placeholder="响应内容将显示在这里..." spellcheck="false"></textarea>
                             </div>
+
+                            <!-- 树形响应：适合 JSON 结构化查看。 -->
                             <div class="http-tab-content" id="http-tab-response-tree">
                                 <div id="http-response-tree" class="jtree-container"></div>
                             </div>
+
+                            <!-- 响应头：查看服务端返回的 Header。 -->
                             <div class="http-tab-content" id="http-tab-response-headers">
                                 <textarea id="http-response-headers-text" readonly placeholder="响应头将显示在这里..." spellcheck="false"></textarea>
                             </div>
+
+                            <!-- 请求历史：展示最近测试记录，便于回看调试。 -->
                             <div class="http-tab-content" id="http-tab-response-history">
                                 <div id="http-request-history" class="http-history-list"></div>
                             </div>
@@ -169,13 +218,15 @@
     </div>
 </section>
 
-<!-- 新建集合弹窗 -->
+<!-- 新建集合弹窗：创建新的根级接口集合。 -->
 <div id="new-collection-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
             <h2>新建集合</h2>
             <button class="modal-close" onclick="closeModal('new-collection-modal')">×</button>
         </div>
+
+        <!-- 基础信息区：集合名称和描述会成为集合节点的元数据。 -->
         <div class="modal-body">
             <div class="form-group">
                 <label>集合名称</label>
@@ -186,6 +237,8 @@
                 <textarea id="new-collection-description" placeholder="输入描述（可选）"></textarea>
             </div>
         </div>
+
+        <!-- 底部操作：取消关闭，创建则真正落一个集合节点。 -->
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal('new-collection-modal')">取消</button>
             <button class="btn btn-primary" onclick="createNewCollection()">创建</button>
@@ -193,13 +246,15 @@
     </div>
 </div>
 
-<!-- 导入集合弹窗 -->
+<!-- 导入集合弹窗：支持导入 Postman / Apifox / OpenAPI 数据。 -->
 <div id="import-collection-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
             <h2>导入集合</h2>
             <button class="modal-close" onclick="closeModal('import-collection-modal')">×</button>
         </div>
+
+        <!-- 导入配置区：先选来源格式，再通过文件选择器指定要导入的 JSON 文件。 -->
         <div class="modal-body">
             <div class="form-group">
                 <label>选择格式</label>
@@ -218,6 +273,8 @@
                 <div class="form-hint">支持 JSON 文件（.json）</div>
             </div>
         </div>
+
+        <!-- 底部操作：确认后调用 importCollection() 执行真正导入。 -->
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal('import-collection-modal')">取消</button>
             <button class="btn btn-primary" onclick="importCollection()">导入</button>
@@ -225,13 +282,15 @@
     </div>
 </div>
 
-<!-- 新建请求弹窗 -->
+<!-- 新建请求弹窗：在当前集合或文件夹下创建一条请求节点。 -->
 <div id="new-request-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
             <h2>新建请求</h2>
             <button class="modal-close" onclick="closeModal('new-request-modal')">×</button>
         </div>
+
+        <!-- 请求初始信息：名称、方法、URL 会成为右侧编辑器的初始内容。 -->
         <div class="modal-body">
             <div class="form-group">
                 <label>请求名称</label>
@@ -254,6 +313,8 @@
                 <input type="text" id="new-request-url" placeholder="https://api.example.com/endpoint">
             </div>
         </div>
+
+        <!-- 底部操作：创建成功后会选中新请求并进入编辑状态。 -->
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal('new-request-modal')">取消</button>
             <button class="btn btn-primary" onclick="createNewRequest()">创建</button>
@@ -261,13 +322,15 @@
     </div>
 </div>
 
-<!-- 环境管理弹窗 -->
+<!-- 环境管理弹窗：管理可复用的环境变量集合。 -->
 <div id="env-manager-modal" class="modal">
     <div class="modal-content modal-md">
         <div class="modal-header">
             <h2>环境管理</h2>
             <button class="modal-close" onclick="closeEnvManagerModal()">×</button>
         </div>
+
+        <!-- 环境列表区：上方按钮新建环境，下方列表由 JS 动态渲染现有环境。 -->
         <div class="modal-body">
             <div class="env-manager-toolbar">
                 <button class="btn btn-primary btn-sm" onclick="createEnvironment()">+ 新建环境</button>
@@ -279,13 +342,15 @@
     </div>
 </div>
 
-<!-- 环境编辑弹窗 -->
+<!-- 环境编辑弹窗：编辑环境名称和变量键值，用于请求发送时做变量替换。 -->
 <div id="env-edit-modal" class="modal">
     <div class="modal-content modal-md">
         <div class="modal-header">
             <h2>编辑环境</h2>
             <button class="modal-close" onclick="closeEnvEditModal()">×</button>
         </div>
+
+        <!-- 环境表单：隐藏字段保存编辑对象 ID，变量编辑区由 JS 动态维护多行键值。 -->
         <div class="modal-body">
             <input type="hidden" id="env-edit-id">
             <div class="form-group">
@@ -299,6 +364,8 @@
                 </div>
             </div>
         </div>
+
+        <!-- 底部操作：保存后更新环境列表，并刷新顶部环境选择器。 -->
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeEnvEditModal()">取消</button>
             <button class="btn btn-primary" onclick="saveEnvironment()">保存</button>

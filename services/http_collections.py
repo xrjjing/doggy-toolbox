@@ -1,4 +1,9 @@
-"""HTTP 请求集合管理服务"""
+"""HTTP 请求集合服务。
+
+对应 web/pages/http-collections.html，负责集合、文件夹、请求、环境变量和导入导出的持久化。
+页面上的集合树、请求详情和环境变量管理，后端最终都会落到这里。
+"""
+
 import json
 import uuid
 from datetime import datetime
@@ -11,6 +16,8 @@ from services.db_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
+
+# ========== 集合/文件夹/请求/环境的数据结构 ==========
 
 @dataclass
 class HttpRequest:
@@ -75,7 +82,9 @@ class HttpCollection:
 
 
 class HttpCollectionsService:
-    """HTTP 请求集合管理服务"""
+    """HTTP 集合页背后的数据服务。
+
+    集合树、文件夹、请求节点和环境变量都会在这里被组织成前端可直接消费的结构。"""
 
     def __init__(self, data_dir: Path, db: DatabaseManager | None = None):
         self.data_dir = data_dir
@@ -91,6 +100,7 @@ class HttpCollectionsService:
             logger.info("HttpCollectionsService 使用独立数据库")
 
 
+    # ========== 集合树构建与读取 ==========
     def _build_tree_from_db(self) -> List[Dict]:
         """从数据库构建集合树形结构"""
         all_items = self.db.get_all("http_collections", order_by="order_index ASC")
@@ -151,6 +161,7 @@ class HttpCollectionsService:
             logger.error(f"从数据库获取集合失败: {e}")
             return []
 
+    # ========== 集合 / 文件夹 / 请求 CRUD ==========
     def add_collection(self, name: str, description: str = "") -> Dict:
         """新建集合"""
         new_collection = {
@@ -322,6 +333,7 @@ class HttpCollectionsService:
             logger.error(f"删除请求失败: {e}")
             raise
 
+    # ========== 第三方集合导入 ==========
     def import_postman(self, postman_data: Dict) -> Dict:
         """导入 Postman 集合"""
         collection_name = postman_data.get("info", {}).get("name", "导入的集合")
@@ -575,6 +587,7 @@ class HttpCollectionsService:
 
     # ==================== 导出功能 ====================
 
+    # ========== 导出为标准格式 ==========
     def export_openapi(self, collection_id: str = None) -> Dict:
         """
         导出为 OpenAPI 3.0 格式
@@ -844,6 +857,7 @@ class HttpCollectionsService:
 
     # ==================== 环境变量管理 ====================
 
+    # ========== 环境变量管理 ==========
     def get_environments(self) -> List[Dict]:
         """获取所有环境变量"""
         try:
@@ -941,6 +955,7 @@ class HttpCollectionsService:
             logger.error(f"设置活跃环境失败: {e}")
             return {"success": False, "error": str(e)}
 
+    # ========== 变量替换辅助 ==========
     def replace_variables(self, text: str, env_id: str = None) -> str:
         """替换文本中的环境变量"""
         import re

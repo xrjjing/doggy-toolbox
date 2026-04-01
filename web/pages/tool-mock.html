@@ -1,55 +1,78 @@
+<!--
+页面总览：Mock 数据生成 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：生成测试用的假数据
+前端入口：app_tools_c.js -> initMockTool()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-mock -->
+<!-- 页面骨架：上方是标题与页面级操作，中间先配置生成规则，再在输出面板查看和复制结果。 -->
 <section id="page-tool-mock" class="page">
-		                <div class="page-header">
-		                    <div class="page-title">
-		                        <h1>Mock 数据生成</h1>
-		                        <p class="subtitle">生成测试用的假数据</p>
-		                    </div>
-		                    <div class="page-actions">
-		                        <!-- AI 辅助按钮容器 -->
-		                        <div id="mock-ai-buttons" class="ai-helper-buttons"></div>
-		                        <button class="btn btn-ghost" onclick="clearMockTool()">清空</button>
-		                    </div>
-		                </div>
-		                <div class="mock-tool">
-		                    <div class="converter-panel">
-		                        <div class="panel-header">
-		                            <h3>生成的数据</h3>
-		                            <div class="panel-actions">
-		                                <button class="btn btn-sm btn-ghost" onclick="generateMockData()">生成</button>
-		                                <button class="btn btn-sm btn-ghost" onclick="copyMockOutput(this)">复制</button>
-		                            </div>
-		                        </div>
-		                        <div class="panel-body">
-		                            <textarea id="mock-output" readonly placeholder="生成的 Mock 数据将显示在这里..." spellcheck="false"></textarea>
-		                        </div>
-		                    </div>
-		                    <div class="mock-options">
-		                        <div class="form-group">
-		                            <label>数据类型：</label>
-		                            <select id="mock-type">
-		                                <option value="name">中文姓名</option>
-		                                <option value="email">邮箱</option>
-		                                <option value="phone">手机号</option>
-		                                <option value="idcard">身份证号</option>
-		                                <option value="address">地址</option>
-		                                <option value="uuid">UUID</option>
-		                                <option value="date">日期</option>
-		                            </select>
-		                        </div>
-		                        <div class="form-group">
-		                            <label>生成数量：</label>
-		                            <input type="number" id="mock-count" value="10" min="1" max="1000">
-		                        </div>
-		                        <div class="form-group">
-		                            <label>输出格式：</label>
-		                            <select id="mock-output-format">
-		                                <option value="lines">纯文本（每行一个）</option>
-		                                <option value="json">JSON 数组</option>
-		                                <option value="csv">CSV 格式</option>
-		                                <option value="jsonlines">JSON Lines</option>
-		                            </select>
-		                        </div>
-		                    </div>
-		                </div>
-		            </section>
+    <!-- 页面头部：说明这是一个测试数据生成页，并提供 AI/清空入口。 -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Mock 数据生成</h1>
+            <p class="subtitle">生成测试用的假数据</p>
+        </div>
+
+        <!-- 页面操作区：页面级动作放这里。 -->
+        <div class="page-actions">
+            <!-- AI 辅助按钮容器：可按需注入“生成样例”“解释字段”之类扩展动作。 -->
+            <div id="mock-ai-buttons" class="ai-helper-buttons"></div>
+
+            <!-- 清空按钮：重置当前配置和生成结果。 -->
+            <button class="btn btn-ghost" onclick="clearMockTool()">清空</button>
+        </div>
+    </div>
+
+    <!-- 页面主体：上半部分显示生成结果，下半部分配置数据类型、数量与输出格式。 -->
+    <div class="mock-tool">
+        <!-- 输出面板：先点击生成，再在这里查看并复制最终 Mock 数据。 -->
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>生成的数据</h3>
+
+                <!-- 面板按钮区：生成按钮触发造数，复制按钮带走当前结果。 -->
+                <div class="panel-actions">
+                    <button class="btn btn-sm btn-ghost" onclick="generateMockData()">生成</button>
+                    <button class="btn btn-sm btn-ghost" onclick="copyMockOutput(this)">复制</button>
+                </div>
+            </div>
+
+            <div class="panel-body">
+                <!-- 输出框：只读展示生成后的假数据。 -->
+                <textarea id="mock-output" readonly placeholder="生成的 Mock 数据将显示在这里..." spellcheck="false"></textarea>
+            </div>
+        </div>
+
+        <!-- 配置区：决定生成什么类型的数据、生成多少条，以及用什么格式输出。 -->
+        <div class="mock-options">
+            <div class="form-group">
+                <label>数据类型：</label>
+                <select id="mock-type">
+                    <option value="name">中文姓名</option>
+                    <option value="email">邮箱</option>
+                    <option value="phone">手机号</option>
+                    <option value="idcard">身份证号</option>
+                    <option value="address">地址</option>
+                    <option value="uuid">UUID</option>
+                    <option value="date">日期</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>生成数量：</label>
+                <input type="number" id="mock-count" value="10" min="1" max="1000">
+            </div>
+
+            <div class="form-group">
+                <label>输出格式：</label>
+                <select id="mock-output-format">
+                    <option value="lines">纯文本（每行一个）</option>
+                    <option value="json">JSON 数组</option>
+                    <option value="csv">CSV 格式</option>
+                    <option value="jsonlines">JSON Lines</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</section>

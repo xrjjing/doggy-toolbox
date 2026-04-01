@@ -1,13 +1,24 @@
+<!--
+页面总览：Git 命令生成器 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：可视化生成常用 Git 命令
+前端入口：app_tools_c.js -> initGitTool()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-git -->
+<!-- 页面骨架：上方是标题区，中间用多场景标签页收集不同 Git 工作流参数，底部统一展示生成的命令。 -->
 <section id="page-tool-git" class="page">
-		                <div class="page-header">
+
+<!-- 页面头部：说明当前工具是用于拼装 Git 命令，而不是直接执行命令。 -->
+
+<div class="page-header">
 		                    <div class="page-title">
 		                        <h1>Git 命令生成器</h1>
 		                        <p class="subtitle">可视化生成常用 Git 命令</p>
 		                    </div>
 		                </div>
+		                <!-- 页面主体：包裹场景标签栏、各类 Git 配置表单和底部命令预览区。 -->
 		                <div class="git-tool">
-		                    <!-- 场景选择器 -->
+		                    <!-- 场景标签栏：切换提交、分支、日志等不同 Git 工作流，对应下方不同表单块。 -->
 		                    <div class="tool-tabs-modern" role="tablist" aria-label="Git 场景">
 		                                            <button type="button" class="tool-tab tool-tab-modern active" onclick="switchGitScene('commit', event)" role="tab" aria-selected="true">
 		                                                <span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
@@ -62,7 +73,7 @@
 		                                                <span class="tab-label">模板</span>
 		                                            </button>
 		                                        </div>
-		                    <!-- Commit 场景 -->
+		                    <!-- Commit 场景：生成 git commit 命令，围绕提交消息、暂存策略与 amend/no-verify 等开关配置。 -->
 		                    <div id="git-scene-commit" class="git-scene active">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>提交设置</h3></div>
@@ -93,7 +104,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Branch 场景 -->
+		                    <!-- Branch 场景：生成分支创建、切换、删除、重命名和跟踪相关命令。 -->
 		                    <div id="git-scene-branch" class="git-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>分支操作</h3></div>
@@ -132,7 +143,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Log 场景 -->
+		                    <!-- Log 场景：组合 git log 常见参数，例如图形化、作者过滤和时间范围。 -->
 		                    <div id="git-scene-log" class="git-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>日志选项</h3></div>
@@ -165,7 +176,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Reset 场景 -->
+		                    <!-- Reset 场景：生成 soft/mixed/hard 等不同重置策略命令。 -->
 		                    <div id="git-scene-reset" class="git-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>重置设置</h3></div>
@@ -186,7 +197,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Clone 场景 -->
+		                    <!-- Clone 场景：配置仓库地址、目录、分支和浅克隆等参数。 -->
 		                    <div id="git-scene-clone" class="git-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>克隆设置</h3></div>
@@ -217,7 +228,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Merge 场景 -->
+		                    <!-- Merge 场景：生成分支合并命令，并处理 squash、no-ff、提交信息等选项。 -->
 		                    <div id="git-scene-merge" class="git-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>合并设置</h3></div>
@@ -246,7 +257,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Stash 场景 -->
+		                    <!-- Stash 场景：生成 stash push/pop/apply/list/drop 等临时保存相关命令。 -->
 		                    <div id="git-scene-stash" class="git-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>暂存操作</h3></div>
@@ -274,7 +285,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Rebase 场景 -->
+		                    <!-- Rebase 场景：组合普通变基、交互式变基和 autosquash 等命令。 -->
 		                    <div id="git-scene-rebase" class="git-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>变基设置</h3></div>
@@ -297,7 +308,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Cherry-pick 场景 -->
+		                    <!-- Cherry-pick 场景：针对单个或多个提交生成挑选命令。 -->
 		                    <div id="git-scene-cherrypick" class="git-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>挑选提交</h3></div>
@@ -332,7 +343,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Tag 场景 -->
+		                    <!-- Tag 场景：处理标签创建、删除、推送和查看等命令。 -->
 		                    <div id="git-scene-tag" class="git-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>标签操作</h3></div>
@@ -374,7 +385,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Remote 场景 -->
+		                    <!-- Remote 场景：管理远程仓库 add/set-url/remove/rename 等操作。 -->
 		                    <div id="git-scene-remote" class="git-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>远程仓库操作</h3></div>
@@ -405,7 +416,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- Revert 场景 -->
+		                    <!-- Revert 场景：生成撤销提交命令，可配置 no-commit 和 mainline 参数。 -->
 		                    <div id="git-scene-revert" class="git-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>撤销提交</h3></div>
@@ -434,7 +445,7 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- 常用命令模板 -->
+		                    <!-- 常用命令模板区：由 JS 动态渲染常见 Git 命令范例，方便直接套用。 -->
 		                    <div id="git-scene-templates" class="git-scene">
 		                        <div class="converter-panel">
 		                            <div class="panel-header"><h3>常用命令模板</h3></div>
@@ -444,19 +455,24 @@
 		                        </div>
 		                    </div>
 
-		                    <!-- 命令预览区 -->
+		                    <!-- 命令预览区：实时汇总当前场景配置，并给出最终可复制的 Git 命令。 -->
 		                    <div class="converter-panel">
 		                        <div class="panel-header">
 		                            <h3>生成的命令</h3>
+		                            <!-- 面板按钮区：AI 辅助可补充解释/优化，复制按钮用于带走最终命令。 -->
 		                            <div class="panel-actions">
-		                                <!-- AI 辅助按钮容器 -->
+		                                <!-- AI 辅助按钮容器：由全局 helper 动态注入 Git 命令相关的解释或扩展动作。 -->
 		                                <div id="git-ai-buttons" class="ai-helper-buttons"></div>
 		                                <button class="btn btn-sm btn-ghost" onclick="copyGitCommand(this)">复制</button>
 		                            </div>
 		                        </div>
 		                        <div class="panel-body">
+		                            <!-- 预览容器：上方描述当前命令用途，下方文本框展示最终命令字符串。 -->
 		                            <div class="git-command-preview">
+		                                <!-- 描述区：提示当前命令在做什么，或提醒还缺少哪些必填项。 -->
 		                                <div class="git-command-desc" id="git-command-desc">选择操作类型并填写参数</div>
+
+		                                <!-- 输出框：只读显示根据当前配置拼装出的 Git 命令。 -->
 		                                <textarea id="git-command-output" readonly placeholder="生成的 Git 命令将显示在这里..." spellcheck="false"></textarea>
 		                            </div>
 		                        </div>

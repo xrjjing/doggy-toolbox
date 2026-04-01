@@ -1,10 +1,19 @@
+<!--
+页面总览：AI 设置页：管理 Provider、模型配置和各工具的 AI 开关。
+补充说明：配置和管理 AI Provider，支持 OpenAI、Claude 和第三方兼容 API
+前端入口：app_ai_settings.js -> initAISettingsPage() / loadProviders()
+后端链路：api.py -> get_ai_providers() / save_ai_provider() -> AIManager
+-->
+
+<!-- 页面骨架：上方是标题与主 Tab，中间按“Provider 管理 / 功能开关”切换内容，底部含 Provider 编辑弹窗。 -->
 <div id="page-ai-settings" class="page">
+    <!-- 页面头部：说明当前模块职责，主要用于配置模型服务和工具 AI 开关。 -->
     <div class="page-header">
         <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px;vertical-align:middle;margin-right:8px"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>AI 配置</h2>
         <p class="page-description">配置和管理 AI Provider，支持 OpenAI、Claude 和第三方兼容 API</p>
     </div>
 
-    <!-- 主 Tab 切换 -->
+    <!-- 主 Tab：在 Provider 管理与功能开关两个主场景之间切换。 -->
     <div class="ai-main-tabs">
         <button class="ai-main-tab active" data-tab="providers" onclick="switchAIMainTab('providers')">
             <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg></span>
@@ -16,19 +25,20 @@
         </button>
     </div>
 
-    <!-- Provider 管理面板 -->
+    <!-- Provider 管理面板：维护模型服务列表、默认使用项和新增入口。 -->
     <div id="ai-tab-providers" class="ai-tab-content active">
         <div class="ai-settings-container">
-            <!-- Provider 列表 -->
+            <!-- Provider 列表区：卡片内容由 app_ai_settings.js 从后端配置动态渲染。 -->
             <div class="providers-section">
                 <div class="section-header">
                     <h3>AI Provider 列表</h3>
+                    <!-- 添加 Provider：打开编辑弹窗，创建新的模型服务配置。 -->
                     <button class="ai-btn ai-btn-primary" onclick="openAddProviderModal()">
                         <span class="btn-text">+ 添加 Provider</span>
                     </button>
                 </div>
 
-                <!-- 列表分类 Tab -->
+                <!-- Provider 分类切换：帮助用户在 OpenAI 系列与 Claude 系列之间快速筛选。 -->
                 <div class="list-category-tabs">
                     <button class="list-category-tab active" data-category="openai" onclick="switchListCategory('openai')">
                         OpenAI
@@ -38,6 +48,7 @@
                     </button>
                 </div>
 
+                <!-- Provider 卡片容器：列表项由 JS 渲染，里面通常包含启用、编辑、测试等操作。 -->
                 <div id="providers-list" class="providers-list">
                     <!-- 动态加载 Provider 卡片 -->
                 </div>
@@ -45,10 +56,10 @@
         </div>
     </div>
 
-    <!-- 功能开关面板 -->
+    <!-- 功能开关面板：统一控制全局 AI 总开关和各工具的细粒度开关。 -->
     <div id="ai-tab-features" class="ai-tab-content">
         <div class="ai-features-container">
-            <!-- 全局开关 -->
+            <!-- 全局 AI 开关：这里控制所有工具是否允许使用 AI 能力的总闸门。 -->
             <div class="global-toggle-section">
                 <div class="global-toggle-card">
                     <div class="toggle-info">
@@ -62,20 +73,20 @@
                 </div>
             </div>
 
-            <!-- 批量操作 -->
+            <!-- 批量操作区：快速启用或禁用整批工具的 AI 开关。 -->
             <div class="batch-actions">
                 <button class="ai-btn ai-btn-outline btn-sm" onclick="enableAllTools()">全部启用</button>
                 <button class="ai-btn ai-btn-ghost btn-sm" onclick="disableAllTools()">全部禁用</button>
             </div>
 
-            <!-- 工具分类列表 -->
+            <!-- 工具分类开关列表：这里会按工具类别渲染细粒度的 AI 能力开关。 -->
             <div id="tool-ai-categories" class="tool-ai-categories">
                 <!-- 动态加载工具分类和开关 -->
             </div>
         </div>
     </div>
 
-    <!-- 添加/编辑 Provider 弹窗 -->
+    <!-- Provider 编辑弹窗：新增或修改 Provider 配置时，在这里填写认证、模型和高级参数。 -->
     <div id="provider-modal" class="modal" style="display:none">
         <div class="modal-content modal-large ai-modal">
             <div class="modal-header">
@@ -84,7 +95,7 @@
             </div>
 
             <div class="modal-body ai-modal-body">
-                <!-- Provider 类型 Tab 选择 -->
+                <!-- Provider 类型选择：决定弹窗后续展示 OpenAI 兼容或 Claude 的字段组合。 -->
                 <div class="provider-type-tabs">
                     <button class="type-tab active" data-category="openai" onclick="switchProviderCategory('openai')">
                         OpenAI 系列
@@ -290,6 +301,7 @@
                 </details>
             </div>
 
+            <!-- 弹窗底部操作：先测试连通性，再决定取消或保存配置。 -->
             <div class="modal-footer ai-modal-footer">
                 <button class="ai-btn ai-btn-outline" onclick="testConnection()">
                     测试连接

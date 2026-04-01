@@ -1,4 +1,9 @@
-"""节点转换模块 - 订阅链接转换与节点管理"""
+"""节点转换与节点列表服务。
+
+一方面负责把订阅链接解析成内部节点结构，另一方面负责保存节点、标签和导出的分享信息。
+对应前端主要是 converter.html（转换页）和 nodes.html（节点列表页）。
+"""
+
 from __future__ import annotations
 
 import base64
@@ -10,6 +15,8 @@ from urllib.parse import parse_qs, unquote, urlparse
 import urllib.request
 import ssl
 
+
+# ========== 节点数据结构 ==========
 
 @dataclass
 class ProxyNode:
@@ -28,6 +35,9 @@ class ProxyNode:
 
 
 class NodeConverterService:
+    """节点转换业务服务。
+
+    输入可能是订阅链接或代理分享链接，输出既包括页面显示结果，也包括可保存的节点配置。"""
     def __init__(self, data_dir: Path, nodes_file: Path | None = None):
         self.data_dir = data_dir
         self.nodes_file = nodes_file or (data_dir / "nodes.md")
@@ -275,6 +285,7 @@ class NodeConverterService:
             return {"nodes": [], "yaml": "", "errors": [str(e)]}
 
     # ========== 节点管理 ==========
+    # ========== 节点存储与标签管理 ==========
     def _parse_nodes_md(self) -> List[ProxyNode]:
         if not self.nodes_file.exists():
             return []
@@ -400,6 +411,7 @@ class NodeConverterService:
         return sorted(list(tags_set))
 
     # ========== 批量导入 ==========
+    # ========== 批量导入、校验与分享链接 ==========
     def batch_import_subscriptions(self, urls: List[str]) -> Dict:
         """批量导入多个订阅链接"""
         results = []

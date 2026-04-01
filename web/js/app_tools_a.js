@@ -1,7 +1,24 @@
+/*
+ * 文件总览：工具页脚本分包 A。
+ *
+ * 服务页面包含：Base64、UUID、变量命名、JWT、时间戳、日期计算、Hash、对称加密、文本对比、Base64/Hex 等工具。
+ *
+ * 设计方式：一个文件承载多组工具函数，每组通常都有 initXxxTool()、updateXxxTool()、clearXxxTool()、copyXxxOutput() 这类固定模式。
+ *
+ * 排查建议：
+ * - 进入某个工具页后控件不响应：先找对应 initXxxTool() 是否被 app_core.js 调用；
+ * - 输入变化但结果区不刷新：优先看 updateXxxTool()；
+ * - 清空/复制按钮异常：看 clearXxxTool()/copyXxxOutput()。
+ */
+
 // ==================== 工具箱：Base64 编解码（M2） ====================
+// 对应 tool-base64 页面，负责文本/文件拖拽、编码模式切换、历史记录与结果回写。
 const B64_HISTORY_KEY = 'base64_history';
 const B64_HISTORY_MAX = 20;
 
+// Base64 工具初始化入口：
+// 页面位置：tool-base64 页的输入框、模式按钮、批量开关、历史区。
+// 负责内容：绑定输入事件、开启拖拽文件导入、设置默认编码模式、渲染历史记录。
 function initBase64Tool() {
     const input = document.getElementById('b64-input');
     const batch = document.getElementById('b64-batch');
@@ -19,6 +36,9 @@ function initBase64Tool() {
     renderBase64History();
 }
 
+// 给 Base64 输入框补上拖拽读取文本文件的能力。
+// 页面位置：tool-base64 页左侧主输入框。
+// 如果用户说“把文件拖进去没反应”，先看这里和 readFileAsText()。
 function initBase64DragDrop(textarea) {
     if (!textarea) return;
 
@@ -50,6 +70,8 @@ function initBase64DragDrop(textarea) {
     });
 }
 
+// 把拖入的文件读取成文本，并做大小限制。
+// 这里只负责“文件 -> 文本”，不负责编码/解码；真正处理结果的是 updateBase64Tool()。
 function readFileAsText(file, callback) {
     if (!file) return;
     const MAX_SIZE = 1024 * 1024; // 1MB
@@ -63,6 +85,9 @@ function readFileAsText(file, callback) {
     reader.readAsText(file);
 }
 
+// 根据输入内容自动判断更像“原文”还是“Base64 密文”。
+// 页面触发：拖拽文件导入后。
+// 主要作用是帮外行用户少点一步模式切换按钮。
 function autoDetectBase64Mode(text) {
     if (!window.DogToolboxM2Utils?.detectBase64Encoded) return;
     const detection = window.DogToolboxM2Utils.detectBase64Encoded(text);
@@ -72,6 +97,9 @@ function autoDetectBase64Mode(text) {
     }
 }
 
+// 切换 Base64 工具当前模式。
+// 页面位置：tool-base64 页顶部“编码 / 解码”两个按钮。
+// 真正的计算不会在这里完成，而是统一交给 updateBase64Tool()。
 function setBase64Mode(mode) {
     if (mode !== 'encode' && mode !== 'decode') return;
     base64Mode = mode;
@@ -80,6 +108,9 @@ function setBase64Mode(mode) {
     updateBase64Tool();
 }
 
+// Base64 工具主计算入口。
+// 页面位置：tool-base64 页输入区、输出区、错误区、跳转按钮区。
+// 负责内容：读取模式和批量开关、执行编码/解码、渲染错误、必要时生成“跳到其它工具”按钮。
 function updateBase64Tool() {
     const inputEl = document.getElementById('b64-input');
     const outputEl = document.getElementById('b64-output');
@@ -147,7 +178,10 @@ function updateBase64Tool() {
 }
 
 /**
- * 渲染 Base64 解码后的内容类型跳转按钮
+ * 渲染 Base64 解码后的内容类型跳转按钮。
+ *
+ * 页面位置：tool-base64 页输出区下方的辅助跳转区。
+ * 典型场景：解码后发现其实是 JSON / URL / JWT / 图片数据，直接引导用户跳到更合适的工具页继续处理。
  */
 function renderBase64JumpButtons(decodedText, container) {
     if (!window.DogToolboxM2Utils?.detectBase64ContentType) return;
@@ -184,6 +218,7 @@ function renderBase64JumpButtons(decodedText, container) {
     container.appendChild(btn);
 }
 
+// 清空 Base64 工具当前输入、输出、错误和跳转提示。
 function clearBase64Tool() {
     const inputEl = document.getElementById('b64-input');
     const outputEl = document.getElementById('b64-output');
@@ -195,12 +230,16 @@ function clearBase64Tool() {
     if (jumpBtnsEl) jumpBtnsEl.innerHTML = '';
 }
 
+// 复制 Base64 工具输出框内容。
 function copyBase64Output(btn) {
     const outputEl = document.getElementById('b64-output');
     const text = outputEl?.value || '';
     copyToolText(btn, text);
 }
 
+// 保存 Base64 最近一次有效转换记录。
+// 数据去向：localStorage。
+// 页面位置：对应下方“历史记录”列表的数据来源。
 function saveBase64History(input, output, mode) {
     if (!input?.trim() || !output?.trim()) return;
     try {
@@ -223,6 +262,7 @@ function saveBase64History(input, output, mode) {
     } catch (e) { /* ignore */ }
 }
 
+// 读取 Base64 历史记录缓存。
 function loadBase64History() {
     try {
         const raw = localStorage.getItem(B64_HISTORY_KEY);
@@ -232,6 +272,9 @@ function loadBase64History() {
     }
 }
 
+// 渲染 Base64 历史记录列表。
+// 页面位置：tool-base64 页下方历史区域。
+// 点击某条记录后会走 applyBase64History() 回填到输入框。
 function renderBase64History() {
     const container = document.getElementById('b64-history');
     if (!container) return;
@@ -251,6 +294,7 @@ function renderBase64History() {
     `).join('');
 }
 
+// 把某条 Base64 历史记录重新回填到当前工具。
 function applyBase64History(index) {
     const entries = loadBase64History();
     const entry = entries[index];
@@ -261,12 +305,14 @@ function applyBase64History(index) {
     setBase64Mode(entry.mode);
 }
 
+// 清空 Base64 历史记录缓存和列表。
 function clearBase64History() {
     localStorage.removeItem(B64_HISTORY_KEY);
     renderBase64History();
     showToast?.('历史记录已清空', 'info');
 }
 
+// 把时间戳格式化成“刚刚 / 几分钟前 / 月/日”，供历史列表显示。
 function formatHistoryTime(ts) {
     const d = new Date(ts);
     const now = new Date();
@@ -278,12 +324,16 @@ function formatHistoryTime(ts) {
 }
 
 // ==================== 工具箱：UUID 生成器（M2） ====================
+// 对应 tool-uuid 页面，主要是批量生成、版本选择和复制结果。
+// UUID 工具初始化入口：当前主要负责保证页面 DOM 已就绪，后续可扩成首屏自动生成。
 function initUuidTool() {
     // 预留：后续可做“进入页面自动生成”
     const countEl = document.getElementById('uuid-count');
     if (!countEl) return;
 }
 
+// 根据页面配置批量生成 UUID。
+// 页面位置：tool-uuid 页的数量输入框、大小写开关、去掉连字符开关、输出框。
 function generateUuids() {
     const countEl = document.getElementById('uuid-count');
     const outputEl = document.getElementById('uuid-output');
@@ -326,6 +376,7 @@ function generateUuids() {
     }
 }
 
+// 清空 UUID 工具输出与错误提示。
 function clearUuidTool() {
     const outputEl = document.getElementById('uuid-output');
     const errorsEl = document.getElementById('uuid-errors');
@@ -333,6 +384,7 @@ function clearUuidTool() {
     if (errorsEl) errorsEl.innerHTML = '';
 }
 
+// 复制 UUID 结果列表。
 function copyUuidOutput(btn) {
     const outputEl = document.getElementById('uuid-output');
     const text = outputEl?.value || '';
@@ -340,6 +392,8 @@ function copyUuidOutput(btn) {
 }
 
 // ==================== 工具箱：变量命名转换（M2） ====================
+// 对应 tool-naming 页面，输入一份原始名称后同步输出多种命名风格。
+// 命名转换工具初始化入口：绑定输入框并做一次首屏转换。
 function initNamingTool() {
     const inputEl = document.getElementById('naming-input');
     if (!inputEl) return;
@@ -347,6 +401,9 @@ function initNamingTool() {
     updateNamingTool();
 }
 
+// 命名转换主入口。
+// 页面位置：tool-naming 页的单输入区和多结果卡片区。
+// 只要原始名称变化，这里就会同步刷新各种命名风格。
 function updateNamingTool() {
     const inputEl = document.getElementById('naming-input');
     if (!inputEl) return;
@@ -370,6 +427,7 @@ function updateNamingTool() {
     setNamingOutputs(formats);
 }
 
+// 把各命名风格结果写回页面上的多个输出块。
 function setNamingOutputs(formats) {
     const map = {
         space: 'naming-space',
@@ -386,12 +444,14 @@ function setNamingOutputs(formats) {
     });
 }
 
+// 复制某一种命名风格结果。
 function copyNamingOutput(btn, key) {
     const el = document.getElementById(`naming-${key}`);
     const text = el?.textContent || '';
     copyToolText(btn, text);
 }
 
+// 清空原始名称并刷新所有命名结果。
 function clearNamingTool() {
     const inputEl = document.getElementById('naming-input');
     if (inputEl) inputEl.value = '';
@@ -399,6 +459,8 @@ function clearNamingTool() {
 }
 
 // ==================== 工具箱：JWT 解码（M3） ====================
+// 对应 tool-jwt 页面中的解码部分：负责解析 token 并渲染头、载荷与签名信息。
+// JWT 页面解码模式初始化入口：绑定输入框后立即做一次解析。
 function initJwtTool() {
     const inputEl = document.getElementById('jwt-input');
     if (!inputEl) return;
@@ -406,6 +468,9 @@ function initJwtTool() {
     updateJwtTool();
 }
 
+// JWT 解码主入口。
+// 页面位置：tool-jwt 页的“解码”场景。
+// 负责内容：按输入类型解析 token、控制 Header/Payload 区块显示、输出 warning 和错误信息。
 function updateJwtTool() {
     const inputEl = document.getElementById('jwt-input');
     const typeEl = document.getElementById('jwt-input-type');
@@ -449,6 +514,7 @@ function updateJwtTool() {
     }
 }
 
+// 清空 JWT 解码场景中的输入、错误、警告和解析结果。
 function clearJwtTool() {
     const inputEl = document.getElementById('jwt-input');
     const errorsEl = document.getElementById('jwt-errors');
@@ -459,6 +525,7 @@ function clearJwtTool() {
     updateJwtTool();
 }
 
+// 复制 Header 或 Payload 其中一个区域。
 function copyJwtPart(btn, part) {
     const id = part === 'header' ? 'jwt-header-output' : 'jwt-payload-output';
     const el = document.getElementById(id);
@@ -466,6 +533,7 @@ function copyJwtPart(btn, part) {
     copyToolText(btn, text);
 }
 
+// 把当前可见的 Header / Payload 一次性复制出去。
 function copyJwtAll(btn) {
     const showHeader = !!document.getElementById('jwt-show-header')?.checked;
     const showPayload = !!document.getElementById('jwt-show-payload')?.checked;
@@ -478,9 +546,12 @@ function copyJwtAll(btn) {
 }
 
 // ==================== JWT 生成与验证（M43） ====================
+// 对应 tool-jwt 页面中的生成/验签部分：按钮操作会在这里整理表单并更新结果区。
 
 let currentJwtMode = 'decode';
 
+// 在“解码 / 生成 / 验证”三个 JWT 子场景之间切换。
+// 页面位置：tool-jwt 页顶部标签。
 function switchJwtMode(mode) {
     currentJwtMode = mode;
     const scenes = ['decode', 'generate', 'verify'];
@@ -493,6 +564,7 @@ function switchJwtMode(mode) {
     });
 }
 
+// 根据生成算法类型切换“密钥 / 私钥”输入区的显示。
 function updateJwtKeyInput() {
     const algorithm = document.getElementById('jwt-gen-algorithm')?.value || 'HS256';
     const secretGroup = document.getElementById('jwt-gen-secret-group');
@@ -502,6 +574,7 @@ function updateJwtKeyInput() {
     if (privkeyGroup) privkeyGroup.style.display = isHmac ? 'none' : '';
 }
 
+// 根据验签算法切换“共享密钥 / 公钥”输入区的显示。
 function updateJwtVerifyKeyInput() {
     const algorithm = document.getElementById('jwt-verify-algorithm')?.value || 'auto';
     const secretGroup = document.getElementById('jwt-verify-secret-group');
@@ -511,6 +584,7 @@ function updateJwtVerifyKeyInput() {
     if (pubkeyGroup) pubkeyGroup.style.display = isHmac ? 'none' : '';
 }
 
+// 把预设模板中的 Payload 示例快速回填到生成表单。
 function applyJwtPreset() {
     const presetName = document.getElementById('jwt-gen-preset')?.value;
     if (!presetName || !window.DogToolboxM43Utils) return;
@@ -523,6 +597,7 @@ function applyJwtPreset() {
     }
 }
 
+// 为 HMAC 场景快速生成一段随机密钥。
 function generateJwtSecret() {
     if (!window.DogToolboxM43Utils) return;
     const secret = window.DogToolboxM43Utils.generateHmacSecret(256);
@@ -530,6 +605,9 @@ function generateJwtSecret() {
     if (secretEl) secretEl.value = secret;
 }
 
+// 为 RSA / ECDSA 这类非对称算法生成密钥对。
+// 页面位置：JWT 生成场景中的“生成密钥对”按钮。
+// 生成后的公钥也会展示出来，方便后续到“验证”场景复用。
 async function generateJwtKeyPair() {
     if (!window.DogToolboxM43Utils) return;
     const algorithm = document.getElementById('jwt-gen-algorithm')?.value || 'RS256';
@@ -557,6 +635,9 @@ async function generateJwtKeyPair() {
     if (pubkeyPanel) pubkeyPanel.style.display = '';
 }
 
+// JWT 生成主入口。
+// 页面位置：tool-jwt 页的“生成”场景。
+// 负责内容：读取 Payload、算法、密钥，调用底层工具模块生成 token，并把错误显示到表单旁边。
 async function generateJwtToken() {
     const payloadEl = document.getElementById('jwt-gen-payload');
     const algorithmEl = document.getElementById('jwt-gen-algorithm');
@@ -600,6 +681,9 @@ async function generateJwtToken() {
     if (outputEl) outputEl.value = result.token;
 }
 
+// JWT 验签主入口。
+// 页面位置：tool-jwt 页的“验证”场景。
+// 负责内容：自动识别算法、读取密钥/公钥、执行签名验证，并把 Header/Payload/错误渲染到结果区。
 async function verifyJwtToken() {
     const inputEl = document.getElementById('jwt-verify-input');
     const algorithmEl = document.getElementById('jwt-verify-algorithm');
@@ -690,17 +774,21 @@ async function verifyJwtToken() {
     }
 }
 
+// 复制 JWT 生成结果。
 function copyJwtGenOutput(btn) {
     const el = document.getElementById('jwt-gen-output');
     copyToolText(btn, el?.value || '');
 }
 
+// 复制 JWT 生成场景里展示出来的公钥。
 function copyJwtGenPubkey(btn) {
     const el = document.getElementById('jwt-gen-pubkey');
     copyToolText(btn, el?.value || '');
 }
 
 // ==================== 工具箱：时间戳转换（M3） ====================
+// 对应 tool-time 页面，负责时间戳与日期字符串互转、当前时间快捷填充。
+// 时间工具初始化入口：绑定输入框并做首屏计算。
 function initTimeTool() {
     const inputEl = document.getElementById('time-input');
     if (!inputEl) return;
@@ -708,6 +796,7 @@ function initTimeTool() {
     updateTimeTool(true);
 }
 
+// BigInt 版除法辅助函数，用于处理秒/毫秒/纳秒换算时的商和余数。
 function divModBigInt(a, b) {
     let q = a / b;
     let r = a % b;
@@ -718,12 +807,15 @@ function divModBigInt(a, b) {
     return { q, r };
 }
 
+// 读取时间工具当前选中的时区偏移。
+// 页面位置：tool-time 页顶部时区切换。
 function getTimeTzOffsetMs() {
     const tz = document.getElementById('time-zone')?.value || 'utc';
     if (tz === 'utc8') return 8 * 60 * 60 * 1000;
     return 0;
 }
 
+// 自动判断输入内容更像“标准日期时间”还是“Unix 时间戳”。
 function getTimeEffectiveInputType(raw, selectedType) {
     const type = String(selectedType || 'auto');
     if (type !== 'auto') return type;
@@ -732,6 +824,9 @@ function getTimeEffectiveInputType(raw, selectedType) {
     return detected?.type || 'auto';
 }
 
+// 时间工具主计算入口。
+// 页面位置：tool-time 页的主输入区、自动识别提示区、三个输出框、当前时间卡片。
+// 外行用户遇到“输入了时间但下面没结果”，优先先看这里。
 function updateTimeTool(forceNowUpdate) {
     const inputEl = document.getElementById('time-input');
     const typeEl = document.getElementById('time-input-type');
@@ -798,6 +893,7 @@ function updateTimeTool(forceNowUpdate) {
     }
 }
 
+// 清空时间工具输入和三个结果框，并保留当前时间卡片刷新。
 function clearTimeTool() {
     const inputEl = document.getElementById('time-input');
     const detectEl = document.getElementById('time-detect');
@@ -814,6 +910,7 @@ function clearTimeTool() {
     updateTimeTool(true);
 }
 
+// 复制秒 / 毫秒 / 纳秒其中一项结果。
 function copyTimeOutput(btn, kind) {
     const id = kind === 'sec' ? 'time-out-sec' : (kind === 'ms' ? 'time-out-ms' : 'time-out-ns');
     const el = document.getElementById(id);
@@ -821,6 +918,7 @@ function copyTimeOutput(btn, kind) {
     copyToolText(btn, text);
 }
 
+// 把“当前时间”卡片中的某个值回填到主输入框继续转换。
 function loadTimeValue(type, sourceId) {
     const sourceEl = document.getElementById(sourceId);
     const value = sourceEl?.textContent || '';
@@ -832,6 +930,7 @@ function loadTimeValue(type, sourceId) {
     updateTimeTool(true);
 }
 
+// 刷新页面上“当前时间”四个实时显示块。
 function updateTimeNowArea() {
     const tzOffsetMs = getTimeTzOffsetMs();
     if (!window.DogToolboxM3Utils) return;
@@ -846,6 +945,8 @@ function updateTimeNowArea() {
     if (unixMsEl) unixMsEl.textContent = now.unixMs || '-';
 }
 
+// 启动时间工具的实时刷新定时器。
+// 页面位置：tool-time 页下方“当前时间”卡片区。
 function startTimeNowTicker() {
     stopTimeNowTicker();
     updateTimeNowArea();
@@ -856,6 +957,7 @@ function startTimeNowTicker() {
     }, 50);
 }
 
+// 停止时间工具的实时刷新定时器。
 function stopTimeNowTicker() {
     if (timeNowIntervalId) {
         clearInterval(timeNowIntervalId);
@@ -864,6 +966,8 @@ function stopTimeNowTicker() {
 }
 
 // ==================== M32 日期计算器 ====================
+// 对应 tool-datecalc 页面，负责日期差值、加减天数和常见计算场景。
+// 日期计算器初始化入口：设置默认日期、绑定多个子模块事件，并做一次首屏计算。
 function initDateCalcTool() {
     // 设置默认值为今天
     const today = new Date().toISOString().split('T')[0];
@@ -907,6 +1011,7 @@ function initDateCalcTool() {
     calculateDateInfo();
 }
 
+// 把日期计算器所有输入恢复到默认值，并清空结果区。
 function clearDateCalcTool() {
     const today = new Date().toISOString().split('T')[0];
 
@@ -941,6 +1046,8 @@ function clearDateCalcTool() {
     initDateCalcTool();
 }
 
+// 计算两个日期之间的差值。
+// 页面位置：datecalc 页的“日期差”模块。
 function calculateDateDiff() {
     const startEl = document.getElementById('datecalc-diff-start');
     const endEl = document.getElementById('datecalc-diff-end');
@@ -979,6 +1086,8 @@ function calculateDateDiff() {
     }
 }
 
+// 计算某个日期加减指定天/月/年后的结果。
+// 页面位置：datecalc 页的“日期加减”模块。
 function calculateDateAdd() {
     const baseEl = document.getElementById('datecalc-add-base');
     const valueEl = document.getElementById('datecalc-add-value');
@@ -1018,6 +1127,8 @@ function calculateDateAdd() {
     }
 }
 
+// 计算指定日期是星期几以及周数信息。
+// 页面位置：datecalc 页的“星期 / 周数”模块。
 function calculateWeekday() {
     const dateEl = document.getElementById('datecalc-weekday-date');
     const resultEl = document.getElementById('datecalc-weekday-result');
@@ -1054,6 +1165,8 @@ function calculateWeekday() {
     }
 }
 
+// 计算年龄和总天数。
+// 页面位置：datecalc 页的“年龄计算”模块。
 function calculateAge() {
     const birthEl = document.getElementById('datecalc-age-birth');
     const refEl = document.getElementById('datecalc-age-ref');
@@ -1091,6 +1204,8 @@ function calculateAge() {
     }
 }
 
+// 计算日期的附加信息，如闰年、本月天数、距离月末/年末。
+// 页面位置：datecalc 页的“日期信息”模块。
 function calculateDateInfo() {
     const dateEl = document.getElementById('datecalc-info-date');
     const resultEl = document.getElementById('datecalc-info-result');
@@ -1138,6 +1253,8 @@ function calculateDateInfo() {
 }
 
 // ==================== 工具箱：哈希（M4） ====================
+// 对应 tool-hash 页面，输入变化后会即时计算多种摘要算法的结果。
+// 哈希工具初始化入口：绑定输入、盐值、算法和批量开关。
 function initHashTool() {
     const inputEl = document.getElementById('hash-input');
     if (!inputEl) return;
@@ -1151,6 +1268,7 @@ function initHashTool() {
     updateHashTool();
 }
 
+// 控制盐值输入框显示，并触发重新计算。
 function toggleHashSalt() {
     const useSalt = !!document.getElementById('hash-use-salt')?.checked;
     const row = document.getElementById('hash-salt-row');
@@ -1158,6 +1276,9 @@ function toggleHashSalt() {
     updateHashTool();
 }
 
+// 哈希工具主计算入口。
+// 页面位置：tool-hash 页的输入框、算法下拉、盐值区、输出框。
+// 支持单值和按行批量计算两种模式。
 function updateHashTool() {
     const inputEl = document.getElementById('hash-input');
     const outputEl = document.getElementById('hash-output');
@@ -1200,6 +1321,7 @@ function updateHashTool() {
     }
 }
 
+// 清空哈希工具输入、输出、错误和盐值。
 function clearHashTool() {
     const inputEl = document.getElementById('hash-input');
     const outputEl = document.getElementById('hash-output');
@@ -1212,6 +1334,7 @@ function clearHashTool() {
     updateHashTool();
 }
 
+// 复制哈希结果。
 function copyHashOutput(btn) {
     const outputEl = document.getElementById('hash-output');
     const text = outputEl?.value || '';
@@ -1219,6 +1342,8 @@ function copyHashOutput(btn) {
 }
 
 // ==================== 工具箱：对称加密（M5） ====================
+// 对应 tool-crypto 页面，围绕算法、密钥、IV、模式等参数生成加解密结果。
+// 对称加密工具初始化入口：设置默认“加密 + 高级模式”，并刷新界面结构。
 function initCryptoTool() {
     const inputEl = document.getElementById('crypto-input');
     if (!inputEl) return;
@@ -1228,6 +1353,9 @@ function initCryptoTool() {
     updateCryptoToolUi();
 }
 
+// 切换“加密 / 解密”模式。
+// 页面位置：tool-crypto 页顶部模式按钮。
+// 这里只管页面状态和清理输出，真正运算在 runCryptoTool()。
 function setCryptoMode(mode, clearOutput = true) {
     if (mode !== 'encrypt' && mode !== 'decrypt') return;
     cryptoMode = mode;
@@ -1242,6 +1370,8 @@ function setCryptoMode(mode, clearOutput = true) {
     updateCryptoToolUi();
 }
 
+// 切换“高级 / 简洁”配置层级。
+// 页面位置：tool-crypto 页顶部复杂度切换按钮。
 function setCryptoLevel(level, clearOutput = false) {
     if (level !== 'advanced' && level !== 'simple') return;
     cryptoLevel = level;
@@ -1256,6 +1386,7 @@ function setCryptoLevel(level, clearOutput = false) {
     updateCryptoToolUi();
 }
 
+// 在解密时自动判断输入密文更像 Base64 还是 Hex。
 function detectCipherFormatAuto(text) {
     const t = String(text ?? '').trim().replace(/\s+/g, '');
     if (!t) return 'base64';
@@ -1263,6 +1394,8 @@ function detectCipherFormatAuto(text) {
     return 'base64';
 }
 
+// 根据当前模式、算法和配置级别刷新页面上的表单结构与提示文案。
+// 页面位置：tool-crypto 页输入头部、输出头部、密钥提示、格式下拉、IV 区块。
 function updateCryptoToolUi() {
     const algoEl = document.getElementById('crypto-algo');
     const aesKeysizeEl = document.getElementById('crypto-aes-keysize');
@@ -1333,6 +1466,9 @@ function updateCryptoToolUi() {
         : `严格 key 长度：必须为 ${targetLen} 字节（UTF-8）`;
 }
 
+// 对称加密工具主执行入口。
+// 页面触发：tool-crypto 页里的“运行 / 加解密”按钮。
+// 负责内容：读取算法、密钥、输入格式，执行加密或解密，并把结果写到输出框。
 function runCryptoTool() {
     const inputEl = document.getElementById('crypto-input');
     const outputEl = document.getElementById('crypto-output');
@@ -1398,6 +1534,7 @@ function runCryptoTool() {
     }
 }
 
+// 清空对称加密工具输入、输出、错误和密钥。
 function clearCryptoTool() {
     const inputEl = document.getElementById('crypto-input');
     const outputEl = document.getElementById('crypto-output');
@@ -1410,6 +1547,7 @@ function clearCryptoTool() {
     updateCryptoToolUi();
 }
 
+// 复制对称加密工具输出结果。
 function copyCryptoOutput(btn) {
     const outputEl = document.getElementById('crypto-output');
     const text = outputEl?.value || '';
@@ -1417,6 +1555,8 @@ function copyCryptoOutput(btn) {
 }
 
 // ==================== 工具箱：文本对比（M6） ====================
+// 对应 tool-diff 页面，负责左右文本差异分析和结果高亮。
+// 文本对比工具初始化入口：绑定左右输入框、设置默认方向、触发首次对比。
 function initDiffTool() {
     const leftEl = document.getElementById('diff-left');
     const rightEl = document.getElementById('diff-right');
@@ -1431,6 +1571,7 @@ function initDiffTool() {
     scheduleDiffUpdate();
 }
 
+// 对比计算防抖器：避免用户每敲一个字都立即重跑完整 diff。
 function scheduleDiffUpdate() {
     if (diffUpdateTimerId) clearTimeout(diffUpdateTimerId);
     diffUpdateTimerId = setTimeout(() => {
@@ -1439,6 +1580,7 @@ function scheduleDiffUpdate() {
     }, 150);
 }
 
+// 根据当前对比模式刷新工具栏和结果区状态。
 function updateDiffToolUi() {
     const modeEl = document.getElementById('diff-mode');
     const formatBtn = document.getElementById('diff-format-btn');
@@ -1448,6 +1590,7 @@ function updateDiffToolUi() {
     scheduleDiffUpdate();
 }
 
+// 控制对比结果是否自动换行。
 function toggleDiffWrap() {
     const wrapEl = document.getElementById('diff-wrap');
     const viewEl = document.getElementById('diff-view');
@@ -1456,6 +1599,8 @@ function toggleDiffWrap() {
     viewEl.classList.toggle('diff-wrap', enabled);
 }
 
+// 切换“左 -> 右 / 右 -> 左”应用方向。
+// 页面位置：tool-diff 页顶部方向按钮。
 function setDiffDirection(direction, schedule = true) {
     if (direction !== 'ltr' && direction !== 'rtl') return;
     diffDirection = direction;
@@ -1469,6 +1614,8 @@ function setDiffDirection(direction, schedule = true) {
     if (schedule) scheduleDiffUpdate();
 }
 
+// 把当前一侧文本整体覆盖到另一侧。
+// 页面触发：文本对比工具中的“应用到右侧 / 应用到左侧”按钮。
 function applyDiffDirection() {
     const leftEl = document.getElementById('diff-left');
     const rightEl = document.getElementById('diff-right');
@@ -1481,6 +1628,7 @@ function applyDiffDirection() {
     scheduleDiffUpdate();
 }
 
+// 当 diff 模式是 JSON 时，先把两侧文本做格式化再对比。
 function formatDiffJson() {
     const modeEl = document.getElementById('diff-mode');
     const leftEl = document.getElementById('diff-left');
@@ -1519,6 +1667,8 @@ function formatDiffJson() {
     }
 }
 
+// 构建字符级高亮对比结果。
+// 适合展示“改了哪几个字 / 哪几个标点”的精细差异。
 function buildCharDiffHtml(leftText, rightText) {
     const left = String(leftText ?? '');
     const right = String(rightText ?? '');
@@ -1566,6 +1716,7 @@ function buildCharDiffHtml(leftText, rightText) {
     return { leftHtml: segsToHtml(leftSegs), rightHtml: segsToHtml(rightSegs) };
 }
 
+// 当文本太长时，退化为更轻量的前后缀对比方案，避免页面卡顿。
 function buildSimpleDiffHtml(left, right) {
     const a = String(left ?? '');
     const b = String(right ?? '');
@@ -1600,6 +1751,7 @@ function buildSimpleDiffHtml(left, right) {
     return { leftHtml, rightHtml };
 }
 
+// 清空文本对比工具两侧输入、错误和视图结果。
 function clearDiffTool() {
     const leftEl = document.getElementById('diff-left');
     const rightEl = document.getElementById('diff-right');
@@ -1612,6 +1764,9 @@ function clearDiffTool() {
     scheduleDiffUpdate();
 }
 
+// 文本对比主渲染入口。
+// 页面位置：tool-diff 页左右输入区、错误区、中间结果表格。
+// 如果用户反馈“左右都输入了但差异区空白”，先看这里。
 function updateDiffTool() {
     const modeEl = document.getElementById('diff-mode');
     const leftEl = document.getElementById('diff-left');
@@ -1710,6 +1865,8 @@ function updateDiffTool() {
 }
 
 // ==================== 工具箱：Base64 ↔ Hex（M7） ====================
+// 对应 tool-b64hex 页面，用于两种常见编码结果之间快速互转。
+// Base64/Hex 互转工具初始化入口：绑定输入框、批量开关并设置默认方向。
 function initB64HexTool() {
     const inputEl = document.getElementById('b64hex-input');
     if (!inputEl) return;
@@ -1719,6 +1876,7 @@ function initB64HexTool() {
     setB64HexMode('b64_to_hex');
 }
 
+// 切换互转方向：Base64 -> Hex 或 Hex -> Base64。
 function setB64HexMode(mode) {
     if (mode !== 'b64_to_hex' && mode !== 'hex_to_b64') return;
     b64HexMode = mode;
@@ -1727,6 +1885,8 @@ function setB64HexMode(mode) {
     updateB64HexTool();
 }
 
+// Base64/Hex 互转主计算入口。
+// 页面位置：tool-b64hex 页的输入框、模式按钮、批量开关、输出框。
 function updateB64HexTool() {
     const inputEl = document.getElementById('b64hex-input');
     const outputEl = document.getElementById('b64hex-output');
@@ -1778,6 +1938,7 @@ function updateB64HexTool() {
     }
 }
 
+// 清空 Base64/Hex 互转工具的输入、输出和错误信息。
 function clearB64HexTool() {
     const inputEl = document.getElementById('b64hex-input');
     const outputEl = document.getElementById('b64hex-output');
@@ -1787,12 +1948,16 @@ function clearB64HexTool() {
     if (errorsEl) errorsEl.innerHTML = '';
 }
 
+// 复制 Base64/Hex 互转结果。
 function copyB64HexOutput(btn) {
     const outputEl = document.getElementById('b64hex-output');
     const text = outputEl?.value || '';
     copyToolText(btn, text);
 }
 
+// 全文件通用复制工具：
+// - 大多数“复制结果”按钮最后都会走到这里；
+// - 除了真正写剪贴板，还会统一处理按钮的成功反馈样式或文字。
 function copyToolText(btn, text, options = {}) {
     if (!text) return;
 
@@ -1821,4 +1986,3 @@ function copyToolText(btn, text, options = {}) {
         }
     });
 }
-

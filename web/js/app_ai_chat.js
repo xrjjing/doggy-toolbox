@@ -1,9 +1,22 @@
 /**
- * AI 聊天页面 - 核心逻辑
- * 功能：流式对话、Markdown 渲染、代码高亮、对话历史管理
+ * 文件总览：AI 聊天页核心前端逻辑。
+ *
+ * 服务页面：web/pages/ai-chat.html。
+ * 主要职责：
+ * - 初始化聊天页、历史侧栏、设置抽屉、模板与快捷命令相关交互；
+ * - 调用 window.pywebview.api.ai_chat_stream() 发起流式会话；
+ * - 通过 get_chat_chunk(session_id) 轮询增量内容，并把结果渲染回消息区；
+ * - 维护 provider 选择、搜索开关、思考模式、历史会话与工具推荐卡片。
+ *
+ * 调用链：页面按钮/输入框 -> 本文件 -> pywebview API -> api.py -> AIManager / ChatHistoryService / WebSearch。
+ *
+ * 排查建议：
+ * - 点击发送后完全无响应：先看 sendMessage()、getPywebviewApi()；
+ * - 有 session_id 但消息不增长：看 startPolling() 和 get_chat_chunk() 轮询链；
+ * - 历史会话/Provider 切换异常：看 loadSavedConversations()、selectChatProvider()。
  */
 
-// 全局变量
+// 页面级状态：这组变量描述当前会话、轮询状态和开关选项，是排查聊天页行为的第一入口。
 let chatHistory = []; // 当前对话的消息历史
 let currentSessionId = null; // 当前流式会话 ID（临时，用于轮询）
 let currentConversationId = null; // 当前持久化会话 ID
@@ -21,7 +34,10 @@ function getPywebviewApi() {
 }
 
 /**
- * 初始化 AI 聊天页面
+ * 初始化 AI 聊天页面。
+ *
+ * 这是聊天页的总入口：会串起抽屉、Provider、历史会话、输入框事件和欢迎态渲染。
+ * 如果页面第一次打开就异常，优先从这里往下追。
  */
 async function initAIChatPage() {
     console.log('[AI Chat] 初始化 AI 聊天页面');
@@ -87,7 +103,13 @@ async function initAIChatPage() {
 }
 
 /**
- * 加载 AI 设置抽屉内容 - Provider 快速切换
+ * 渲染聊天页右侧 Provider 抽屉。
+ *
+ * 页面位置：聊天页右上角设置弹窗中的抽屉区域。
+ * 负责内容：Provider 分类页签、Provider 列表、关闭按钮、跳转完整配置页按钮。
+ * 这个抽屉不是完整的 AI 设置页，而是聊天页里的“快速切换 Provider”轻量入口。
+ * 如果用户反馈“聊天页抽屉能打开但列表空白 / 切换不了 Provider”，优先继续看
+ * loadDrawerProviders() 和 selectChatProvider()。
  */
 function loadSettingsDrawer(drawerElement) {
     if (!drawerElement) return;
@@ -137,7 +159,11 @@ function switchDrawerCategory(category) {
 }
 
 /**
- * 加载抽屉 Provider 列表
+ * 读取抽屉里的 Provider 列表。
+ *
+ * 页面位置：抽屉正文里的 Provider 列表区域。
+ * 这里只取聊天页快速切换所需的数据，不处理复杂编辑逻辑；
+ * 真正的编辑、测试连接、拉模型都在 app_ai_settings.js 中。
  */
 async function loadDrawerProviders() {
     const container = document.getElementById('chat-provider-list');
@@ -159,7 +185,11 @@ async function loadDrawerProviders() {
 }
 
 /**
- * 渲染抽屉 Provider 列表
+ * 按当前分类渲染抽屉 Provider 列表。
+ *
+ * 页面位置：抽屉正文里的可点击 Provider 条目区。
+ * 这里会先按 OpenAI / Claude 分类过滤，再输出成可点击列表项。
+ * 如果某个 Provider 在 AI 设置页存在但这里没显示，通常先看分类过滤逻辑。
  */
 function renderDrawerProviders(providers, container) {
     if (!providers || providers.length === 0) {
@@ -191,7 +221,11 @@ function renderDrawerProviders(providers, container) {
 }
 
 /**
- * 选择 Provider
+ * 在聊天页快速切换当前活跃 Provider。
+ *
+ * 触发按钮：抽屉列表中的 Provider 项。
+ * 成功后这里只负责提示和刷新抽屉列表；
+ * 真正的活跃 Provider 切换会落到 api.py -> AIManager。
  */
 async function selectChatProvider(providerId, isActive) {
     if (isActive) return;
@@ -306,7 +340,10 @@ function handleInputKeydown(e) {
 }
 
 /**
- * 发送消息
+ * 发送消息。
+ *
+ * 点击发送按钮或按下快捷键后，会先做输入校验，再准备历史消息、调用后端流式接口，最后进入轮询阶段。
+ * 这是“用户动作真正进入后端”的关键起点。
  */
 async function sendMessage() {
     const chatInput = document.getElementById('chat-input');
@@ -382,7 +419,11 @@ async function sendMessage() {
 }
 
 /**
- * 添加搜索结果卡片（可折叠）
+ * 在消息区插入“联网搜索结果”卡片。
+ *
+ * 页面位置：聊天消息流中，通常出现在 AI 回复之前。
+ * 负责内容：搜索结果数量、可展开标题栏、每条结果的标题和摘要。
+ * 这块是 sendMessage() 成功返回 search_results 后最先可见的辅助信息区。
  */
 function addSearchResultsCard(searchResults) {
     console.log('[AI Chat] 添加搜索结果卡片:', searchResults.length, '条结果');
@@ -433,7 +474,11 @@ function toggleSearchResults(cardId) {
 }
 
 /**
- * 添加工具推荐卡片
+ * 在消息区插入“推荐工具”卡片。
+ *
+ * 页面位置：聊天消息流中，通常出现在 AI 正式回答之前。
+ * 负责内容：推荐工具名称、推荐理由，以及点击后跳转工具页。
+ * 如果用户说“AI 推荐了工具但点不进去”，优先看这里和 window.switchPage()。
  */
 function addToolRecommendationsCard(tools) {
     if (!tools || tools.length === 0) return;
@@ -553,7 +598,12 @@ function updateExplainModeUI() {
 }
 
 /**
- * 开始轮询获取流式内容
+ * 轮询流式会话增量内容。
+ *
+ * 页面位置：用户发送后，对应 AI 消息气泡的持续更新链路。
+ * 发送消息成功后，后端不会直接把流式内容推回前端，而是返回一个 session_id；
+ * 前端随后每 100ms 调用 get_chat_chunk(session_id) 把新增文本拼回当前消息气泡。
+ * 如果出现“有 session_id 但消息一直不刷新”，通常就是这一段链路要重点看。
  */
 function startPolling(messageId) {
     let accumulatedText = '';
@@ -642,7 +692,12 @@ function formatMessageTime(date) {
 }
 
 /**
- * 添加消息到聊天列表
+ * 在消息区创建一条新的消息气泡。
+ *
+ * 页面位置：聊天主区域的消息流。
+ * 这个函数只负责“建 DOM 和插入列表”，不会决定内容是否继续增长；
+ * 流式场景下先创建占位气泡，后续由 updateMessage() 持续更新；
+ * 时间戳也在这里一次性挂到气泡底部。
  */
 function addMessage(content, sender, isStreaming, timestamp = null) {
     const messagesContainer = document.getElementById('chat-messages');
@@ -677,7 +732,11 @@ function addMessage(content, sender, isStreaming, timestamp = null) {
 }
 
 /**
- * 更新消息内容
+ * 更新一条已存在的消息气泡。
+ *
+ * 页面位置：聊天主区域里已经插入过的消息气泡。
+ * - streaming=true：按纯文本方式持续追加，并显示光标；
+ * - streaming=false：把最终文本按 Markdown 重渲染，并补代码高亮。
  */
 function updateMessage(messageId, content, isStreaming) {
     const messageElement = document.getElementById(messageId);
@@ -866,7 +925,7 @@ style.textContent = `
     text-decoration: underline;
 }
 
-/* 搜索结果卡片样式 */
+/* 搜索结果卡片样式：由 addSearchResultsCard() 动态插入，对应聊天中的“联网搜索补充信息”卡片。 */
 .search-results-card {
     max-width: 80%;
     align-self: flex-start;
@@ -962,7 +1021,7 @@ style.textContent = `
     overflow: hidden;
 }
 
-/* 工具推荐卡片样式 */
+/* 工具推荐卡片样式：由 addToolRecommendationsCard() 动态插入，对应聊天模式下的工具推荐区。 */
 .tool-recommend-card {
     max-width: 80%;
     align-self: flex-start;
@@ -1018,7 +1077,11 @@ style.textContent = `
 document.head.appendChild(style);
 
 /**
- * 加载保存的会话列表
+ * 从后端加载历史会话列表。
+ *
+ * 页面位置：聊天页左侧“历史会话”栏。
+ * 这里只更新左侧会话目录，不会自动切换当前会话；
+ * 如果聊天页左侧完全空白或新会话创建后不刷新，优先看这里和 renderConversationList()。
  */
 async function loadSavedConversations() {
     const api = getPywebviewApi();
@@ -1041,7 +1104,13 @@ async function loadSavedConversations() {
 }
 
 /**
- * 渲染会话列表
+ * 渲染左侧历史会话列表。
+ *
+ * 页面位置：聊天页左侧侧栏。
+ * 这里会同时处理：
+ * - 关键字过滤；
+ * - 当前会话高亮；
+ * - 重命名 / 导出 / 删除按钮渲染。
  */
 function renderConversationList(filterText = '') {
     const listContainer = document.getElementById('chat-history-list');
@@ -1118,7 +1187,10 @@ function formatTime(isoString) {
 }
 
 /**
- * 开始新对话
+ * 重置当前聊天页，进入“新会话”状态。
+ *
+ * 页面触发：左侧新建会话按钮、/new 快捷命令，或删除当前会话后的回退流程。
+ * 负责内容：停止轮询、清空消息区、重置当前 conversation/session、恢复输入框可用状态。
  */
 function startNewChat() {
     if (pollingInterval) {
@@ -1155,7 +1227,13 @@ function startNewChat() {
 }
 
 /**
- * 切换到指定会话
+ * 切换到已有会话并重建消息区。
+ *
+ * 页面触发：左侧历史会话条目点击。
+ * 这是历史侧栏最关键的动作：
+ * - 先停止当前轮询；
+ * - 再从后端拉指定 conversation 的历史消息；
+ * - 然后重建 chatHistory 和消息 DOM。
  */
 async function switchConversation(conversationId) {
     const api = getPywebviewApi();
@@ -1358,7 +1436,11 @@ let chatTemplatesCache = [];
 let chatTemplatesFilterKeyword = '';
 
 /**
- * 显示模板选择器
+ * 打开 Prompt 模板选择器。
+ *
+ * 页面位置：聊天输入框上方或 /tpl 快捷命令触发的模板弹窗。
+ * 这里会先拉取模板列表，再弹出模板选择弹窗；
+ * 模板变量的收集与真正应用分别在 selectChatTemplate() / applyChatTemplate() 里完成。
  */
 async function showChatTemplateSelector() {
     const api = getPywebviewApi();
@@ -1398,7 +1480,11 @@ function filterChatTemplates(keyword) {
 }
 
 /**
- * 渲染模板列表
+ * 渲染模板弹窗中的模板列表。
+ *
+ * 页面位置：模板选择弹窗主体。
+ * 会同时处理关键字过滤、收藏优先排序和空状态展示，
+ * 是模板弹窗“看起来对不对”的核心渲染函数。
  */
 function renderChatTemplateList() {
     const listEl = document.getElementById('chat-template-list');
@@ -1476,7 +1562,11 @@ async function selectChatTemplate(templateId) {
 }
 
 /**
- * 显示变量填充弹窗
+ * 打开模板变量填写弹窗。
+ *
+ * 页面位置：模板弹窗之后的第二层变量输入对话框。
+ * 负责内容：根据模板中解析出的变量列表动态生成输入框。
+ * 如果模板明明有 {{变量}} 占位符但弹窗没有输入项，优先看 selectChatTemplate() 的变量解析结果和这里。
  */
 function showChatTemplateVarsModal(templateId, variables) {
     document.getElementById('chat-use-template-id').value = templateId;
@@ -1505,7 +1595,10 @@ function closeChatTemplateVarsModal() {
 }
 
 /**
- * 应用模板（填充变量后）
+ * 提交模板变量并向后端换取最终文本。
+ *
+ * 页面触发：变量填写弹窗中的“应用/确定”按钮。
+ * 这里会收集所有变量值，调用后端展开模板，再把最终内容交给 applyChatTemplateContent()。
  */
 async function applyChatTemplate() {
     const api = getPywebviewApi();
@@ -1533,7 +1626,11 @@ async function applyChatTemplate() {
 }
 
 /**
- * 应用模板内容到输入框
+ * 把模板最终内容回填到聊天输入框。
+ *
+ * 页面位置：聊天输入框区域。
+ * 无论模板是否经过变量替换，最终都会落到这里；
+ * 这里只负责“写回输入框并聚焦”，不会自动发送消息。
  */
 function applyChatTemplateContent(content, templateId) {
     const chatInput = document.getElementById('chat-input');
@@ -1566,7 +1663,14 @@ let slashCommandActiveIndex = 0;
 let slashCommandFiltered = [];
 
 /**
- * 初始化快捷命令监听
+ * 初始化聊天输入框的 / 命令能力。
+ *
+ * 页面位置：聊天输入框及其下方的命令建议弹窗。
+ * 这是聊天页的增强交互层：
+ * - 输入 / 时弹出命令菜单；
+ * - 键盘上下切换；
+ * - 回车/Tab 执行；
+ * - 点击外部关闭。
  */
 function initSlashCommands() {
     const chatInput = document.getElementById('chat-input');
@@ -1585,7 +1689,10 @@ function initSlashCommands() {
 }
 
 /**
- * 处理输入框输入
+ * 根据输入框当前内容决定是否展示 / 命令建议。
+ *
+ * 输入以 / 开头时，会实时过滤 SLASH_COMMANDS 并刷新下拉建议；
+ * 输入不再是 / 命令时，会立即关闭弹窗并回到普通聊天输入状态。
  */
 function handleSlashCommandInput(e) {
     const value = e.target.value;
@@ -1655,7 +1762,10 @@ function hideSlashCommandPopup() {
 }
 
 /**
- * 渲染快捷命令列表
+ * 渲染 / 命令建议列表。
+ *
+ * 页面位置：聊天输入框下方的快捷命令弹层。
+ * 负责内容：高亮当前选中项、显示命令说明，并保证键盘切换时当前项滚动到可见区域。
  */
 function renderSlashCommandList() {
     const listEl = document.getElementById('slash-command-list');
@@ -1686,7 +1796,11 @@ function renderSlashCommandList() {
 }
 
 /**
- * 执行快捷命令
+ * 执行一个 / 快捷命令。
+ *
+ * 页面触发：命令建议弹窗点击、回车、Tab。
+ * 这里会先清空当前输入框和弹窗状态，再调用命令绑定的 action；
+ * 也就是说，模板选择、新会话、导出等快捷入口都会统一汇总到这里执行。
  */
 function executeSlashCommand(cmd) {
     const chatInput = document.getElementById('chat-input');
@@ -1775,7 +1889,10 @@ async function exportCurrentChat() {
 }
 
 /**
- * 切换网络搜索开关
+ * 切换聊天页的联网搜索开关。
+ *
+ * 页面位置：聊天输入框附近的“网络搜索”按钮。
+ * 这个状态会直接传给 sendMessage()，从而影响后端是否补做网页搜索。
  */
 function toggleWebSearch() {
     webSearchEnabled = !webSearchEnabled;
@@ -1789,7 +1906,10 @@ function toggleWebSearch() {
 }
 
 /**
- * 切换思考模式开关
+ * 切换聊天页的思考模式开关。
+ *
+ * 页面位置：聊天输入框附近的“思考模式”按钮。
+ * 这个状态同样会由 sendMessage() 传入后端；当前提示里已经明确写了仅 Claude 侧会真正生效。
  */
 function toggleThinking() {
     thinkingEnabled = !thinkingEnabled;

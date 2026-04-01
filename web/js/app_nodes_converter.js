@@ -1,4 +1,21 @@
-// ==================== 节点转换 ====================
+/*
+ * 文件总览：节点转换与节点管理前端逻辑。
+ *
+ * 服务页面：
+ * - web/pages/converter.html：把节点链接转换成 YAML/JSON 等结果；
+ * - web/pages/nodes.html：管理已保存节点、标签、二维码导出、批量导入和校验。
+ *
+ * 调用链：页面按钮 -> 本文件函数 -> window.pywebview.api -> api.py -> NodeConverterService。
+ *
+ * 排查建议：
+ * - 转换按钮点击后无输出：先看 convertLinks() / applyConvertResult()；
+ * - 节点列表、标签、二维码异常：优先看 loadNodes()、renderNodeTags()、exportNodeAsQR()。
+ */
+
+// ==================== 节点转换：对应 converter.html ====================
+// 负责原始节点链接输入、订阅抓取、转换结果渲染与输出格式切换。
+// 页面触发：converter 页里的“转换”按钮。
+// 这是“原始节点链接 -> 后端转换 -> 前端回填”的总入口。
 async function convertLinks() {
     if (!window.pywebview || !window.pywebview.api) return;
     const linksText = document.getElementById('links-input').value.trim();
@@ -11,6 +28,8 @@ async function convertLinks() {
     applyConvertResult(result);
 }
 
+// 判断用户在“订阅 URL”输入框里粘贴的内容，其实是不是节点链接本体。
+// 这是一个兜底辅助函数，用来提升页面容错率，避免外行把内容贴错框时完全没反应。
 function isLikelyNodeLinks(text) {
     const t = (text || '').trim();
     if (!t) return false;
@@ -20,10 +39,14 @@ function isLikelyNodeLinks(text) {
     return /^(vless|hysteria2|ss):\/\//i.test(t);
 }
 
+// 初始化转换页的输出模式按钮状态。
+// 页面位置：converter 页右侧输出区上方的 YAML / JSON 切换按钮。
 function initConverterOutput() {
     updateConverterFormatButtons();
 }
 
+// 在 YAML / JSON 两种输出模式之间切换。
+// 页面触发：converter 页输出区的格式切换按钮。
 function setConvertOutputFormat(format) {
     if (format !== 'yaml' && format !== 'json') return;
     convertOutputFormat = format;
@@ -31,6 +54,9 @@ function setConvertOutputFormat(format) {
     updateConverterFormatButtons();
 }
 
+// 刷新输出格式按钮的选中态。
+// 页面位置：converter 页结果区上方的 YAML / JSON 两个切换按钮。
+// 它不负责转换数据本身，只负责把“当前正在看哪种格式”用激活样式告诉用户。
 function updateConverterFormatButtons() {
     const yamlBtn = document.getElementById('format-yaml-btn');
     const jsonBtn = document.getElementById('format-json-btn');
@@ -38,12 +64,16 @@ function updateConverterFormatButtons() {
     jsonBtn?.classList.toggle('active', convertOutputFormat === 'json');
 }
 
+// 根据最近一次转换结果，把内容写回输出框。
+// 页面位置：converter 页右侧大输出框。
 function renderConvertOutput() {
     const outputEl = document.getElementById('yaml-output');
     if (!outputEl) return;
     outputEl.value = convertOutputFormat === 'json' ? (lastConvertedJson || '') : (lastConvertedYaml || '');
 }
 
+// 把后端转换结果统一写回前端状态。
+// 负责内容：转换后的节点数组、YAML 文本、JSON 文本、错误提示区。
 function applyConvertResult(result) {
     const nodes = Array.isArray(result?.nodes) ? result.nodes : [];
     const yaml = typeof result?.yaml === 'string' ? result.yaml : '';
@@ -58,6 +88,8 @@ function applyConvertResult(result) {
     showErrors(errors);
 }
 
+// 页面触发：converter 页里的“抓取订阅”按钮。
+// 如果用户误把多条节点链接粘到订阅输入框，这里也会自动分流回 convertLinks()。
 async function fetchSubscription() {
     if (!window.pywebview || !window.pywebview.api) return;
     const url = document.getElementById('subscription-url').value.trim();
@@ -77,6 +109,9 @@ async function fetchSubscription() {
     applyConvertResult(result);
 }
 
+// 渲染转换错误提示区：对应结果区附近的错误列表。
+// 数据来源：window.pywebview.api.convert_links()/fetch_subscription() 返回结果里的 errors 数组。
+// 用户说“有些节点没被成功转换”时，通常先看这里有没有把后端给出的失败原因真正渲染出来。
 function showErrors(errors) {
     const container = document.getElementById('convert-errors');
     if (!container) return;
@@ -84,6 +119,9 @@ function showErrors(errors) {
     container.innerHTML = safeErrors.map(e => `<div>⚠ ${escapeHtml(e)}</div>`).join('');
 }
 
+// 复制当前结果区内容：对应“复制结果”按钮。
+// 名字虽然叫 copyYaml，但它复制的其实是右侧输出框当前展示的文本，所以 YAML / JSON 两种模式都会走这里。
+// 如果用户切到了 JSON 模式再点复制，复制出去的也是 JSON，而不是固定的 YAML。
 function copyYaml() {
     const content = document.getElementById('yaml-output').value;
     if (content) {
@@ -93,6 +131,8 @@ function copyYaml() {
     }
 }
 
+// 把当前转换结果批量保存到已保存节点列表。
+// 页面触发：converter 页里的“保存节点”按钮。
 async function saveConvertedNodes() {
     if (!window.pywebview || !window.pywebview.api) return;
     if (!convertedNodes.length) {
@@ -114,9 +154,13 @@ async function saveConvertedNodes() {
     loadNodes();
 }
 
-// ==================== 节点管理 ====================
+// ==================== 节点管理：对应 nodes.html ====================
+// 已保存节点的列表展示、标签维护、删除与导出入口集中在这里。
 let currentTagFilter = null;
 
+// nodes 页数据加载入口：
+// 页面位置：已保存节点列表页。
+// 会先加载标签筛选，再根据当前筛选条件拉节点数据并渲染卡片。
 async function loadNodes() {
     if (!window.pywebview || !window.pywebview.api) return;
 
@@ -162,11 +206,18 @@ async function loadNodes() {
     `).join('');
 }
 
+// 把节点标签渲染成卡片里的标签徽标区域。
+// 页面位置：nodes 页里每张节点卡片底部的标签区。
+// 这里返回的是一段 HTML 字符串，真正插入到卡片里的动作由 loadNodes() 在拼整张卡片时完成。
 function renderNodeTags(tags) {
     if (!tags || !tags.length) return '';
     return `<div class="node-tags">${tags.map(t => `<span class="node-tag" data-tag="${escapeAttr(t)}">${escapeHtml(t)}</span>`).join('')}</div>`;
 }
 
+// 标签筛选条的数据加载与渲染入口。
+// 页面位置：nodes 页顶部的标签筛选条。
+// 如果标签按钮没刷新，或者点击标签无效，通常先看这里和 filterByTag()；
+// 它负责把“全部 + 每个标签按钮”的 DOM 一次性重绘出来。
 async function loadNodeTags() {
     if (!window.pywebview || !window.pywebview.api) return;
     const tags = await pywebview.api.get_all_node_tags();
@@ -197,7 +248,9 @@ async function loadNodeTags() {
     }
 }
 
-// 事件委托：节点标签点击
+// 事件委托：节点卡片里的标签点击。
+// 用户点卡片内某个标签时，不会打开编辑器，而是直接把该标签作为当前筛选条件，
+// 相当于从“卡片标签展示区”快速跳到“顶部标签筛选”同样的过滤效果。
 document.addEventListener('click', (e) => {
     const nodeTag = e.target.closest('.node-tag[data-tag]');
     if (nodeTag) {
@@ -206,11 +259,16 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// 根据标签筛选节点：既可由顶部筛选按钮触发，也可由节点卡片上的标签点击触发。
+// 外行可以把它理解为“记住当前选中了哪个标签，然后重新请求/渲染节点列表”。
+// 因为真正的数据刷新在 loadNodes()，所以点击标签没变化时，通常要把这两个函数一起看。
 function filterByTag(tag) {
     currentTagFilter = tag;
     loadNodes();
 }
 
+// 页面触发：单个节点卡片上的“编辑标签”按钮。
+// 这里会在卡片底部临时插入一个内联编辑器，而不是单独开弹窗。
 function showTagEditor(nodeId) {
     const card = document.querySelector(`.node-card[data-node-id="${nodeId}"]`);
     if (!card) return;
@@ -242,6 +300,8 @@ function showTagEditor(nodeId) {
     editor.querySelector('.tag-input').focus();
 }
 
+// 节点标签保存入口：
+// 页面触发：节点卡片内联标签编辑器里的“保存”按钮。
 async function saveNodeTags(nodeId, editor) {
     if (!window.pywebview || !window.pywebview.api) return;
     const input = editor.querySelector('.tag-input');
@@ -257,6 +317,9 @@ async function saveNodeTags(nodeId, editor) {
     }
 }
 
+// 删除已保存节点：对应 nodes.html 中每张节点卡片右上角的删除按钮。
+// 调用链：删除按钮 -> 本函数 -> pywebview.api.delete_node() -> api.py -> NodeConverterService。
+// 删除成功后会重新 loadNodes()，让列表、标签筛选结果和空状态提示保持同步。
 async function deleteNode(id) {
     if (!window.pywebview || !window.pywebview.api) return;
     if (confirm('确定删除此节点？')) {
@@ -265,7 +328,10 @@ async function deleteNode(id) {
     }
 }
 
-// ==================== 批量导入 ====================
+// ==================== 批量导入：节点订阅或多条节点一次性入库 ====================
+// 这里负责把多来源输入整理成统一结果，再交给后端保存。
+// 页面触发：nodes 页里的“批量导入订阅 / 链接”按钮。
+// 页面位置：通常和批量导入文本框 batch-import-urls、结果区 batch-import-results 配套出现。
 async function batchImportSubscriptions() {
     const textarea = document.getElementById('batch-import-urls');
     if (!textarea) return;
@@ -297,6 +363,8 @@ async function batchImportSubscriptions() {
     }
 }
 
+// 页面位置：批量导入结果区域。
+// 负责把每个来源的导入数量、错误信息和总计结果展示出来。
 function renderBatchImportResults(result) {
     const container = document.getElementById('batch-import-results');
     if (!container) return;
@@ -323,7 +391,9 @@ function renderBatchImportResults(result) {
     container.innerHTML = html;
 }
 
-// ==================== 节点验证 ====================
+// ==================== 节点验证：用于批量检查转换后节点的基本有效性 ====================
+// 当用户怀疑转换结果格式不对时，优先看这一段。
+// 页面触发：converter 页里的“校验全部节点”按钮。
 async function validateAllConvertedNodes() {
     if (!convertedNodes.length) {
         showToast('没有可验证的节点', 'warning');
@@ -344,6 +414,8 @@ async function validateAllConvertedNodes() {
     }
 }
 
+// 页面位置：converter 页的“校验结果”展示区。
+// 会把有效 / 无效数量、每个节点的错误和 warning 都渲染出来。
 function renderValidationResults(results) {
     const container = document.getElementById('validation-results');
     if (!container) return;
@@ -393,7 +465,10 @@ function renderValidationResults(results) {
     container.style.display = 'block';
 }
 
-// ==================== 二维码导出 ====================
+// ==================== 二维码导出：把单条节点分享信息转成二维码 ====================
+// 对应页面上的导出二维码按钮和预览流程。
+// 页面触发：转换结果列表里的“导出二维码”按钮。
+// 它不会在当前页直接画二维码，而是把分享链接送到 tool-qrcode 页面继续处理。
 async function exportNodeAsQR(nodeIndex) {
     if (!convertedNodes[nodeIndex]) {
         showToast('节点不存在', 'error');
@@ -422,6 +497,9 @@ async function exportNodeAsQR(nodeIndex) {
     }
 }
 
+// 页面触发：转换结果列表里的“复制分享链接”按钮。
+// 复制单条节点的分享链接：对应“复制分享链接”按钮。
+// 适合用户不想跳转二维码工具，只想把节点分享串直接发出去的场景。
 function copyNodeShareLink(nodeIndex) {
     if (!convertedNodes[nodeIndex]) {
         showToast('节点不存在', 'error');

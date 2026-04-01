@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
-"""
-Web Search Service
-使用 ddgs (DuckDuckGo Search) 提供网络搜索功能
+"""AI 网络搜索增强服务。
+
+主要给 AI 聊天页提供“先搜索、再把结果注入上下文”的能力。
+如果 AI 聊天页的搜索开关行为异常，通常会经过 api.py 再进入这里。
 """
 
 import logging
@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 _executor = ThreadPoolExecutor(max_workers=2)
 
 
+# ========== 搜索执行：同步与异步两种入口 ==========
 def _search_sync(query: str, max_results: int = 5, region: str = 'wt-wt') -> List[Dict[str, Any]]:
     """同步搜索（内部使用）"""
     try:
@@ -93,6 +94,8 @@ async def search(query: str, max_results: int = 5, region: str = 'wt-wt') -> Lis
     func = partial(_search_sync, query, max_results, region)
     return await loop.run_in_executor(_executor, func)
 
+
+# ========== 搜索结果整理与查询词提取 ==========
 
 def format_search_results(results: List[Dict[str, Any]], max_length: int = 1500) -> str:
     """格式化搜索结果为可注入 prompt 的文本"""

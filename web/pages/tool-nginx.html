@@ -1,23 +1,36 @@
-<!-- nginx 配置生成工具 -->
+<!--
+页面总览：nginx 配置生成 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：可视化生成常用 nginx 配置片段
+前端入口：app_tools_c.js -> initNginxTool()
+-->
+
+<!-- 自动拆分自 web/index.html：tool-nginx -->
+<!-- 页面骨架：上方是标题与 AI 辅助入口，中间左右双栏分别负责模板配置和配置结果输出。 -->
 <section id="page-tool-nginx" class="page">
+    <!-- 页面头部：说明这是一个 nginx 配置片段生成页。 -->
     <div class="page-header">
         <div class="page-title">
             <h1>nginx 配置生成</h1>
             <p class="subtitle">可视化生成常用 nginx 配置片段</p>
         </div>
+
+        <!-- 页面操作区：当前只放 AI 辅助入口，用于解释或生成配置。 -->
         <div class="page-actions">
-            <!-- AI 辅助按钮容器 -->
+            <!-- AI 辅助按钮容器：由全局 helper 按需注入与 nginx 配置相关的扩展动作。 -->
             <div id="nginx-ai-buttons" class="ai-helper-buttons"></div>
         </div>
     </div>
+
+    <!-- 双栏工作区：左侧配置模板与参数，右侧实时显示最终生成的 nginx 配置。 -->
     <div class="tool-layout-dual">
-        <!-- 左侧：配置选项 -->
+        <!-- 左侧配置面板：根据模板类型填写域名、端口和扩展参数。 -->
         <div class="converter-panel">
             <div class="panel-header">
                 <h3>配置选项</h3>
             </div>
+
             <div class="panel-body">
-                <!-- 模板选择 -->
+                <!-- 模板选择：切换不同场景后，JS 会刷新下面的动态配置项。 -->
                 <div class="form-group">
                     <label for="nginx-template">配置模板</label>
                     <select id="nginx-template" onchange="updateNginxTemplate()">
@@ -31,31 +44,42 @@
                         <option value="fileUpload">文件上传</option>
                     </select>
                 </div>
-                <!-- 通用选项 -->
+
+                <!-- 通用基础项：无论什么模板，域名和监听端口都是最常见的输入。 -->
                 <div class="form-group">
                     <label for="nginx-server-name">域名 (server_name)</label>
                     <input type="text" id="nginx-server-name" placeholder="example.com" oninput="updateNginxConfig()">
                 </div>
+
                 <div class="form-group">
                     <label for="nginx-listen-port">监听端口 (listen)</label>
                     <input type="number" id="nginx-listen-port" placeholder="80" oninput="updateNginxConfig()">
                 </div>
-                <!-- 动态选项区 -->
+
+                <!-- 动态选项容器：由 JS 根据当前模板动态插入 location、upstream、SSL 等专属字段。 -->
                 <div id="nginx-dynamic-options"></div>
             </div>
         </div>
-        <!-- 右侧：配置输出 -->
+
+        <!-- 右侧结果面板：展示生成状态和最终配置文本。 -->
         <div class="converter-panel">
             <div class="panel-header">
                 <h3>生成结果</h3>
+
+                <!-- 面板按钮区：复制按钮用于快速取走生成好的配置。 -->
                 <div class="panel-actions">
                     <button type="button" class="btn btn-sm btn-ghost" onclick="copyNginxConfig(this)">复制</button>
                 </div>
             </div>
+
             <div class="panel-body">
+                <!-- 状态提示区：由 JS 动态显示模板说明、生成成功提示或校验反馈。 -->
                 <div id="nginx-status" class="tool-stats" aria-live="polite"></div>
+
                 <div class="form-group flex-1">
                     <label for="nginx-output" class="visually-hidden">nginx 配置</label>
+
+                    <!-- 输出框：只读展示当前模板与参数组合生成的 nginx 配置片段。 -->
                     <textarea id="nginx-output" readonly placeholder="配置将显示在这里..." rows="20" class="code-output"></textarea>
                 </div>
             </div>

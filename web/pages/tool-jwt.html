@@ -1,16 +1,29 @@
+<!--
+页面总览：JWT 工具 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：JWT 解码、生成与验证
+前端入口：app_tools_a.js -> initJwtTool()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-jwt -->
+<!-- 页面骨架：顶部切换解码/生成/验证三个场景，每个场景都有独立输入区和结果区。 -->
 <section id="page-tool-jwt" class="page">
-    <div class="page-header">
+
+<!-- 页面头部：说明当前工具用于 JWT 的解析、生成与验签。 -->
+
+<div class="page-header">
         <div class="page-title">
             <h1>JWT 工具</h1>
             <p class="subtitle">JWT 解码、生成与验证</p>
         </div>
-        <div class="page-actions">
+
+<!-- 页面操作区：提供一键清空，重置三个场景中的输入与输出。 -->
+
+<div class="page-actions">
             <button class="btn btn-ghost" onclick="clearJwtTool()">清空</button>
         </div>
     </div>
 
-    <!-- Tab 切换 -->
+    <!-- 场景标签栏：在解码、生成、验证三种 JWT 工作流之间切换。 -->
     <div class="tool-tabs-modern" role="tablist">
         <button class="tool-tab tool-tab-modern active" onclick="switchJwtMode('decode')" data-mode="decode">
             <span class="tab-icon">
@@ -32,12 +45,14 @@
         </button>
     </div>
 
-    <!-- 解码场景 -->
+    <!-- 解码场景：输入现成 JWT，拆解 Header/Payload 并提示风险信息。 -->
     <div id="jwt-scene-decode" class="jwt-scene">
+        <!-- 主工作区：左侧输入待解码 Token，右侧勾选输出内容并查看 Header/Payload 结果。 -->
         <div class="converter-layout jwt-layout">
             <div class="converter-panel">
                 <div class="panel-header">
                     <h3>输入</h3>
+                    <!-- 面板按钮区：围绕当前面板执行复制、清空、模式切换等局部操作。 -->
                     <div class="panel-actions">
                         <select id="jwt-input-type" class="tool-select" onchange="updateJwtTool()">
                             <option value="auto">自动识别</option>
@@ -56,6 +71,7 @@
             <div class="converter-panel">
                 <div class="panel-header">
                     <h3>输出</h3>
+                    <!-- 面板按钮区：围绕当前面板执行复制、清空、模式切换等局部操作。 -->
                     <div class="panel-actions">
                         <label class="tool-check">
                             <input type="checkbox" id="jwt-show-header" checked onchange="updateJwtTool()">
@@ -89,12 +105,13 @@
         </div>
     </div>
 
-    <!-- 生成场景 -->
+    <!-- 生成场景：填写 Payload、算法和密钥参数，拼装新的 JWT。 -->
     <div id="jwt-scene-generate" class="jwt-scene" style="display:none">
         <div class="converter-layout jwt-layout">
             <div class="converter-panel">
                 <div class="panel-header">
                     <h3>Payload</h3>
+                    <!-- 面板按钮区：围绕当前面板执行复制、清空、模式切换等局部操作。 -->
                     <div class="panel-actions">
                         <select id="jwt-gen-preset" class="tool-select" onchange="applyJwtPreset()">
                             <option value="">选择预设...</option>
@@ -157,6 +174,7 @@
         <div class="converter-panel jwt-output-panel">
             <div class="panel-header">
                 <h3>生成的 JWT</h3>
+                <!-- 面板按钮区：围绕当前面板执行复制、清空、模式切换等局部操作。 -->
                 <div class="panel-actions">
                     <button class="btn btn-sm btn-primary" onclick="generateJwtToken()">生成</button>
                     <button class="btn btn-sm btn-ghost" onclick="copyJwtGenOutput(this)">复制</button>
@@ -167,10 +185,11 @@
                 <div id="jwt-gen-errors" class="error-list"></div>
             </div>
         </div>
-        <!-- 生成的公钥显示区 -->
+        <!-- 公钥展示区：在生成非对称密钥时额外显示公钥，便于复制保存。 -->
         <div class="converter-panel jwt-output-panel" id="jwt-gen-pubkey-panel" style="display:none">
             <div class="panel-header">
                 <h3>公钥 (PEM)</h3>
+                <!-- 面板按钮区：围绕当前面板执行复制、清空、模式切换等局部操作。 -->
                 <div class="panel-actions">
                     <button class="btn btn-sm btn-ghost" onclick="copyJwtGenPubkey(this)">复制</button>
                 </div>
@@ -181,7 +200,7 @@
         </div>
     </div>
 
-    <!-- 验证场景 -->
+    <!-- 验证场景：输入 JWT 与密钥，校验签名是否有效。 -->
     <div id="jwt-scene-verify" class="jwt-scene" style="display:none">
         <div class="converter-layout jwt-layout">
             <div class="converter-panel">
@@ -243,6 +262,7 @@
         <div class="converter-panel jwt-output-panel">
             <div class="panel-header">
                 <h3>验证结果</h3>
+                <!-- 面板按钮区：围绕当前面板执行复制、清空、模式切换等局部操作。 -->
                 <div class="panel-actions">
                     <button class="btn btn-sm btn-primary" onclick="verifyJwtToken()">验证</button>
                 </div>

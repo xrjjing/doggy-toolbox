@@ -1,7 +1,9 @@
+"""旧数据迁移服务。
+
+在应用启动阶段负责检查历史 JSON 文件是否存在，并把旧数据迁移到 SQLite。
+如果用户升级后出现“数据丢失”或“旧数据没有进入新库”的问题，优先排查这里和 db_manager.py。
 """
-数据迁移模块
-负责将 JSON 数据迁移到 SQLite 数据库
-"""
+
 import json
 import logging
 from pathlib import Path
@@ -15,7 +17,9 @@ logger = logging.getLogger(__name__)
 
 
 class DataMigration:
-    """数据迁移器"""
+    """启动阶段的数据迁移执行器。
+
+    它负责判断是否需要迁移、备份旧文件，并把历史 JSON 数据转成当前 SQLite 结构。"""
 
     def __init__(self, data_dir: Path, db_manager: DatabaseManager):
         """
@@ -29,6 +33,7 @@ class DataMigration:
         self.db = db_manager
         self.migration_log = []
 
+    # ========== 迁移前检查与总控流程 ==========
     def check_migration_needed(self) -> bool:
         """
         检查是否需要迁移
@@ -120,6 +125,7 @@ class DataMigration:
                 'migrated': self.migration_log
             }
 
+    # ========== 各业务模块的历史 JSON -> SQLite 迁移 ==========
     def _migrate_app_config(self):
         """迁移应用配置"""
         config_file = self.data_dir / "config.json"
@@ -429,6 +435,7 @@ class DataMigration:
 
         return sections
 
+    # ========== 旧文件备份 ==========
     def backup_json_files(self) -> bool:
         """
         备份所有 JSON 文件到 backup 目录

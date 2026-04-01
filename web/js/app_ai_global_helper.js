@@ -1,10 +1,25 @@
+/*
+ * 文件总览：全局悬浮 AI 助手按钮。
+ *
+ * 这个文件不绑定单个页面，而是根据当前 pageId 在界面上悬浮一个可拖动入口，帮助用户快速跳到相关工具或触发 AI 辅助。
+ * 主要职责：
+ * - 维护页面与工具的元数据映射；
+ * - 判断当前页面上下文；
+ * - 创建/销毁悬浮按钮与面板；
+ * - 处理拖动、展开、推荐按钮渲染。
+ *
+ * 排查建议：
+ * - 悬浮按钮不出现：优先看页面上下文识别和初始化逻辑；
+ * - 推荐内容和当前页面不匹配：先看 TOOL_METADATA 与当前 pageId 的映射。
+ */
+
 // 全局 AI 帮助按钮
-// 可拖动的浮动按钮，提供上下文感知的工具推荐
+// 这是跨页面存在的浮动入口，会根据当前页面上下文给出相关工具或 AI 辅助推荐。
 
 (function() {
     'use strict';
 
-    // 工具元数据：用于上下文推荐
+    // 工具元数据：用于“当前页面适合推荐什么工具/相关页面”的上下文判断，是推荐准确度的基础。
     const TOOL_METADATA = {
         // 数据管理
         'credentials': { name: '密码管理', category: 'data', keywords: ['密码', '凭证', '账号', 'password', 'credential'], related: ['commands', 'tool-password'] },
@@ -89,7 +104,11 @@
         'ai': { name: 'AI 功能', icon: '🤖' }
     };
 
-    // 状态
+    // 交互状态：
+    // - isExpanded：右侧推荐面板当前是否处于展开状态；
+    // - isDragging：当前是否正在拖动悬浮按钮，用来避免“拖动一下却误点开面板”；
+    // - isHalfHidden：按钮是否处于贴边半隐藏状态，减少对页面主体区域的遮挡；
+    // - currentY / dragStartY / dragStartTop：分别记录当前位置、拖拽起点和拖拽前位置。
     let isExpanded = false;
     let isDragging = false;
     let isHalfHidden = true;
@@ -98,7 +117,19 @@
     let dragStartTop = 0;
 
     /**
-     * 获取当前页面 ID
+     * 获取当前页面 ID。
+     *
+     * 这是悬浮 AI 助手判断“我现在服务的是哪一个页面块”的入口。
+     * 后面的“当前页面”展示、推荐工具列表、AI 对话快捷跳转，都会先依赖这里的识别结果。
+     *
+     * 识别规则：
+     * - 找当前页面上带 `.page.active` 的主内容容器；
+     * - 它的 DOM id 一般形如 `page-credentials` / `page-ai-chat`；
+     * - 这里会把前缀 `page-` 去掉，得到真正的 pageId。
+     *
+     * 排查建议：
+     * - 面板里“当前页面”名称不对时，先看页面切换后是否正确维护了 `.page.active`；
+     * - 如果当前没有任何活动页，这里会回退到 `credentials`，避免悬浮入口完全失效。
      */
     function getCurrentPageId() {
         const activePage = document.querySelector('.page.active');
@@ -109,7 +140,20 @@
     }
 
     /**
-     * 根据上下文获取推荐工具
+     * 根据当前页面上下文生成“推荐工具”列表。
+     *
+     * 面板中间那块“推荐工具”区域，就是由这个函数决定内容的。
+     * 它会优先推荐：
+     * 1) 与当前页面强相关的工具；
+     * 2) 同一类别下的其它工具；
+     * 3) 一个固定保底入口：AI 对话。
+     *
+     * 这样做的目的，是让用户在不同页面里点开悬浮助手时，
+     * 能看到更贴近当前工作场景的按钮，而不是一份完全固定的菜单。
+     *
+     * 排查建议：
+     * - 推荐列表不准、总跳错方向：先看 TOOL_METADATA 里的 related / category 是否配置正确；
+     * - 当前页面查不到映射时，会走默认热门工具兜底分支。
      */
     function getRecommendations(currentPageId) {
         const recommendations = [];
@@ -166,7 +210,19 @@
     }
 
     /**
-     * 创建浮动按钮 DOM
+     * 创建悬浮入口的整套 DOM 结构。
+     *
+     * 这里一次性生成两个视觉块：
+     * - 左侧/贴边的小圆角主按钮：用户平时主要看到并拖动它；
+     * - 右侧展开后的面板：展示“当前页面”“推荐工具”“打开 AI 对话”按钮。
+     *
+     * 面板内部又分为 4 个区域：
+     * 1) panel-header：标题 + 关闭按钮；
+     * 2) panel-context：当前页面名称；
+     * 3) panel-recommendations：推荐工具列表；
+     * 4) panel-actions：底部快捷动作按钮。
+     *
+     * 如果页面上完全没有看到悬浮按钮，除了 init() 没跑到，也要检查这里创建的 DOM 是否被成功 append 到 body。
      */
     function createFloatingButton() {
         // 容器
@@ -182,7 +238,11 @@
             <span class="expand-indicator">‹</span>
         `;
 
-        // 面板
+        // 面板主体：
+        // - panel-header：标题栏与关闭按钮
+        // - panel-context：当前页面识别结果
+        // - panel-recommendations：推荐工具点击列表
+        // - panel-actions：底部快捷动作（当前是“打开 AI 对话”）
         const panel = document.createElement('div');
         panel.className = 'ai-helper-panel';
         panel.innerHTML = `
@@ -212,7 +272,21 @@
     }
 
     /**
-     * 更新面板内容
+     * 刷新展开面板里的动态内容。
+     *
+     * 这个函数只负责“把数据灌进面板”，不负责创建面板。
+     * 它会同步更新两块可见内容：
+     * - “当前页面”这一行；
+     * - “推荐工具”这一整块可点击列表。
+     *
+     * 推荐列表里的每一行都是一个可点击按钮块：
+     * - 左侧图标来自分类；
+     * - 中间显示工具名称和推荐原因；
+     * - 点击后会切到对应页面，并自动收起面板。
+     *
+     * 排查建议：
+     * - 面板展开了但内容是空的：先看 currentPageId 是否识别成功、recommendations 是否有数据；
+     * - 推荐项点了没跳页：再看 window.switchPage 是否已由 app_core.js 暴露。
      */
     function updatePanel() {
         const currentPageId = getCurrentPageId();
@@ -228,6 +302,7 @@
         // 更新推荐列表
         const listContainer = document.querySelector('.ai-helper-panel .recommendations-list');
         if (listContainer) {
+            // 推荐区的每一项都渲染成一整行可点击块，方便外行用户直接把它理解成“快捷跳转按钮”。
             listContainer.innerHTML = recommendations.map(rec => `
                 <div class="recommendation-item" data-page="${rec.id}">
                     <span class="rec-icon">${CATEGORIES[rec.category]?.icon || '📄'}</span>
@@ -253,7 +328,12 @@
     }
 
     /**
-     * 展开面板
+     * 展开右侧面板。
+     *
+     * 用户能看到的变化是：
+     * - 悬浮按钮从半隐藏状态完整露出；
+     * - 右侧推荐面板显示；
+     * - 面板内容在展开瞬间刷新，保证“当前页面”和推荐项是最新的。
      */
     function expand() {
         const container = document.getElementById('ai-global-helper');
@@ -267,7 +347,11 @@
     }
 
     /**
-     * 收起面板
+     * 收起右侧面板，并在短暂延迟后恢复贴边半隐藏效果。
+     *
+     * 这里有一个 300ms 的延迟，
+     * 是为了给 CSS 过渡留时间，避免面板刚收起时视觉上太突兀。
+     * 如果当前又马上被重新展开，延迟逻辑会通过 `isExpanded` 判断避免误恢复半隐藏。
      */
     function collapse() {
         const container = document.getElementById('ai-global-helper');
@@ -286,7 +370,10 @@
     }
 
     /**
-     * 切换展开/收起
+     * 在“展开”和“收起”之间切换。
+     *
+     * 主按钮点击、展开指示器点击，本质上都会走到这里，
+     * 所以它相当于悬浮助手最核心的开关入口。
      */
     function toggle() {
         if (isExpanded) {
@@ -297,12 +384,27 @@
     }
 
     /**
-     * 初始化拖动逻辑
+     * 给悬浮按钮绑定拖动逻辑。
+     *
+     * 用户平时看到的行为是：
+     * - 按住主按钮主体可以上下拖动；
+     * - 点击小箭头只负责展开/收起，不参与拖动；
+     * - 释放鼠标后，会把新的纵向位置写入 localStorage，刷新后还能记住。
+     *
+     * 位置限制：
+     * - 顶部至少保留 50px；
+     * - 底部至少保留约 100px；
+     * 这样做是为了避免按钮被拖出可视区域。
+     *
+     * 排查建议：
+     * - 按钮拖不动：先看 mousedown / mousemove / mouseup 是否被正常绑定；
+     * - 拖完刷新又回到原位：看 localStorage 的 `ai_helper_y` 是否写入成功。
      */
     function initDrag(container) {
         const button = container.querySelector('.ai-helper-btn');
 
         button.addEventListener('mousedown', (e) => {
+            // 点击展开箭头时不进入拖动模式，避免“想展开结果变成拖动”。
             if (e.target.closest('.expand-indicator')) return;
 
             isDragging = true;
@@ -316,6 +418,7 @@
         document.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
 
+            // 只允许在可视区内上下移动，避免把按钮拖到屏幕外找不到。
             const deltaY = e.clientY - dragStartY;
             const newY = Math.max(50, Math.min(window.innerHeight - 100, dragStartTop + deltaY));
             currentY = newY;
@@ -342,7 +445,17 @@
     }
 
     /**
-     * 初始化事件绑定
+     * 绑定悬浮助手涉及的全部交互事件。
+     *
+     * 这里集中处理 6 类交互：
+     * 1) 展开指示器点击；
+     * 2) 主按钮点击；
+     * 3) 面板右上角关闭按钮；
+     * 4) “打开 AI 对话”快捷按钮；
+     * 5) 鼠标移入/移出时的半隐藏切换；
+     * 6) 页面切换后的面板内容刷新。
+     *
+     * 如果用户反馈“某个按钮点了没反应”，通常第一站就该从这里开始看。
      */
     function initEvents(container) {
         const button = container.querySelector('.ai-helper-btn');
@@ -397,7 +510,19 @@
     }
 
     /**
-     * 初始化全局 AI 帮助按钮
+     * 初始化全局悬浮 AI 助手。
+     *
+     * 这是整个文件的启动入口，负责把前面定义好的 DOM、拖拽、点击行为真正挂到页面上。
+     * 启动顺序是：
+     * 1) 避免重复创建同一个悬浮助手；
+     * 2) 创建 DOM 并挂到 body；
+     * 3) 恢复上一次保存的位置；
+     * 4) 绑定拖动逻辑；
+     * 5) 绑定各种点击/悬浮/切页事件。
+     *
+     * 排查建议：
+     * - 页面完全没有悬浮助手：先确认 init() 是否执行，以及 body 是否可用；
+     * - 按钮位置异常：再看 localStorage 里的 `ai_helper_y` 是否是异常值。
      */
     function init() {
         // 检查是否已存在

@@ -1,53 +1,81 @@
+<!--
+页面总览：URL 编解码 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：URL encode / decode，支持批量处理和拖拽文件
+前端入口：app_tools_b.js -> initUrlTool()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-url -->
+<!-- 页面骨架：这是标准的编解码工具页，包含页面头部、左右双栏工作区和底部历史记录区。 -->
 <section id="page-tool-url" class="page">
-		                <div class="page-header">
-		                    <div class="page-title">
-		                        <h1>URL 编解码</h1>
-		                        <p class="subtitle">URL encode / decode，支持批量处理和拖拽文件</p>
-		                    </div>
-		                </div>
-		                <div class="converter-layout">
-		                    <div class="converter-panel">
-		                        <div class="panel-header">
-		                            <h3>输入</h3>
-		                            <div class="panel-actions">
-		                                <div class="format-toggle" title="选择模式">
-		                                    <button class="btn btn-sm btn-ghost format-btn" id="url-encode-btn" onclick="setUrlMode('encode')">编码</button>
-		                                    <button class="btn btn-sm btn-ghost format-btn" id="url-decode-btn" onclick="setUrlMode('decode')">解码</button>
-		                                </div>
-		                                <button class="btn btn-sm btn-ghost" onclick="clearUrlTool()">清空</button>
-		                            </div>
-		                        </div>
-		                        <div class="panel-body">
-		                            <textarea id="url-input" placeholder="输入内容或拖拽文件到此处..."></textarea>
-		                            <div class="tool-options-row">
-		                                <label class="tool-check" title="按行处理输入/输出">
-		                                    <input type="checkbox" id="url-batch" onchange="updateUrlTool()">
-		                                    批量（按行）
-		                                </label>
-		                            </div>
-		                            <div id="url-errors" class="error-list"></div>
-		                        </div>
-		                    </div>
-		                    <div class="converter-panel">
-		                        <div class="panel-header">
-		                            <h3>输出</h3>
-		                            <div class="panel-actions">
-		                                <button class="btn btn-sm btn-ghost" onclick="copyUrlOutput(this)">复制</button>
-		                            </div>
-		                        </div>
-		                        <div class="panel-body">
-		                            <textarea id="url-output" readonly placeholder="输出结果..."></textarea>
-		                        </div>
-		                    </div>
-		                </div>
-		                <div class="tool-history-panel">
-		                    <div class="panel-header">
-		                        <h3>历史记录</h3>
-		                        <div class="panel-actions">
-		                            <button class="btn btn-sm btn-ghost" onclick="clearUrlHistory()">清空</button>
-		                        </div>
-		                    </div>
-		                    <div id="url-history" class="history-list"></div>
-		                </div>
-		            </section>
+    <!-- 页面头部：展示工具标题和用途说明，让用户知道当前是 URL 编码/解码工具。 -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>URL 编解码</h1>
+            <p class="subtitle">URL encode / decode，支持批量处理和拖拽文件</p>
+        </div>
+    </div>
+
+    <!-- 主工作区：左右分栏布局，左侧负责输入和配置，右侧负责结果展示。 -->
+    <div class="converter-layout">
+        <!-- 输入面板：填写待编码或待解码的 URL 文本，并选择处理模式。 -->
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>输入</h3>
+                <!-- 面板按钮区：编码/解码切换决定处理方向，清空按钮负责重置当前内容。 -->
+                <div class="panel-actions">
+                    <!-- 模式切换组：调用 setUrlMode()，在 URL 编码与 URL 解码之间切换。 -->
+                    <div class="format-toggle" title="选择模式">
+                        <button class="btn btn-sm btn-ghost format-btn" id="url-encode-btn" onclick="setUrlMode('encode')">编码</button>
+                        <button class="btn btn-sm btn-ghost format-btn" id="url-decode-btn" onclick="setUrlMode('decode')">解码</button>
+                    </div>
+                    <!-- 清空按钮：清除输入、输出和错误提示。 -->
+                    <button class="btn btn-sm btn-ghost" onclick="clearUrlTool()">清空</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <!-- 输入框：支持粘贴 URL 文本，也支持拖拽文件内容到此区域。 -->
+                <textarea id="url-input" placeholder="输入内容或拖拽文件到此处..."></textarea>
+
+                <!-- 配置区：批量开关控制是否按“每行一条 URL”分别处理。 -->
+                <div class="tool-options-row">
+                    <label class="tool-check" title="按行处理输入/输出">
+                        <input type="checkbox" id="url-batch" onchange="updateUrlTool()">
+                        批量（按行）
+                    </label>
+                </div>
+
+                <!-- 错误提示区：由 JS 动态写入 URL 解码失败或输入格式异常等提示。 -->
+                <div id="url-errors" class="error-list"></div>
+            </div>
+        </div>
+
+        <!-- 输出面板：展示 URL 编码或解码后的结果。 -->
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>输出</h3>
+                <!-- 面板按钮区：复制按钮把当前输出内容复制到剪贴板。 -->
+                <div class="panel-actions">
+                    <button class="btn btn-sm btn-ghost" onclick="copyUrlOutput(this)">复制</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <!-- 输出框：只读展示处理后的 URL 文本。 -->
+                <textarea id="url-output" readonly placeholder="输出结果..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- 历史记录区：保留最近使用过的 URL 转换内容，方便回查与再次使用。 -->
+    <div class="tool-history-panel">
+        <div class="panel-header">
+            <h3>历史记录</h3>
+            <!-- 历史按钮区：清空按钮用于移除当前工具的历史记录。 -->
+            <div class="panel-actions">
+                <button class="btn btn-sm btn-ghost" onclick="clearUrlHistory()">清空</button>
+            </div>
+        </div>
+
+        <!-- 历史列表容器：由 JS 动态渲染历史项，可用于快速恢复之前的输入输出。 -->
+        <div id="url-history" class="history-list"></div>
+    </div>
+</section>

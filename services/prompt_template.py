@@ -1,6 +1,9 @@
+"""Prompt 模板服务。
+
+负责模板分类、模板内容、收藏状态、变量解析与导入导出，既支撑 prompt-templates.html，
+也会被 ai-chat.html 的“模板选择器 / 变量填写弹窗”复用。
 """
-Prompt 模板管理服务
-"""
+
 import json
 import logging
 import re
@@ -11,6 +14,8 @@ from typing import Any, Dict, List, Optional
 from services.db_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
+
+# ========== 模板变量语法与内置默认数据 ==========
 
 VARIABLE_PATTERN = re.compile(r'\{\{(\w+)(?::([^}|]+))?(?:\|([^}]+))?\}\}')
 
@@ -117,7 +122,9 @@ DEFAULT_TEMPLATES = [
 
 
 class PromptTemplateService:
-    """Prompt 模板服务"""
+    """Prompt 模板的分类、增删改查与变量处理服务。
+
+    这个类既服务独立模板页，也服务 AI 聊天中的模板选择器和变量填充弹窗。"""
 
     def __init__(self, db: DatabaseManager):
         if db is None:
@@ -277,6 +284,7 @@ class PromptTemplateService:
     # ========== 变量解析与填充 ==========
 
     @staticmethod
+    # ========== 模板变量解析与内容填充 ==========
     def parse_variables(content: str) -> List[Dict[str, Any]]:
         """
         解析模板中的变量
@@ -327,6 +335,7 @@ class PromptTemplateService:
         filled = self.fill_template(tpl["content"], values or {})
         return {"success": True, "content": filled, "template": tpl}
 
+    # ========== 从消息生成模板、导入导出 ==========
     def save_as_template(
         self,
         content: str,

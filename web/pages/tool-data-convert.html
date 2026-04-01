@@ -1,61 +1,92 @@
+<!--
+页面总览：数据格式转换 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：JSON ↔ YAML / XML 双向转换
+前端入口：app_tools_b.js -> initDataConvertTool()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-data-convert -->
+<!-- 页面骨架：上方是标题与清空按钮，中间左右双栏负责输入/输出，底部配置 XML 根元素和 JSON 缩进。 -->
 <section id="page-tool-data-convert" class="page">
-		                <div class="page-header">
-		                    <div class="page-title">
-		                        <h1>数据格式转换</h1>
-		                        <p class="subtitle">JSON ↔ YAML / XML 双向转换</p>
-		                    </div>
-		                    <div class="page-actions">
-		                        <button class="btn btn-ghost" onclick="clearDataConvertTool()">清空</button>
-		                    </div>
-		                </div>
-		                <div class="converter-layout">
-		                    <div class="converter-panel">
-		                        <div class="panel-header">
-		                            <h3>输入</h3>
-		                            <div class="panel-actions">
-		                                <div class="format-toggle" title="输入格式">
-		                                    <button class="btn btn-sm btn-ghost format-btn active" id="data-in-auto" onclick="setDataInputFormat('auto')">自动</button>
-		                                    <button class="btn btn-sm btn-ghost format-btn" id="data-in-json" onclick="setDataInputFormat('json')">JSON</button>
-		                                    <button class="btn btn-sm btn-ghost format-btn" id="data-in-yaml" onclick="setDataInputFormat('yaml')">YAML</button>
-		                                    <button class="btn btn-sm btn-ghost format-btn" id="data-in-xml" onclick="setDataInputFormat('xml')">XML</button>
-		                                </div>
-		                            </div>
-		                        </div>
-		                        <div class="panel-body">
-		                            <textarea id="data-convert-input" placeholder="粘贴 JSON / YAML / XML 数据..." spellcheck="false" oninput="updateDataConvertTool()"></textarea>
-		                            <div class="data-detect" id="data-detect"></div>
-		                            <div id="data-convert-errors" class="error-list"></div>
-		                        </div>
-		                    </div>
-		                    <div class="converter-panel">
-		                        <div class="panel-header">
-		                            <h3>输出</h3>
-		                            <div class="panel-actions">
-		                                <div class="format-toggle" title="输出格式">
-		                                    <button class="btn btn-sm btn-ghost format-btn" id="data-out-json" onclick="setDataOutputFormat('json')">JSON</button>
-		                                    <button class="btn btn-sm btn-ghost format-btn active" id="data-out-yaml" onclick="setDataOutputFormat('yaml')">YAML</button>
-		                                    <button class="btn btn-sm btn-ghost format-btn" id="data-out-xml" onclick="setDataOutputFormat('xml')">XML</button>
-		                                </div>
-		                                <button class="btn btn-sm btn-ghost" onclick="copyDataConvertOutput(this)">复制</button>
-		                            </div>
-		                        </div>
-		                        <div class="panel-body">
-		                            <textarea id="data-convert-output" readonly placeholder="转换结果..." spellcheck="false"></textarea>
-		                        </div>
-		                    </div>
-		                </div>
-		                <div class="data-convert-options">
-		                    <div class="option-group">
-		                        <label>XML 根元素：</label>
-		                        <input type="text" id="data-xml-root" placeholder="root" value="root" oninput="updateDataConvertTool()" style="width: 100px;">
-		                    </div>
-		                    <div class="option-group">
-		                        <label>JSON 缩进：</label>
-		                        <select id="data-json-indent" onchange="updateDataConvertTool()">
-		                            <option value="2">2 空格</option>
-		                            <option value="4">4 空格</option>
-		                        </select>
-		                    </div>
-		                </div>
-		            </section>
+    <!-- 页面头部：说明当前工具的转换范围。 -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>数据格式转换</h1>
+            <p class="subtitle">JSON ↔ YAML / XML 双向转换</p>
+        </div>
+
+        <!-- 页面操作区：页面级动作目前只有一键清空。 -->
+        <div class="page-actions">
+            <button class="btn btn-ghost" onclick="clearDataConvertTool()">清空</button>
+        </div>
+    </div>
+
+    <!-- 主工作区：左侧输入原始数据，右侧展示转换后的结果。 -->
+    <div class="converter-layout">
+        <!-- 输入面板：录入原始数据，并指定或自动检测输入格式。 -->
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>输入</h3>
+
+                <!-- 面板按钮区：切换输入格式，自动模式会根据内容动态判断。 -->
+                <div class="panel-actions">
+                    <div class="format-toggle" title="输入格式">
+                        <button class="btn btn-sm btn-ghost format-btn active" id="data-in-auto" onclick="setDataInputFormat('auto')">自动</button>
+                        <button class="btn btn-sm btn-ghost format-btn" id="data-in-json" onclick="setDataInputFormat('json')">JSON</button>
+                        <button class="btn btn-sm btn-ghost format-btn" id="data-in-yaml" onclick="setDataInputFormat('yaml')">YAML</button>
+                        <button class="btn btn-sm btn-ghost format-btn" id="data-in-xml" onclick="setDataInputFormat('xml')">XML</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-body">
+                <!-- 输入框：输入时会触发 updateDataConvertTool()，同步刷新格式检测和输出区。 -->
+                <textarea id="data-convert-input" placeholder="粘贴 JSON / YAML / XML 数据..." spellcheck="false" oninput="updateDataConvertTool()"></textarea>
+
+                <!-- 格式检测提示：在自动模式下显示当前识别到的数据格式。 -->
+                <div class="data-detect" id="data-detect"></div>
+
+                <!-- 错误提示区：展示解析失败、格式不合法或转换异常等信息。 -->
+                <div id="data-convert-errors" class="error-list"></div>
+            </div>
+        </div>
+
+        <!-- 输出面板：选择目标格式并查看转换结果。 -->
+        <div class="converter-panel">
+            <div class="panel-header">
+                <h3>输出</h3>
+
+                <!-- 面板按钮区：切换目标格式，并可复制当前结果。 -->
+                <div class="panel-actions">
+                    <div class="format-toggle" title="输出格式">
+                        <button class="btn btn-sm btn-ghost format-btn" id="data-out-json" onclick="setDataOutputFormat('json')">JSON</button>
+                        <button class="btn btn-sm btn-ghost format-btn active" id="data-out-yaml" onclick="setDataOutputFormat('yaml')">YAML</button>
+                        <button class="btn btn-sm btn-ghost format-btn" id="data-out-xml" onclick="setDataOutputFormat('xml')">XML</button>
+                    </div>
+
+                    <button class="btn btn-sm btn-ghost" onclick="copyDataConvertOutput(this)">复制</button>
+                </div>
+            </div>
+
+            <div class="panel-body">
+                <!-- 输出框：只读展示当前目标格式下的转换结果。 -->
+                <textarea id="data-convert-output" readonly placeholder="转换结果..." spellcheck="false"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部选项区：补充一些会影响输出格式细节的附加配置。 -->
+    <div class="data-convert-options">
+        <div class="option-group">
+            <label>XML 根元素：</label>
+            <input type="text" id="data-xml-root" placeholder="root" value="root" oninput="updateDataConvertTool()" style="width: 100px;">
+        </div>
+
+        <div class="option-group">
+            <label>JSON 缩进：</label>
+            <select id="data-json-indent" onchange="updateDataConvertTool()">
+                <option value="2">2 空格</option>
+                <option value="4">4 空格</option>
+            </select>
+        </div>
+    </div>
+</section>

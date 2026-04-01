@@ -1,8 +1,28 @@
+/*
+ * 文件总览：工具页脚本分包 C。
+ *
+ * 服务页面包含：备份、Markdown、Git、Docker、JSON Schema、HTTP、WebSocket、Mock、脱敏、CSV、二维码、HTML 实体、图片 Base64、文本排序、TOML、UA、JSONPath、nginx 等工具。
+ *
+ * 这是当前仓库里最大的工具脚本分包，典型模式是：
+ * - 先按工具块分 section；
+ * - 每个 section 提供 initXxxTool()/updateXxxTool()/clearXxxTool() 或场景切换函数；
+ * - 页面按钮通常通过 HTML 中的 onclick 直接进入这里。
+ *
+ * 排查建议：
+ * - 先从工具页对应的 section heading 定位模块；
+ * - 再顺着初始化函数、场景切换函数、结果更新函数往下看；
+ * - 如果需要追后端接口，再看 pywebview.api 的调用点。
+ */
+
 // ==================== 数据备份与恢复 ====================
+// 对应 backup 页面，负责统计信息、导出 JSON 备份、导入恢复与结果提示。
 async function initBackupPage() {
     await updateBackupStats();
 }
 
+// 读取备份页顶部统计卡片：
+// - 展示当前本地数据里“页签 / 命令 / 凭证 / 节点”的数量；
+// - 这是备份前让用户先确认数据规模的第一步。
 async function updateBackupStats() {
     try {
         const stats = await pywebview.api.get_data_stats();
@@ -15,6 +35,10 @@ async function updateBackupStats() {
     }
 }
 
+// 导出整包数据备份：
+// - 先调用后端把当前数据序列化成 JSON；
+// - 再优先尝试桌面保存对话框，失败时回退到浏览器下载；
+// - 成功/失败信息最终都写回 backup-result 区域。
 async function exportBackup() {
     const resultEl = document.getElementById('backup-result');
     resultEl.style.display = 'none';
@@ -91,6 +115,10 @@ async function exportBackup() {
     }
 }
 
+// 导入整包 JSON 备份：
+// - 从文件输入读取 JSON；
+// - 调后端执行真正的数据恢复；
+// - 完成后刷新备份结果提示和顶部统计。
 async function importBackup(event) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -148,6 +176,7 @@ async function importBackup(event) {
 }
 
 // ==================== M22 Markdown 预览工具 ====================
+// 对应 tool-markdown 页面，负责编辑区、预览区、HTML 导出和帮助说明。
 
 function setMarkdownViewMode(mode) {
     if (!['split', 'edit', 'preview'].includes(mode)) return;
@@ -292,6 +321,7 @@ async function exportMarkdownAsHtml() {
 }
 
 // ==================== 输入验证辅助函数 ====================
+// 这是一组被多个生成器/配置工具复用的小型校验工具，用于给表单错误定位。
 
 /**
  * 验证输入字段，为空则添加错误样式
@@ -326,8 +356,10 @@ function clearValidationErrors(elementIds) {
 }
 
 // ==================== 原有 M26 Git 命令生成器 ====================
+// 兼容旧实现的保留区块，阅读 Git 工具时可结合新版初始化段一起看。
 
 // ==================== M26 Git 命令生成器 ====================
+// 对应 tool-git 页面，核心是场景标签切换和底部命令预览更新。
 
 // 场景切换
 function switchGitScene(scene, evt) {
@@ -469,7 +501,10 @@ function updateGitStashForm() {
     }
 }
 
-// 更新命令预览
+// Git 场景命令调度器：
+// 页面位置：tool-git 页底部的命令预览区。
+// - 不同标签页(scene)共用同一个输出框，因此这里像一个小型 dispatcher；
+// - 它根据 currentGitScene 调用对应 generateXxxCmd()，再把 command/description 写回页面。
 function updateGitCommand() {
     const outputEl = document.getElementById('git-command-output');
     const descEl = document.getElementById('git-command-desc');
@@ -814,6 +849,7 @@ function copyGitCommand(btn) {
 }
 
 // ==================== M27 Docker 命令生成器 ====================
+// 对应 tool-docker 页面，按 run/build/compose 等场景整理表单并实时生成命令。
 
 function switchDockerScene(scene, evt) {
     currentDockerScene = scene;
@@ -876,6 +912,10 @@ function updateDockerComposeForm() {
 }
 
 
+// Docker 场景命令调度器：
+// 页面位置：tool-docker 页底部的命令预览区。
+// - 与 Git 类似，这里根据 currentDockerScene 分发到各类 generateXxxCmd()；
+// - 页面上的各种输入只负责提供参数，真正输出什么命令由这里统一收口。
 function updateDockerCommand() {
     const outputEl = document.getElementById('docker-command-output');
     const descEl = document.getElementById('docker-command-desc');
@@ -1240,6 +1280,7 @@ function updateDockerCpForm() {
 }
 
 // ==================== Docker Service 命令生成器 ====================
+// 对应 tool-docker-service 页面，负责 service create/update 等运维场景。
 
 let currentDockerServiceScene = 'create';
 
@@ -1459,6 +1500,7 @@ function copyDockerServiceCommand(btn) {
 }
 
 // ==================== Docker Swarm 命令生成器 ====================
+// 对应 tool-docker-swarm 页面，围绕 swarm init/join/service 等命令组装。
 
 let currentDockerSwarmL1 = 'swarm';
 let currentDockerSwarmL2 = 'init';
@@ -1698,6 +1740,7 @@ function copyDockerSwarmCommand(btn) {
 
 
 // ==================== M28 JSON Schema 生成 ====================
+// 对应 tool-json-schema 页面，把样例 JSON 转成 Schema，并回填右侧结果区。
 function clearJsonSchemaTool() {
     document.getElementById('jsonschema-input').value = '';
     document.getElementById('jsonschema-output').value = '';
@@ -1774,7 +1817,12 @@ async function downloadJsonSchema() {
 }
 
 // ==================== M24 HTTP 请求测试 ====================
+// 对应旧版 tool-http 占位/轻量测试逻辑，重点是请求参数整理和响应显示。
 
+// HTTP 调试工具初始化：
+// 页面位置：tool-http 页的整块请求编辑工作台。
+// - 负责给 Params / Headers / Body / Response 等编辑区挂上默认状态；
+// - 也负责准备标签页切换和初始的请求表单结构。
 function initHttpTool() {
     // 初始化默认请求头（常用请求头预填充）
     const headersEditor = document.getElementById('http-headers-editor');
@@ -1992,6 +2040,11 @@ function getHttpHeaders() {
     return headers;
 }
 
+// 发送 HTTP 请求：
+// 页面触发：tool-http 页里的“发送”按钮。
+// - 这是 HTTP 工具最核心的执行入口；
+// - 会从页面各个编辑区收集 method/url/params/headers/body，做变量替换后交给后端代理请求；
+// - 返回结果后再统一更新状态栏、响应头、响应体、树形视图和本地历史记录。
 async function sendHttpRequest() {
     const method = document.getElementById('http-method').value;
     let url = document.getElementById('http-url').value.trim();
@@ -2323,6 +2376,7 @@ function exportCurl() {
 }
 
 // ==================== M25 WebSocket 测试 ====================
+// 对应 tool-websocket 页面，负责连接、断开、消息发送和收发日志渲染。
 
 function initWebSocketTool() {
     // 初始化完成
@@ -2400,6 +2454,10 @@ function toggleWebSocketConnection() {
     }
 }
 
+// 发起 WebSocket 连接：
+// 页面触发：tool-websocket 页里的“连接”按钮。
+// - 根据当前页面输入的 URL 和开关状态创建连接对象；
+// - 并把 onopen / onmessage / onerror / onclose 都绑定到当前工具页的状态展示区域。
 function connectWebSocket() {
     const url = document.getElementById('ws-url').value.trim();
 
@@ -2504,6 +2562,7 @@ function sendWebSocketPing() {
 }
 
 // ==================== M29 Mock 数据生成 ====================
+// 对应 tool-mock 页面，围绕规则输入、结果生成与复制导出。
 function clearMockTool() {
     document.getElementById('mock-output').value = '';
 }
@@ -2585,6 +2644,7 @@ function copyMockOutput(btn) {
 }
 
 // ==================== M30 数据脱敏 ====================
+// 对应 tool-mask 页面，处理脱敏规则选择和结果文本更新。
 function clearMaskTool() {
     document.getElementById('mask-input').value = '';
     document.getElementById('mask-output').value = '';
@@ -2660,6 +2720,7 @@ function copyMaskOutput(btn) {
 }
 
 // ==================== 工具箱：CSV 处理 (M23) ====================
+// 对应 tool-csv 页面，负责文本导入、格式整理和结果输出。
 
 function initCsvTool() {
     const inputEl = document.getElementById('csv-input');
@@ -2770,6 +2831,7 @@ function detectCsvDelimiter() {
 }
 
 // ==================== M22 Markdown 工具初始化 ====================
+// Markdown 工具进入页面后的事件绑定和初始状态准备集中在这里。
 function initMarkdownTool() {
     const inputEl = document.getElementById('markdown-input');
     if (!inputEl) return;
@@ -2784,6 +2846,7 @@ function initMarkdownTool() {
 }
 
 // ==================== 面板过滤功能 ====================
+// 用于根据页面布局筛选/切换可见面板，是多面板工具页的共用交互。
 function initPanelFiltering(containerSelector) {
     const container = document.querySelector(containerSelector);
     if (!container) return;
@@ -2891,6 +2954,7 @@ function resetPanelFiltering(containerSelector) {
 }
 
 // ==================== M26 Git 命令生成器初始化 ====================
+// Git 页进入时会通过这里绑定表单事件、默认场景和模板。
 async function initGitTool() {
     // Git 工具使用场景切换和模板加载，无需额外初始化
     // 所有事件处理器已通过 onclick 绑定
@@ -2985,6 +3049,7 @@ async function executeGitAIFix() {
 }
 
 // ==================== M27 Docker 命令生成器初始化 ====================
+// Docker 页进入时的默认状态设置与事件绑定。
 function initDockerTool() {
     // Docker 工具使用场景切换，无需额外初始化
     // 所有事件处理器已通过 onclick 绑定
@@ -2992,6 +3057,7 @@ function initDockerTool() {
 }
 
 // ==================== M28 JSON Schema 生成器初始化 ====================
+// JSON Schema 页的首屏准备与按钮绑定入口。
 function initJsonSchemaTool() {
     const inputEl = document.getElementById('jsonschema-input');
     if (!inputEl) return;
@@ -3000,6 +3066,7 @@ function initJsonSchemaTool() {
 }
 
 // ========== JSON Schema 工具联动 ==========
+// 把 JSON Schema 生成结果传递到 Mock 等目标工具页，属于跨工具数据桥接逻辑。
 
 /**
  * 发送 JSON Schema 到 Mock 工具
@@ -3081,6 +3148,7 @@ function generateMockFromSchema(schema, depth = 0) {
 }
 
 // ==================== M29 Mock 数据生成器初始化 ====================
+// Mock 工具页的首屏状态和示例数据初始化逻辑。
 async function initMockTool() {
     // Mock 工具使用按钮触发，无需额外初始化
     // 所有事件处理器已通过 onclick 绑定
@@ -3127,6 +3195,7 @@ function showMockAIGenerateModal() {
 }
 
 // ==================== M30 数据脱敏工具初始化 ====================
+// 数据脱敏页进入时的默认规则和事件监听绑定。
 function initMaskTool() {
     const inputEl = document.getElementById('mask-input');
     if (!inputEl) return;
@@ -3135,7 +3204,12 @@ function initMaskTool() {
 }
 
 // ==================== M35 二维码生成器 ====================
+// 对应 tool-qrcode 页面，负责配置面板、预览区、PNG 导出和颜色/尺寸选项。
 
+// 二维码工具初始化：
+// 页面位置：tool-qrcode 页顶部配置区和中部预览区。
+// - 准备默认参数、首次渲染和颜色/容错等级等表单联动；
+// - 进入二维码页后如果预览区完全不刷新，通常先看这里和 generateQrcode()。
 function initQrcodeTool() {
     const inputEl = document.getElementById('qrcode-input');
     if (!inputEl) return;
@@ -3148,6 +3222,10 @@ function initQrcodeTool() {
     });
 }
 
+// 根据当前表单配置重新生成二维码：
+// 页面触发：内容、尺寸、颜色、纠错等级等任一控件变化。
+// - 输入文本、颜色、尺寸、纠错等级等变更后都会重新走这里；
+// - 成功后会把 canvas/dataUrl 缓存在全局状态里，供下载和复制功能复用。
 function generateQrcode() {
     const text = document.getElementById('qrcode-input').value;
     if (!text) {
@@ -3266,6 +3344,7 @@ function clearQrcodeTool() {
 }
 
 // ==================== HTML 实体编解码（M36） ====================
+// 对应 tool-html-entity 页面，处理实体编码、解码与结果复制。
 let htmlEntityMode = 'encode';
 
 function initHtmlEntityTool() {
@@ -3367,6 +3446,7 @@ function renderHtmlEntityRef() {
 }
 
 // ==================== 图片 Base64 转换（M37） ====================
+// 对应 tool-img-base64 页面，围绕图片读取、预览和 Base64 结果输出。
 
 let currentImgFile = null;
 let currentImgDataUri = null;
@@ -3485,6 +3565,10 @@ function handleImgSelect(e) {
     e.target.value = '';
 }
 
+// 处理上传或拖入的图片文件：
+// 页面位置：tool-img-base64 页的上传区、预览区、输出区之间的桥接入口。
+// - 这里是“图片 -> Base64 data URI / 预览 / 元数据”的主入口；
+// - 如果图片上传后没有任何输出，优先从这里开始排查文件读取和后续回填链路。
 function processImgFile(file) {
     if (!file) return;
 
@@ -3746,6 +3830,7 @@ async function downloadBase64Img() {
 }
 
 // ==================== 文本排序/去重（M38） ====================
+// 对应 tool-text-sort 页面，负责排序模式、去重和结果输出。
 
 let _textSortDebounceTimer = null;
 
@@ -3780,8 +3865,10 @@ function toggleCollapsibleSection(checkboxId, sectionId) {
 }
 
 /**
- * Triggers the debounced text processing.
- * All form controls now call this function on change/input.
+ * 触发文本排序工具的防抖更新。
+ *
+ * 页面位置：tool-text-sort 页里所有排序/去重相关控件的公共入口。
+ * 所有输入框、下拉框、勾选项变化后，最终都会先经过这里，再延迟调用 _doUpdateTextSort()。
  */
 function updateTextSortTool() {
     if (_textSortDebounceTimer) {
@@ -3790,9 +3877,10 @@ function updateTextSortTool() {
     _textSortDebounceTimer = setTimeout(_doUpdateTextSort, 150);
 }
 
-/**
- * Core logic for processing the text based on selected options.
- */
+// 文本排序/去重真正执行函数：
+// 页面位置：tool-text-sort 页的输入区、输出区和统计栏之间的主计算入口。
+// - updateTextSortTool() 只负责防抖，真正的业务处理在这里；
+// - 会读取所有 UI 开关，再调用 M38 工具模块返回结果和统计信息。
 function _doUpdateTextSort() {
     const inputEl = document.getElementById('text-sort-input');
     const outputEl = document.getElementById('text-sort-output');
@@ -3849,7 +3937,10 @@ function _doUpdateTextSort() {
 }
 
 /**
- * Clears the input, output, and stats for the tool.
+ * 清空文本排序工具的输入、输出和统计状态。
+ *
+ * 页面触发：tool-text-sort 页里的“清空”按钮。
+ * 除了清空文本，还会把排序模式、去重策略、大小写敏感等开关恢复到默认值。
  */
 function clearTextSortTool() {
     const inputEl = document.getElementById('text-sort-input');
@@ -3875,7 +3966,9 @@ function clearTextSortTool() {
 }
 
 /**
- * Copies the content of the output textarea to the clipboard.
+ * 复制文本排序工具的输出内容。
+ *
+ * 页面触发：tool-text-sort 页里的“复制结果”按钮。
  */
 function copyTextSortOutput(btn) {
     const output = document.getElementById('text-sort-output').value;
@@ -3883,9 +3976,14 @@ function copyTextSortOutput(btn) {
 }
 
 // ==================== TOML 格式化（M39） ====================
+// 对应 tool-toml 页面，处理格式化、压缩和解析错误提示。
 
 let _tomlDebounceTimer = null;
 
+// TOML 工具初始化：
+// 页面位置：tool-toml 页输入区和输出区的首屏准备。
+// - 主要负责根据当前输入类型刷新占位提示，并触发一次首屏转换；
+// - 这个工具的真正计算逻辑在 _doUpdateToml() 中。
 function initTomlTool() {
     updateTomlInputPlaceholder();
 }
@@ -3904,6 +4002,11 @@ function updateTomlTool() {
     _tomlDebounceTimer = setTimeout(_doUpdateToml, 150);
 }
 
+// TOML / JSON 双向转换执行函数：
+// 页面触发：输入文本变化、输入类型切换、输出类型切换。
+// - 先按输入类型解析；
+// - 再按输出类型重新序列化；
+// - 结果统一写到输出框和状态提示区。
 function _doUpdateToml() {
     const inputEl = document.getElementById('toml-input');
     const outputEl = document.getElementById('toml-output');
@@ -4031,9 +4134,14 @@ function copyTomlOutput(btn) {
 }
 
 // ==================== User-Agent 解析（M40） ====================
+// 对应 tool-ua 页面，输入 UA 后会在这里分析浏览器、系统和设备信息。
 
 let _uaDebounceTimer = null;
 
+// UA 工具初始化：
+// 页面位置：tool-ua 页的输入区、示例按钮区和结果面板。
+// - 首次进入页面时渲染示例按钮；
+// - 之后真正的解析动作由 useCurrentUA()/loadUASample()/updateUATool() 驱动。
 function initUATool() {
     // 渲染示例按钮
     const samplesEl = document.getElementById('ua-samples');
@@ -4070,6 +4178,10 @@ function updateUATool() {
     _uaDebounceTimer = setTimeout(_doUpdateUA, 100);
 }
 
+// User-Agent 解析执行函数：
+// 页面触发：输入 UA、使用当前 UA、点击示例按钮。
+// - 负责把原始 UA 字符串转换成浏览器、系统、设备、机器人等结构化结果；
+// - 并同步更新页面上的图标区、摘要区和 JSON 输出区。
 function _doUpdateUA() {
     const inputEl = document.getElementById('ua-input');
     const resultEl = document.getElementById('ua-result');
@@ -4150,9 +4262,14 @@ function copyUAOutput(btn) {
 }
 
 // ==================== JSON Path 查询（M41） ====================
+// 对应 tool-jsonpath 页面，维护 JSON 输入、表达式执行和查询结果。
 
 let _jsonpathDebounceTimer = null;
 
+// JSONPath 工具初始化：
+// 页面位置：tool-jsonpath 页的 JSON 输入区、表达式输入区和示例按钮区。
+// - 负责渲染常见表达式示例按钮；
+// - 后续输入 JSON、表达式、加载示例都会汇聚到 _doUpdateJsonPath() 做真正查询。
 function initJsonPathTool() {
     // 渲染示例表达式
     const examplesEl = document.getElementById('jsonpath-examples');
@@ -4190,6 +4307,11 @@ function updateJsonPathTool() {
     _jsonpathDebounceTimer = setTimeout(_doUpdateJsonPath, 150);
 }
 
+// JSONPath 查询执行函数：
+// 页面触发：JSON 文本变化、表达式变化、加载示例。
+// - 先校验输入 JSON；
+// - 再调用 M41 工具模块做表达式匹配；
+// - 最后同时刷新匹配数量、路径列表和输出结果区。
 function _doUpdateJsonPath() {
     const inputEl = document.getElementById('jsonpath-input');
     const exprEl = document.getElementById('jsonpath-expr');
@@ -4277,6 +4399,7 @@ function copyJsonPathOutput(btn) {
 }
 
 // ==================== nginx 配置生成（M42） ====================
+// 对应 tool-nginx 页面，围绕配置模板参数生成 nginx 片段。
 
 const NGINX_TEMPLATE_OPTIONS = {
     reverseProxy: [
@@ -4323,6 +4446,10 @@ const NGINX_TEMPLATE_OPTIONS = {
     ]
 };
 
+// nginx 工具初始化：
+// 页面位置：tool-nginx 页模板选择区和动态参数区。
+// - 首次进入页面时，根据当前模板类型生成动态参数表单；
+// - 模板切换后真正的配置拼装在 updateNginxConfig()。
 function initNginxTool() {
     updateNginxTemplate();
 }
@@ -4357,6 +4484,11 @@ function updateNginxTemplate() {
     updateNginxConfig();
 }
 
+// nginx 配置生成主入口：
+// 页面触发：模板切换、动态字段修改、通用字段输入。
+// - 收集通用字段和当前模板的动态字段；
+// - 交给 M42 模块生成配置片段并顺带做一次校验；
+// - 页面上的状态条与输出框都由这里统一刷新。
 function updateNginxConfig() {
     const template = document.getElementById('nginx-template')?.value || 'reverseProxy';
     const outputEl = document.getElementById('nginx-output');
@@ -4417,5 +4549,3 @@ function copyNginxConfig(btn) {
     }
     copyToolText(btn, output);
 }
-
-

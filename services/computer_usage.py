@@ -1,4 +1,12 @@
-"""电脑使用模块 - 服务器命令与密码管理（重新设计）"""
+"""命令管理与凭证管理的本地数据服务。
+
+主要服务两个页面：
+- web/pages/commands.html：命令页签、命令块、排序与导入导出；
+- web/pages/credentials.html：账号凭证的增删改查与展示。
+
+本模块同时兼容旧版 JSON 布局和新版 SQLite/结构化目录，是排查历史数据兼容问题的关键入口。
+"""
+
 from __future__ import annotations
 
 import re
@@ -12,6 +20,8 @@ from services.db_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
+
+# ========== 命令页签/命令块/凭证的数据结构 ==========
 
 @dataclass
 class CommandTab:
@@ -46,6 +56,9 @@ class Credential:
 
 
 class ComputerUsageService:
+    """命令与凭证服务。
+
+    commands.html 和 credentials.html 的新增、编辑、排序、导入导出基本都会落到这里。"""
     def __init__(
         self,
         data_dir: Path,
@@ -69,6 +82,7 @@ class ComputerUsageService:
             logger.info(f"ComputerUsageService 使用独立数据库: {self.db_path}")
         self._ensure_default_tab()
 
+    # ========== 初始化与页签管理 ==========
     def _ensure_default_tab(self):
         """确保数据库中有默认标签页"""
         if not self.db.get_by_id("command_tabs", "0"):
@@ -147,6 +161,7 @@ class ComputerUsageService:
         return True
 
     # ========== 命令块管理 ==========
+    # ========== 命令卡片管理 ==========
     def _load_commands(self) -> List[CommandBlock]:
         rows = self.db.get_all("computer_commands", order_by="tab_id ASC, order_index ASC")
         return [CommandBlock(
@@ -306,6 +321,7 @@ class ComputerUsageService:
         return {"imported": imported, "blocks": blocks}
 
     # ========== 凭证管理 ==========
+    # ========== 凭证管理 ==========
     def _load_credentials(self) -> List[Credential]:
         rows = self.db.get_all("credentials", order_by="order_index ASC")
         return [Credential(
@@ -434,6 +450,7 @@ class ComputerUsageService:
         self._save_credentials(list(cred_map.values()))
         return True
 
+    # ========== 文本导入解析辅助 ==========
     def _split_blocks(self, text: str) -> List[List[str]]:
         """按空行切分文本块"""
         blocks = []

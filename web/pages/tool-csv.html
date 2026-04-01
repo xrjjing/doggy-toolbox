@@ -1,19 +1,34 @@
+<!--
+页面总览：CSV 文本格式化 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：CSV 文本转换、分隔符调整与 JSON 互转
+前端入口：app_tools_c.js -> initCsvTool()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-csv -->
+<!-- 页面骨架：上方是标题与清空入口，中间双栏在 CSV 与 JSON 之间做输入输出转换。 -->
 <section id="page-tool-csv" class="page">
-		                <div class="page-header">
+
+<!-- 页面头部：说明当前工具用于 CSV 文本转换、分隔符处理和 JSON 互转。 -->
+
+<div class="page-header">
 		                    <div class="page-title">
 		                        <h1>CSV 文本格式化</h1>
 		                        <p class="subtitle">CSV 文本转换、分隔符调整与 JSON 互转</p>
 		                    </div>
-		                    <div class="page-actions">
+
+<!-- 页面操作区：提供全局清空按钮，重置输入、输出和错误提示。 -->
+
+<div class="page-actions">
 		                        <button class="btn btn-ghost" onclick="clearCsvTool()">清空</button>
 		                    </div>
 		                </div>
 		                <div class="csv-tool">
+		                    <!-- 主工作区：左侧录入原始 CSV/JSON，右侧展示转换后的目标格式结果。 -->
 		                    <div class="converter-layout csv-layout">
 		                        <div class="converter-panel">
 		                            <div class="panel-header">
 		                                <h3>输入</h3>
+		                                <!-- 面板按钮区：围绕当前面板执行复制、清空、模式切换等局部操作。 -->
 		                                <div class="panel-actions">
 		                                    <div class="format-toggle" title="输入格式">
 		                                        <button class="btn btn-sm btn-ghost format-btn active" id="csv-in-csv" onclick="setCsvInputFormat('csv')">CSV</button>
@@ -29,6 +44,7 @@
 		                        <div class="converter-panel">
 		                            <div class="panel-header">
 		                                <h3>输出</h3>
+		                                <!-- 面板按钮区：围绕当前面板执行复制、清空、模式切换等局部操作。 -->
 		                                <div class="panel-actions">
 		                                    <div class="format-toggle" title="输出格式">
 		                                        <button class="btn btn-sm btn-ghost format-btn" id="csv-out-csv" onclick="setCsvOutputFormat('csv')">CSV</button>

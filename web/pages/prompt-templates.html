@@ -1,27 +1,44 @@
+<!--
+页面总览：Prompt 模板页：管理模板分类、模板内容、变量填写与导入导出流程。
+补充说明：管理和复用常用的 Prompt 模板
+前端入口：app_prompt_templates.js -> initPromptTemplates()
+后端链路：api.py -> PromptTemplateService
+-->
+
+<!-- 页面骨架：上方是标题和主操作，中间是分类筛选与模板列表，下方是一组分类/模板/变量/导入弹窗。 -->
 <section id="page-prompt-templates" class="page">
+    <!-- 页面头部：说明模板库用途，并提供分类管理、导入导出和新增模板入口。 -->
     <div class="page-header">
         <div class="page-title">
             <h1>Prompt 模板库</h1>
             <p class="subtitle">管理和复用常用的 Prompt 模板</p>
         </div>
+
+        <!-- 页面操作区：围绕分类和模板维护展开。 -->
         <div class="page-actions">
+            <!-- 分类管理：打开分类弹窗，维护模板分类名称与图标。 -->
             <button class="btn btn-ghost" onclick="showPromptCategoryModal()">
                 <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>管理分类
             </button>
+            <!-- 导入模板：从 JSON 文件或文本批量导入模板。 -->
             <button class="btn btn-ghost" onclick="showImportPromptModal()">
                 <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>导入
             </button>
+            <!-- 导出模板：把当前模板库导出为可备份或迁移的文件。 -->
             <button class="btn btn-ghost" onclick="exportPromptTemplates()">
                 <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>导出
             </button>
+            <!-- 新增模板：打开模板编辑器，创建新的 Prompt 模板。 -->
             <button class="btn btn-primary" onclick="showPromptTemplateModal()">
                 <span class="btn-icon">+</span>添加模板
             </button>
         </div>
     </div>
 
+    <!-- 分类切换区：分类标签由 app_prompt_templates.js 动态渲染，用于切换当前浏览范围。 -->
     <div class="tabs-bar" id="prompt-category-tabs"></div>
 
+    <!-- 搜索与筛选区：支持按标题/内容搜索，并可只看收藏模板。 -->
     <div class="search-bar">
         <input type="text" id="prompt-search" placeholder="搜索模板标题或内容..." oninput="filterPromptTemplates()">
         <label class="prompt-filter-toggle">
@@ -30,9 +47,10 @@
         </label>
     </div>
 
+    <!-- 模板列表区：由 app_prompt_templates.js 渲染模板卡片、收藏状态和应用入口。 -->
     <div id="prompt-templates-list" class="prompt-templates-grid"></div>
 
-    <!-- 分类管理弹窗 -->
+    <!-- 分类管理弹窗：维护模板分类名称、图标和排序。 -->
     <div id="prompt-category-modal" class="modal" style="display:none">
         <div class="modal-overlay" onclick="closePromptCategoryModal()"></div>
         <div class="modal-content">
@@ -40,6 +58,7 @@
                 <h3>管理分类</h3>
                 <button class="modal-close" onclick="closePromptCategoryModal()">&times;</button>
             </div>
+            <!-- 分类编辑区：上方快速新增，下方列表展示现有分类并允许继续维护。 -->
             <div class="modal-body">
                 <div class="prompt-category-form">
                     <input type="text" id="new-category-name" placeholder="分类名称" class="prompt-cat-input">
@@ -51,7 +70,7 @@
         </div>
     </div>
 
-    <!-- 模板编辑弹窗 - 全屏式 -->
+    <!-- 模板编辑弹窗：左侧填写元信息，右侧编写 Prompt 正文。 -->
     <div id="prompt-template-modal" class="modal prompt-editor-modal" style="display:none">
         <div class="modal-overlay" onclick="closePromptTemplateModal()"></div>
         <div class="modal-content prompt-editor-content">
@@ -59,6 +78,7 @@
                 <h3 id="prompt-modal-title">添加模板</h3>
                 <button class="modal-close" onclick="closePromptTemplateModal()">&times;</button>
             </div>
+            <!-- 编辑器主体：左侧维护标题/分类/描述/标签，右侧编写模板正文。 -->
             <div class="modal-body prompt-editor-body">
                 <input type="hidden" id="edit-template-id">
                 <div class="prompt-editor-sidebar">
@@ -94,6 +114,7 @@
                     </div>
                 </div>
             </div>
+            <!-- 底部操作：取消关闭；保存会调用 savePromptTemplate()。 -->
             <div class="modal-footer">
                 <button class="btn btn-ghost" onclick="closePromptTemplateModal()">取消</button>
                 <button class="btn btn-primary" onclick="savePromptTemplate()">保存</button>
@@ -101,7 +122,7 @@
         </div>
     </div>
 
-    <!-- 变量填充弹窗 -->
+    <!-- 变量填写弹窗：应用模板前先补齐模板里声明的变量。 -->
     <div id="prompt-variables-modal" class="modal" style="display:none">
         <div class="modal-overlay" onclick="closePromptVariablesModal()"></div>
         <div class="modal-content">
@@ -109,10 +130,12 @@
                 <h3>填写变量</h3>
                 <button class="modal-close" onclick="closePromptVariablesModal()">&times;</button>
             </div>
+            <!-- 变量表单：隐藏字段记录目标模板，变量输入控件由 JS 按模板内容动态渲染。 -->
             <div class="modal-body">
                 <input type="hidden" id="use-template-id">
                 <div id="variables-form"></div>
             </div>
+            <!-- 底部操作：应用后会把变量替换后的结果交给模板使用流程。 -->
             <div class="modal-footer">
                 <button class="btn btn-ghost" onclick="closePromptVariablesModal()">取消</button>
                 <button class="btn btn-primary" onclick="applyPromptTemplate()">应用</button>
@@ -120,7 +143,7 @@
         </div>
     </div>
 
-    <!-- 导入弹窗 -->
+    <!-- 导入弹窗：从 JSON 文件或文本导入模板。 -->
     <div id="prompt-import-modal" class="modal" style="display:none">
         <div class="modal-overlay" onclick="closeImportPromptModal()"></div>
         <div class="modal-content">
@@ -128,6 +151,7 @@
                 <h3>导入模板</h3>
                 <button class="modal-close" onclick="closeImportPromptModal()">&times;</button>
             </div>
+            <!-- 导入配置：可选择 JSON 文件或直接粘贴 JSON 内容，并决定是否覆盖同名模板。 -->
             <div class="modal-body">
                 <div class="form-group">
                     <label>选择文件</label>
@@ -142,6 +166,7 @@
                     <span>覆盖同名模板</span>
                 </label>
             </div>
+            <!-- 底部操作：确认后调用 doImportPromptTemplates() 执行导入。 -->
             <div class="modal-footer">
                 <button class="btn btn-ghost" onclick="closeImportPromptModal()">取消</button>
                 <button class="btn btn-primary" onclick="doImportPromptTemplates()">导入</button>

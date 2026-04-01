@@ -1,18 +1,34 @@
+<!--
+页面总览：JSON Schema 生成 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：从 JSON 数据自动生成 JSON Schema
+前端入口：app_tools_c.js -> initJsonSchemaTool()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-json-schema -->
+<!-- 页面骨架：上方是标题与 AI/清空入口，中间左右双栏分别负责 JSON 输入和 Schema 输出。 -->
 <section id="page-tool-json-schema" class="page">
-		                <div class="page-header">
+
+<!-- 页面头部：说明当前工具用于根据示例 JSON 自动生成 Schema。 -->
+
+<div class="page-header">
 		                    <div class="page-title">
 		                        <h1>JSON Schema 生成</h1>
 		                        <p class="subtitle">从 JSON 数据自动生成 JSON Schema</p>
 		                    </div>
-		                    <div class="page-actions">
+
+<!-- 页面操作区：提供 AI 辅助入口和一键清空。 -->
+
+<div class="page-actions">
 		                        <!-- AI 辅助按钮容器 -->
 		                        <div id="json-schema-ai-buttons" class="ai-helper-buttons"></div>
 		                        <button class="btn btn-ghost" onclick="clearJsonSchemaTool()">清空</button>
 		                    </div>
 		                </div>
 		                <div class="jsonschema-tool">
-		                    <div class="converter-layout">
+
+<!-- 主工作区：左侧粘贴示例 JSON，右侧查看自动生成的 JSON Schema。 -->
+
+<div class="converter-layout">
 		                        <div class="converter-panel">
 		                            <div class="panel-header">
 		                                <h3>JSON 输入</h3>
@@ -25,6 +41,7 @@
 		                        <div class="converter-panel">
 		                            <div class="panel-header">
 		                                <h3>生成的 Schema</h3>
+		                                <!-- 面板按钮区：围绕当前面板执行复制、清空、模式切换等局部操作。 -->
 		                                <div class="panel-actions">
 		                                    <button class="btn btn-sm btn-ghost" onclick="copyJsonSchemaOutput(this)">复制</button>
 		                                    <button class="btn btn-sm btn-ghost" onclick="downloadJsonSchema()">下载</button>

@@ -1,60 +1,94 @@
+<!--
+页面总览：SQL 格式化 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：SQL 语句美化与压缩
+前端入口：app_tools_b.js -> initSqlTool()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-sql -->
+<!-- 页面骨架：上方是标题与全局操作，中间左右双栏分别负责 SQL 输入与结果输出，底部补充错误与表名分析区。 -->
 <section id="page-tool-sql" class="page">
-		                <div class="page-header">
-		                    <div class="page-title">
-		                        <h1>SQL 格式化</h1>
-		                        <p class="subtitle">SQL 语句美化与压缩</p>
-		                    </div>
-		                    <div class="page-actions">
-		                        <!-- AI 辅助按钮容器 -->
-		                        <div id="sql-ai-buttons" class="ai-helper-buttons"></div>
-		                        <button class="btn btn-ghost" onclick="clearSqlTool()">清空</button>
-		                    </div>
-		                </div>
-		                <div class="sql-tool">
-		                    <div class="converter-layout sql-layout">
-		                        <div class="converter-panel">
-		                            <div class="panel-header">
-		                                <h3>输入</h3>
-		                                <div class="panel-actions">
-		                                    <select id="sql-dialect" class="tool-select" onchange="updateSqlTool()">
-		                                        <option value="generic">通用 SQL</option>
-		                                        <option value="mysql">MySQL</option>
-		                                        <option value="postgresql">PostgreSQL</option>
-		                                        <option value="sqlite">SQLite</option>
-		                                        <option value="oracle">Oracle</option>
-		                                        <option value="sqlserver">SQL Server</option>
-		                                    </select>
-		                                </div>
-		                            </div>
-		                            <div class="panel-body">
-		                                <textarea id="sql-input" placeholder="SELECT * FROM users WHERE id = 1" oninput="updateSqlTool()"></textarea>
-		                            </div>
-		                        </div>
-		                        <div class="converter-panel">
-		                            <div class="panel-header">
-		                                <h3>输出</h3>
-		                                <div class="format-toggle">
-		                                    <button class="btn btn-sm btn-ghost format-btn active" id="sql-format-btn" onclick="setSqlMode('format')">格式化</button>
-		                                    <button class="btn btn-sm btn-ghost format-btn" id="sql-minify-btn" onclick="setSqlMode('minify')">压缩</button>
-		                                </div>
-		                            </div>
-		                            <div class="panel-body">
-		                                <textarea id="sql-output" readonly placeholder="格式化/压缩结果"></textarea>
-		                                <button class="btn btn-sm btn-ghost copy-output-btn" onclick="copySqlOutput(this)">复制</button>
-		                            </div>
-		                        </div>
-		                    </div>
-		                    <div id="sql-errors" class="error-list"></div>
-		                    <div class="sql-tables-panel" id="sql-tables-panel" style="display:none">
-		                        <div class="converter-panel">
-		                            <div class="panel-header">
-		                                <h3>涉及表名</h3>
-		                            </div>
-		                            <div class="panel-body">
-		                                <div class="sql-tables-list" id="sql-tables-list"></div>
-		                            </div>
-		                        </div>
-		                    </div>
-		                </div>
-		            </section>
+    <!-- 页面头部：说明工具用途，并提供 AI 辅助入口与一键清空。 -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>SQL 格式化</h1>
+            <p class="subtitle">SQL 语句美化与压缩</p>
+        </div>
+
+        <!-- 页面操作区：放置页面级按钮。 -->
+        <div class="page-actions">
+            <!-- AI 辅助按钮容器：由全局 helper 动态注入 SQL 解释、优化等扩展动作。 -->
+            <div id="sql-ai-buttons" class="ai-helper-buttons"></div>
+
+            <!-- 清空按钮：重置输入、输出、错误提示和表名分析结果。 -->
+            <button class="btn btn-ghost" onclick="clearSqlTool()">清空</button>
+        </div>
+    </div>
+
+    <!-- 页面主体：包裹 SQL 输入区、输出区、错误提示和附加解析结果。 -->
+    <div class="sql-tool">
+        <!-- 主工作区：左侧录入 SQL 并选择方言，右侧切换格式化/压缩模式并查看结果。 -->
+        <div class="converter-layout sql-layout">
+            <!-- 输入面板：输入原始 SQL，方言选择会影响格式化规则和关键字风格。 -->
+            <div class="converter-panel">
+                <div class="panel-header">
+                    <h3>输入</h3>
+
+                    <!-- 面板按钮区：这里的下拉框用于切换 SQL 方言。 -->
+                    <div class="panel-actions">
+                        <select id="sql-dialect" class="tool-select" onchange="updateSqlTool()">
+                            <option value="generic">通用 SQL</option>
+                            <option value="mysql">MySQL</option>
+                            <option value="postgresql">PostgreSQL</option>
+                            <option value="sqlite">SQLite</option>
+                            <option value="oracle">Oracle</option>
+                            <option value="sqlserver">SQL Server</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="panel-body">
+                    <!-- SQL 输入框：输入时实时触发 updateSqlTool()，刷新右侧结果与错误区。 -->
+                    <textarea id="sql-input" placeholder="SELECT * FROM users WHERE id = 1" oninput="updateSqlTool()"></textarea>
+                </div>
+            </div>
+
+            <!-- 输出面板：展示格式化或压缩后的 SQL 结果。 -->
+            <div class="converter-panel">
+                <div class="panel-header">
+                    <h3>输出</h3>
+
+                    <!-- 模式切换：控制当前输出是“格式化”还是“压缩”。 -->
+                    <div class="format-toggle">
+                        <button class="btn btn-sm btn-ghost format-btn active" id="sql-format-btn" onclick="setSqlMode('format')">格式化</button>
+                        <button class="btn btn-sm btn-ghost format-btn" id="sql-minify-btn" onclick="setSqlMode('minify')">压缩</button>
+                    </div>
+                </div>
+
+                <div class="panel-body">
+                    <!-- 输出框：只读展示处理后的 SQL 文本。 -->
+                    <textarea id="sql-output" readonly placeholder="格式化/压缩结果"></textarea>
+
+                    <!-- 复制按钮：把当前输出内容复制到剪贴板。 -->
+                    <button class="btn btn-sm btn-ghost copy-output-btn" onclick="copySqlOutput(this)">复制</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 错误提示区：由 JS 动态写入语法异常、格式化失败等信息。 -->
+        <div id="sql-errors" class="error-list"></div>
+
+        <!-- 表名分析区：默认隐藏，只有成功识别出表名后才展示。 -->
+        <div class="sql-tables-panel" id="sql-tables-panel" style="display:none">
+            <div class="converter-panel">
+                <div class="panel-header">
+                    <h3>涉及表名</h3>
+                </div>
+
+                <div class="panel-body">
+                    <!-- 表名列表容器：由 JS 动态渲染当前 SQL 里出现的表或视图。 -->
+                    <div class="sql-tables-list" id="sql-tables-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

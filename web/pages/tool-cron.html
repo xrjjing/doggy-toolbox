@@ -1,57 +1,86 @@
+<!--
+页面总览：Cron 解析 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：解析 Cron 表达式，显示人类可读描述
+前端入口：app_tools_b.js -> initCronTool()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-cron -->
+<!-- 页面骨架：这是一个 Cron 表达式分析页，上方是标题与全局操作，下方是解析输入区、结果区和后续运行时间区。 -->
 <section id="page-tool-cron" class="page">
-		                <div class="page-header">
-		                    <div class="page-title">
-		                        <h1>Cron 解析</h1>
-		                        <p class="subtitle">解析 Cron 表达式，显示人类可读描述</p>
-		                    </div>
-		                    <div class="page-actions">
-		                        <!-- AI 辅助按钮容器 -->
-		                        <div id="cron-ai-buttons" class="ai-helper-buttons"></div>
-		                        <button class="btn btn-ghost" onclick="clearCronTool()">清空</button>
-		                    </div>
-		                </div>
-		                <div class="cron-tool">
-		                    <div class="converter-layout cron-layout">
-		                        <div class="converter-panel">
-		                            <div class="panel-header">
-		                                <h3>Cron 表达式</h3>
-		                            </div>
-		                            <div class="panel-body">
-		                                <div class="form-group">
-		                                    <label>表达式（5 或 6 字段）</label>
-		                                    <input type="text" id="cron-input" placeholder="*/5 * * * * 或 0 0 * * *" oninput="updateCronTool()">
-		                                </div>
-		                                <div class="cron-presets">
-		                                    <span class="cron-preset-label">常用：</span>
-		                                    <button class="btn btn-sm btn-ghost cron-preset-btn" onclick="loadCronPreset('*/5 * * * *')" title="*/5 * * * *">每5分钟</button>
-		                                    <button class="btn btn-sm btn-ghost cron-preset-btn" onclick="loadCronPreset('0 * * * *')" title="0 * * * *">每小时</button>
-		                                    <button class="btn btn-sm btn-ghost cron-preset-btn" onclick="loadCronPreset('0 0 * * *')" title="0 0 * * *">每天0点</button>
-		                                    <button class="btn btn-sm btn-ghost cron-preset-btn" onclick="loadCronPreset('0 0 * * 1')" title="0 0 * * 1">每周一</button>
-		                                    <button class="btn btn-sm btn-ghost cron-preset-btn" onclick="loadCronPreset('0 0 1 * *')" title="0 0 1 * *">每月1日</button>
-		                                </div>
-		                                <div id="cron-errors" class="error-list"></div>
-		                            </div>
-		                        </div>
-		                        <div class="converter-panel">
-		                            <div class="panel-header">
-		                                <h3>解析结果</h3>
-		                            </div>
-		                            <div class="panel-body">
-		                                <div class="cron-description" id="cron-description">输入 Cron 表达式开始解析</div>
-		                                <div class="cron-fields" id="cron-fields"></div>
-		                            </div>
-		                        </div>
-		                    </div>
-		                    <div class="cron-next-panel" id="cron-next-panel" style="display:none">
-		                        <div class="converter-panel">
-		                            <div class="panel-header">
-		                                <h3>下次运行时间</h3>
-		                            </div>
-		                            <div class="panel-body">
-		                                <ul class="cron-next-list" id="cron-next-list"></ul>
-		                            </div>
-		                        </div>
-		                    </div>
-		                </div>
-		            </section>
+    <!-- 页面头部：展示工具标题和用途说明。 -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Cron 解析</h1>
+            <p class="subtitle">解析 Cron 表达式，显示人类可读描述</p>
+        </div>
+
+        <!-- 页面操作区：放置 AI 辅助入口和页面级清空按钮。 -->
+        <div class="page-actions">
+            <!-- AI 辅助按钮容器：由对应 JS 动态渲染扩展操作，例如解释、生成或改写 Cron。 -->
+            <div id="cron-ai-buttons" class="ai-helper-buttons"></div>
+
+            <!-- 清空按钮：重置表达式输入、解析结果和后续时间列表。 -->
+            <button class="btn btn-ghost" onclick="clearCronTool()">清空</button>
+        </div>
+    </div>
+
+    <!-- 页面主体：包裹 Cron 相关的输入配置、解析结果和扩展结果区域。 -->
+    <div class="cron-tool">
+        <!-- 主工作区：左右分栏布局，左侧负责表达式输入与预设，右侧负责解析结果展示。 -->
+        <div class="converter-layout cron-layout">
+            <!-- 输入与配置面板：填写 Cron 表达式，并可一键套用常用预设。 -->
+            <div class="converter-panel">
+                <div class="panel-header">
+                    <h3>Cron 表达式</h3>
+                </div>
+                <div class="panel-body">
+                    <!-- 表达式输入区：支持输入 5 字段或 6 字段 Cron，输入时实时触发解析。 -->
+                    <div class="form-group">
+                        <label>表达式（5 或 6 字段）</label>
+                        <input type="text" id="cron-input" placeholder="*/5 * * * * 或 0 0 * * *" oninput="updateCronTool()">
+                    </div>
+
+                    <!-- 预设按钮区：点击后通过 loadCronPreset() 快速填入常见 Cron 模板。 -->
+                    <div class="cron-presets">
+                        <span class="cron-preset-label">常用：</span>
+                        <button class="btn btn-sm btn-ghost cron-preset-btn" onclick="loadCronPreset('*/5 * * * *')" title="*/5 * * * *">每5分钟</button>
+                        <button class="btn btn-sm btn-ghost cron-preset-btn" onclick="loadCronPreset('0 * * * *')" title="0 * * * *">每小时</button>
+                        <button class="btn btn-sm btn-ghost cron-preset-btn" onclick="loadCronPreset('0 0 * * *')" title="0 0 * * *">每天0点</button>
+                        <button class="btn btn-sm btn-ghost cron-preset-btn" onclick="loadCronPreset('0 0 * * 1')" title="0 0 * * 1">每周一</button>
+                        <button class="btn btn-sm btn-ghost cron-preset-btn" onclick="loadCronPreset('0 0 1 * *')" title="0 0 1 * *">每月1日</button>
+                    </div>
+
+                    <!-- 错误提示区：由 JS 动态写入字段数错误、表达式非法等解析异常。 -->
+                    <div id="cron-errors" class="error-list"></div>
+                </div>
+            </div>
+
+            <!-- 解析结果面板：展示人类可读描述和字段拆解结果。 -->
+            <div class="converter-panel">
+                <div class="panel-header">
+                    <h3>解析结果</h3>
+                </div>
+                <div class="panel-body">
+                    <!-- 描述区：由 JS 动态生成人类可读的 Cron 说明文本。 -->
+                    <div class="cron-description" id="cron-description">输入 Cron 表达式开始解析</div>
+
+                    <!-- 字段拆解容器：由 JS 动态渲染每个字段的含义与取值。 -->
+                    <div class="cron-fields" id="cron-fields"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 下次运行时间区：默认隐藏，只有成功解析后才由 JS 展开并填充内容。 -->
+        <div class="cron-next-panel" id="cron-next-panel" style="display:none">
+            <div class="converter-panel">
+                <div class="panel-header">
+                    <h3>下次运行时间</h3>
+                </div>
+                <div class="panel-body">
+                    <!-- 时间列表容器：由 JS 动态生成未来几次运行时间列表。 -->
+                    <ul class="cron-next-list" id="cron-next-list"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,4 +1,20 @@
+/*
+ * 文件总览：工具页脚本分包 B。
+ *
+ * 服务页面包含：URL、进制、Unicode、HMAC、RSA、字符统计、密码生成、JSON、数据格式转换、文本排序/去重、正则测试等。
+ *
+ * 常见规律：
+ * - initXxxTool() 负责绑定页面事件和首屏状态；
+ * - updateXxxTool() 负责把输入重新计算到结果区；
+ * - clear/copy 函数对应页面上的局部按钮。
+ *
+ * 排查建议：先根据页面 id 找到对应 section，再顺着 init/update/copy 三类函数阅读。
+ */
+
 // ==================== 工具函数 ====================
+// 这里放多个工具共用的复制能力，是大量“复制结果”按钮的共同底层实现。
+// 通常调用链是：页面上的“复制”按钮 → copyXxxOutput()/copyField()/copyCommand() → copyToolText()/copyToClipboard()。
+// 如果用户反馈“按钮点了没反应”，先看这里是否成功走到 Clipboard API，再看 fallbackCopyText() 有没有被浏览器环境拦住。
 function copyToClipboard(text) {
     const value = String(text ?? '');
     if (!value) return Promise.resolve(false);
@@ -13,6 +29,9 @@ function copyToClipboard(text) {
     return Promise.resolve(fallbackCopyText(value));
 }
 
+// 复制兜底方案。
+// 当前端运行在 pywebview、本地 file://、旧版浏览器等环境时，Clipboard API 可能不可用，
+// 这里会临时创建隐藏 textarea 并执行 document.execCommand('copy')。
 function fallbackCopyText(text) {
     try {
         const ta = document.createElement('textarea');
@@ -39,14 +58,36 @@ function copyField(btn, text) {
     copyToolText(btn, text);
 }
 
+// 命令类结果的复制入口。
+// 页面位置：像 URL / cURL / SQL / 其它命令生成页里的“复制命令”按钮，最终通常都会走到这里。
 function copyCommand(btn, text) {
     copyToolText(btn, text);
 }
 
 // ==================== 工具箱：URL 编解码（M8） ====================
+// 对应 tool-url 页面：输入、模式切换、历史记录和结果输出都在这一段。
 const URL_HISTORY_KEY = 'url_history';
 const URL_HISTORY_MAX = 20;
 
+/**
+ * URL 工具初始化入口。
+ *
+ * 页面位置：
+ * - tool-url 页主输入框；
+ * - “编码 / 解码”模式按钮；
+ * - 批量处理开关；
+ * - 下方历史记录列表。
+ *
+ * 负责内容：
+ * 1. 给输入框绑定实时计算事件；
+ * 2. 给批量开关绑定刷新事件；
+ * 3. 启用拖拽文件到输入框；
+ * 4. 设置默认模式为 encode；
+ * 5. 首屏渲染历史记录。
+ *
+ * 排障建议：
+ * - 如果 URL 页一打开就完全没有任何联动，先看这里是否被页面初始化链调用。
+ */
 function initUrlTool() {
     const inputEl = document.getElementById('url-input');
     if (!inputEl) return;
@@ -62,6 +103,8 @@ function initUrlTool() {
     renderUrlHistory();
 }
 
+// URL 输入框的拖拽上传支持。
+// 用户把文本文件拖到输入区时，会读取文件内容并自动尝试识别应使用“编码”还是“解码”模式。
 function initUrlDragDrop(textarea) {
     if (!textarea) return;
 
@@ -93,6 +136,8 @@ function initUrlDragDrop(textarea) {
     });
 }
 
+// 把拖入的文件读成文本。
+// 这里属于 URL 工具“输入区”的辅助入口；如果拖文件无效，优先看文件大小限制和 FileReader 回调是否触发。
 function readFileAsTextUrl(file, callback) {
     if (!file) return;
     const MAX_SIZE = 1024 * 1024;
@@ -106,6 +151,8 @@ function readFileAsTextUrl(file, callback) {
     reader.readAsText(file);
 }
 
+// 根据拖入/粘贴的内容自动判断当前更像“已编码 URL”还是“普通文本”。
+// 这是改善外行用户体验的自动分流逻辑：识别到像 %E4%BD%A0 这种内容时，会自动切到解码模式。
 function autoDetectUrlMode(text) {
     if (!window.DogToolboxM8Utils?.detectUrlEncoded) return;
     const detection = window.DogToolboxM8Utils.detectUrlEncoded(text);
@@ -115,6 +162,8 @@ function autoDetectUrlMode(text) {
     }
 }
 
+// 切换 URL 工具的工作模式。
+// 页面按钮“编码 / 解码”点下去后会进这里；它既负责按钮高亮，也会立刻触发主计算函数刷新结果区。
 function setUrlMode(mode) {
     if (mode !== 'encode' && mode !== 'decode') return;
     urlMode = mode;
@@ -123,6 +172,28 @@ function setUrlMode(mode) {
     updateUrlTool();
 }
 
+/**
+ * URL 工具主计算入口。
+ *
+ * 页面位置：
+ * - 输入区：#url-input
+ * - 输出区：#url-output
+ * - 错误提示区：#url-errors
+ * - 批量模式开关：#url-batch
+ *
+ * 负责内容：
+ * 1. 读取当前 encode / decode 模式；
+ * 2. 判断是否是单条处理还是批量逐行处理；
+ * 3. 调用 window.DogToolboxM8Utils 中的 URL 编解码能力；
+ * 4. 把结果写回输出区；
+ * 5. 把批量解码中的局部错误渲染到错误区；
+ * 6. 在“单条成功处理”时保存到历史记录。
+ *
+ * 排障建议：
+ * - 输入有值但输出为空：先看这里有没有提前 return；
+ * - 页面提示“工具模块未加载”：继续检查 tools_m8_utils.js 是否成功注入；
+ * - 历史记录不更新：继续看 saveUrlHistory()。
+ */
 function updateUrlTool() {
     const inputEl = document.getElementById('url-input');
     const outputEl = document.getElementById('url-output');
@@ -172,6 +243,14 @@ function updateUrlTool() {
     }
 }
 
+/**
+ * 清空 URL 工具当前工作区。
+ *
+ * 页面上的“清空”按钮会走这里。
+ * 只清理当前这一轮的输入、输出、错误提示，不会动历史记录列表。
+ *
+ * 如果你发现“清空”后下面历史还在，这是正常设计；历史区要单独走 clearUrlHistory()。
+ */
 function clearUrlTool() {
     const inputEl = document.getElementById('url-input');
     const outputEl = document.getElementById('url-output');
@@ -181,12 +260,30 @@ function clearUrlTool() {
     if (errorsEl) errorsEl.innerHTML = '';
 }
 
+/**
+ * 复制 URL 输出区内容。
+ *
+ * 页面按钮位置：tool-url 输出框旁边的“复制结果”按钮。
+ * 这里只负责取值和转发，真正的复制提示、按钮状态反馈由公共 copyToolText() 完成。
+ */
 function copyUrlOutput(btn) {
     const outputEl = document.getElementById('url-output');
     const text = outputEl?.value || '';
     copyToolText(btn, text);
 }
 
+/**
+ * 保存 URL 工具历史记录。
+ *
+ * 设计意图：
+ * - 只记录单条、成功的处理结果；
+ * - 不记录批量处理，避免历史列表被大段文本污染；
+ * - 相同输入 + 相同模式的旧记录会被顶到最前面，而不是无限重复堆积。
+ *
+ * 存储位置：
+ * - 浏览器本地 localStorage
+ * - key 为 URL_HISTORY_KEY
+ */
 function saveUrlHistory(input, output, mode) {
     if (!input?.trim() || !output?.trim()) return;
     try {
@@ -208,6 +305,8 @@ function saveUrlHistory(input, output, mode) {
     } catch (e) { /* ignore */ }
 }
 
+// 从 localStorage 读取 URL 历史记录。
+// 如果历史区为空但你确认以前用过，先看这里是否解析失败或本地存储被清掉。
 function loadUrlHistory() {
     try {
         const raw = localStorage.getItem(URL_HISTORY_KEY);
@@ -217,6 +316,17 @@ function loadUrlHistory() {
     }
 }
 
+/**
+ * 渲染 URL 工具下方的历史记录列表。
+ *
+ * 页面位置：tool-url 页底部历史区。
+ * 每一项都是一个可点击的小块，展示：
+ * - 当时是“编码”还是“解码”；
+ * - 输入内容摘要；
+ * - 时间文案。
+ *
+ * 点击后会进入 applyUrlHistory()，把当时的输入和模式一起恢复回来。
+ */
 function renderUrlHistory() {
     const container = document.getElementById('url-history');
     if (!container) return;
@@ -236,6 +346,16 @@ function renderUrlHistory() {
     `).join('');
 }
 
+/**
+ * 点击某条 URL 历史记录后的回填入口。
+ *
+ * 用户在历史区点某一条时：
+ * 1. 把当时的输入文本放回输入框；
+ * 2. 恢复 encode / decode 模式；
+ * 3. 借由 setUrlMode() 自动重新计算输出区。
+ *
+ * 如果出现“点击历史记录没反应”，优先看 renderUrlHistory() 生成的 onclick 是否正确，再看这里。
+ */
 function applyUrlHistory(index) {
     const entries = loadUrlHistory();
     const entry = entries[index];
@@ -246,12 +366,21 @@ function applyUrlHistory(index) {
     setUrlMode(entry.mode);
 }
 
+// 清空 URL 历史记录列表。
+// 注意：这里只删 localStorage 中的历史，不影响当前页面上的输入/输出框内容。
 function clearUrlHistory() {
     localStorage.removeItem(URL_HISTORY_KEY);
     renderUrlHistory();
     showToast?.('历史记录已清空', 'info');
 }
 
+/**
+ * 历史时间格式化。
+ *
+ * 这是纯显示层函数，不参与任何编解码逻辑。
+ * 它只把时间戳转换成更适合普通用户阅读的文案，
+ * 比如“刚刚 / 5 分钟前 / 3/31”。
+ */
 function formatUrlHistoryTime(ts) {
     const d = new Date(ts);
     const now = new Date();
@@ -263,6 +392,8 @@ function formatUrlHistoryTime(ts) {
 }
 
 // ==================== 工具箱：进制转换（M8） ====================
+// 对应 tool-radix 页面，负责不同数字进制之间的联动转换。
+// 页面块通常包含：输入框、来源进制选择、自动检测提示、四个输出框（二/八/十/十六进制）。
 function initRadixTool() {
     const inputEl = document.getElementById('radix-input');
     if (!inputEl) return;
@@ -271,6 +402,9 @@ function initRadixTool() {
     updateRadixTool();
 }
 
+// 进制转换主计算入口。
+// 用户在输入框输入数字，或者切换“来源进制”下拉框时，都会重新走这里。
+// 负责内容：尝试识别输入属于哪种进制，再把结果同步写到 4 个结果框。
 function updateRadixTool() {
     const inputEl = document.getElementById('radix-input');
     const fromEl = document.getElementById('radix-from');
@@ -315,6 +449,8 @@ function updateRadixTool() {
     }
 }
 
+// 清空进制转换工具。
+// 除了输入框，还会把“检测为：十六进制”这种辅助提示一并清空。
 function clearRadixTool() {
     const inputEl = document.getElementById('radix-input');
     const detectEl = document.getElementById('radix-detect');
@@ -332,6 +468,8 @@ function clearRadixTool() {
     if (outHex) outHex.value = '';
 }
 
+// 复制某个进制结果框的值。
+// type 决定复制哪一个输出框，适合从 HTML 按钮上直接按类型复用。
 function copyRadixOutput(btn, type) {
     const idMap = { bin: 'radix-out-bin', oct: 'radix-out-oct', dec: 'radix-out-dec', hex: 'radix-out-hex' };
     const el = document.getElementById(idMap[type]);
@@ -340,7 +478,11 @@ function copyRadixOutput(btn, type) {
 }
 
 // ==================== 工具箱：Unicode 编解码（M19） ====================
+// 对应 tool-unicode 页面，围绕文本转义/反转义做即时结果更新。
 
+// Unicode 工具初始化入口。
+// 页面位置：tool-unicode 页的主输入区、编码/解码切换按钮、格式下拉框。
+// 默认会进入编码模式，确保首屏按钮状态和输入区逻辑一致。
 function initUnicodeTool() {
     const inputEl = document.getElementById('unicode-input');
     if (!inputEl) return;
@@ -348,6 +490,8 @@ function initUnicodeTool() {
     setUnicodeMode('encode');
 }
 
+// 切换 Unicode 工具的编码/解码模式。
+// 除了按钮高亮，这里还负责控制“编码格式区”和“解码格式区”谁显示、谁隐藏。
 function setUnicodeMode(mode) {
     if (mode !== 'encode' && mode !== 'decode') return;
     unicodeMode = mode;
@@ -362,6 +506,10 @@ function setUnicodeMode(mode) {
     updateUnicodeTool();
 }
 
+// Unicode 工具主计算入口。
+// 页面位置：输入区、输出区、错误区、自动检测区。
+// 负责内容：读取当前模式、格式选择、批量开关，执行转义/反转义并把结果回填到输出框。
+// 排障建议：如果自动检测没显示结果，先看 format 是否为 auto，再看 detectFormat() 是否返回可识别类型。
 function updateUnicodeTool() {
     const inputEl = document.getElementById('unicode-input');
     const outputEl = document.getElementById('unicode-output');
@@ -416,6 +564,8 @@ function updateUnicodeTool() {
     }
 }
 
+// 编码模式下的格式分发器。
+// 它本身不管页面，只负责把“当前选的是 unicode / hex / html_hex / html_dec”映射到正确算法。
 function encodeByFormat(text, format) {
     const M19 = window.DogToolboxM19Utils;
     switch (format) {
@@ -432,6 +582,8 @@ function encodeByFormat(text, format) {
     }
 }
 
+// 解码模式下的格式分发器。
+// auto 模式会走 smartDecode()；如果用户说“明明粘贴了转义内容却没解出来”，这里是重点排查点。
 function decodeByFormat(text, format) {
     const M19 = window.DogToolboxM19Utils;
     switch (format) {
@@ -448,6 +600,8 @@ function decodeByFormat(text, format) {
     }
 }
 
+// 清空 Unicode 工具所有展示区域。
+// 包括输入、输出、报错，以及“检测：\\uXXXX”这类辅助提示。
 function clearUnicodeTool() {
     const inputEl = document.getElementById('unicode-input');
     const outputEl = document.getElementById('unicode-output');
@@ -459,6 +613,7 @@ function clearUnicodeTool() {
     if (detectEl) detectEl.textContent = '';
 }
 
+// 复制 Unicode 工具输出区内容。
 function copyUnicodeOutput(btn) {
     const outputEl = document.getElementById('unicode-output');
     const text = outputEl?.value || '';
@@ -466,6 +621,8 @@ function copyUnicodeOutput(btn) {
 }
 
 // ==================== 工具箱：HMAC 计算（M21） ====================
+// 对应 tool-hmac 页面，主要处理消息、密钥和算法切换。
+// 页面块通常包含：消息输入区、密钥输入区、算法下拉框、密钥格式/输出格式切换、结果区。
 function initHmacTool() {
     const inputEl = document.getElementById('hmac-input');
     if (!inputEl) return;
@@ -478,6 +635,10 @@ function initHmacTool() {
     updateHmacTool();
 }
 
+// HMAC 工具主计算入口。
+// 只要消息、密钥、算法、输出格式等任一控件变化，都会重新走这里。
+// 负责内容：收集页面表单参数，调用异步 HMAC 工具模块，输出摘要结果。
+// 排障建议：结果不刷新时先看这里是否提前 return，例如消息或密钥为空时会直接停止计算。
 async function updateHmacTool() {
     const inputEl = document.getElementById('hmac-input');
     const outputEl = document.getElementById('hmac-output');
@@ -523,6 +684,8 @@ async function updateHmacTool() {
     }
 }
 
+// 清空 HMAC 页面。
+// 只清当前页面表单，不会改动算法下拉或格式下拉的默认选项。
 function clearHmacTool() {
     const inputEl = document.getElementById('hmac-input');
     const outputEl = document.getElementById('hmac-output');
@@ -534,6 +697,7 @@ function clearHmacTool() {
     if (keyEl) keyEl.value = '';
 }
 
+// 复制 HMAC 输出区内容。
 function copyHmacOutput(btn) {
     const outputEl = document.getElementById('hmac-output');
     const text = outputEl?.value || '';
@@ -541,12 +705,17 @@ function copyHmacOutput(btn) {
 }
 
 // ==================== 工具箱：RSA 加解密（M20） ====================
+// 对应 tool-rsa 页面，是一组表单参数较多、最适合重点复核注释的工具。
 
+// RSA 工具初始化入口。
+// 页面首次进入时，会默认切到“加密”模式，并同步刷新顶部提示文案。
 function initRsaTool() {
     setRsaMode('encrypt');
     updateRsaKeyHint();
 }
 
+// 切换 RSA 的“加密 / 解密”工作模式。
+// 页面上两个主按钮点下去后会进这里；它会同时改标题、placeholder、输出区语义和错误区状态。
 function setRsaMode(mode) {
     if (mode !== 'encrypt' && mode !== 'decrypt') return;
     rsaMode = mode;
@@ -575,6 +744,8 @@ function setRsaMode(mode) {
     if (outputEl) outputEl.value = '';
 }
 
+// 更新 RSA 页面的配置提示条。
+// 页面位置：密钥尺寸下拉框附近的说明文字，用来告诉用户当前实际要生成的是哪种 RSA 配置。
 function updateRsaKeyHint() {
     const hintEl = document.getElementById('rsa-key-hint');
     const keysizeEl = document.getElementById('rsa-keysize');
@@ -583,6 +754,8 @@ function updateRsaKeyHint() {
     hintEl.textContent = `当前配置：${keysize} 位 RSA-OAEP (SHA-256)`;
 }
 
+// 生成 RSA 公私钥对。
+// 页面按钮“生成密钥”点下去会走这里；生成完成后会自动回填公钥区、私钥区，并立即触发合法性校验。
 async function generateRsaKeyPair() {
     const errorsEl = document.getElementById('rsa-errors');
     const pubkeyEl = document.getElementById('rsa-pubkey');
@@ -609,6 +782,9 @@ async function generateRsaKeyPair() {
     }
 }
 
+// 校验用户输入的公钥 / 私钥是否合法。
+// 这是 RSA 页“密钥输入区”的即时校验逻辑：通过给外层 group 切换样式类，提示当前密钥是否格式正确。
+// 如果用户说“为什么公钥框突然变红/变绿”，就是这里在控制。
 function validateRsaKeys() {
     if (!window.DogToolboxM20Utils) return;
 
@@ -640,6 +816,10 @@ function validateRsaKeys() {
     }
 }
 
+// RSA 主执行入口。
+// 页面上的“开始加密 / 开始解密”按钮应该最终进入这里。
+// 负责内容：读取输入区、公钥/私钥区、输出格式下拉框，根据当前模式调用 encrypt/decrypt 并回填结果。
+// 排障建议：RSA 页面出问题时优先看这里，因为它串起了所有输入校验和真正的加解密调用。
 async function runRsaTool() {
     const inputEl = document.getElementById('rsa-input');
     const outputEl = document.getElementById('rsa-output');
@@ -688,6 +868,8 @@ async function runRsaTool() {
     }
 }
 
+// 清空 RSA 页面。
+// 会同时清除密钥合法性高亮，避免用户误以为旧密钥状态仍然有效。
 function clearRsaTool() {
     const inputEl = document.getElementById('rsa-input');
     const outputEl = document.getElementById('rsa-output');
@@ -706,6 +888,7 @@ function clearRsaTool() {
     if (privGroup) privGroup.classList.remove('key-valid', 'key-invalid');
 }
 
+// 复制 RSA 输出区内容。
 function copyRsaOutput(btn) {
     const outputEl = document.getElementById('rsa-output');
     const text = outputEl?.value || '';
@@ -713,6 +896,8 @@ function copyRsaOutput(btn) {
 }
 
 // ==================== 工具箱：字符统计（M8） ====================
+// 对应 tool-charcount 页面，输入后即时统计字符、单词、行数等结果。
+// 这是典型“输入区 + 统计卡片区”的轻量工具，几乎所有结果都由 updateCharCountTool() 统一刷新。
 function initCharCountTool() {
     const inputEl = document.getElementById('charcount-input');
     if (!inputEl) return;
@@ -720,6 +905,8 @@ function initCharCountTool() {
     updateCharCountTool();
 }
 
+// 字符统计主刷新函数。
+// 负责把输入文本转换为字符数、去空格字符数、字节数、行数、中文数、英文词数等多个统计卡片值。
 function updateCharCountTool() {
     const inputEl = document.getElementById('charcount-input');
     const charsEl = document.getElementById('charcount-chars');
@@ -751,6 +938,7 @@ function updateCharCountTool() {
     if (wordsEl) wordsEl.textContent = String(stats.englishWordCount);
 }
 
+// 清空字符统计输入区，并顺带把所有统计结果归零。
 function clearCharCountTool() {
     const inputEl = document.getElementById('charcount-input');
     if (inputEl) inputEl.value = '';
@@ -758,6 +946,8 @@ function clearCharCountTool() {
 }
 
 // ==================== 工具箱：密码生成器（M9） ====================
+// 对应 tool-password 页面，围绕规则配置生成随机密码并回填结果区。
+// 页面块一般包含：长度滑杆、长度数字框、字符类型复选框、数量输入、结果区、强度条。
 function initPasswordTool() {
     const sliderEl = document.getElementById('password-length-slider');
     const numberEl = document.getElementById('password-length');
@@ -765,6 +955,8 @@ function initPasswordTool() {
     syncPasswordLength('slider');
 }
 
+// 同步密码长度的滑杆和数字输入框。
+// 外行用户常会疑惑“为什么拖滑杆数字会变 / 改数字滑杆又跳回来”，就是这里在做双向同步和范围兜底。
 function syncPasswordLength(source) {
     const sliderEl = document.getElementById('password-length-slider');
     const numberEl = document.getElementById('password-length');
@@ -781,6 +973,27 @@ function syncPasswordLength(source) {
     }
 }
 
+/**
+ * 密码生成主入口。
+ *
+ * 页面位置：
+ * - 长度设置区；
+ * - 字符类型勾选区；
+ * - 生成数量输入框；
+ * - 结果输出区；
+ * - 强度提示条。
+ *
+ * 页面按钮“生成密码”点下去后会进这里，负责：
+ * 1. 读取所有规则；
+ * 2. 调用 M9 模块批量生成密码；
+ * 3. 把结果逐行写入输出区；
+ * 4. 取第一条密码计算强度并刷新颜色条。
+ *
+ * 排障建议：
+ * - 点击没结果：先看是否至少勾选了一种字符类型；
+ * - 直接报模块错误：继续检查 tools_m9_utils.js；
+ * - 结果有了但强度条不显示：再看 strengthRow / strengthBar / strengthText 是否存在。
+ */
 function generatePasswords() {
     const lengthEl = document.getElementById('password-length');
     const countEl = document.getElementById('password-count');
@@ -840,6 +1053,8 @@ function generatePasswords() {
     }
 }
 
+// 清空密码结果区和强度显示。
+// 注意：不会重置用户勾选的规则配置，只清本次生成结果。
 function clearPasswordTool() {
     const outputEl = document.getElementById('password-output');
     const errorsEl = document.getElementById('password-errors');
@@ -849,6 +1064,8 @@ function clearPasswordTool() {
     if (strengthRow) strengthRow.style.display = 'none';
 }
 
+// 复制密码生成结果。
+// 一般对应结果文本框旁边的复制按钮，复制后用户可直接粘贴到其他系统中。
 function copyPasswordOutput(btn) {
     const outputEl = document.getElementById('password-output');
     const text = outputEl?.value || '';
@@ -856,7 +1073,24 @@ function copyPasswordOutput(btn) {
 }
 
 // ==================== 工具箱：JSON 格式化（M10） ====================
+// 对应 tool-json 页面，负责格式化、压缩、校验、树视图等 JSON 相关交互。
 
+/**
+ * JSON 工具初始化入口。
+ *
+ * 页面位置：
+ * - 原始 JSON 输入区；
+ * - 格式化输出区；
+ * - 缩进切换按钮；
+ * - 文本视图 / 树形视图切换区。
+ *
+ * 负责内容：
+ * 1. 绑定输入框实时格式化；
+ * 2. 把默认缩进设置成 2 空格；
+ * 3. 借由 setJsonIndent() 触发首屏状态同步。
+ *
+ * 如果 JSON 页面完全没有自动联动，先看这里有没有被工具页初始化总入口调用。
+ */
 function initJsonTool() {
     const inputEl = document.getElementById('json-input');
     if (!inputEl) return;
@@ -864,6 +1098,16 @@ function initJsonTool() {
     setJsonIndent(2);
 }
 
+/**
+ * 切换 JSON 输出缩进风格。
+ *
+ * 页面上的“2 空格 / 4 空格 / Tab”按钮都走这里。
+ * 它做两件事：
+ * 1. 更新当前全局缩进状态 jsonIndent；
+ * 2. 刷新按钮高亮并立刻重算输出区内容。
+ *
+ * 所以用户点缩进按钮时看到结果文本立刻变化，是这里驱动的。
+ */
 function setJsonIndent(indent) {
     jsonIndent = indent;
     document.querySelectorAll('#json-indent-2, #json-indent-4, #json-indent-tab').forEach(btn => {
@@ -874,6 +1118,10 @@ function setJsonIndent(indent) {
     updateJsonTool();
 }
 
+// JSON 工具主计算入口。
+// 用户在 JSON 输入区编辑内容时，最先进入这里。
+// 负责内容：校验 JSON 是否有效、按当前缩进格式化结果、更新状态标记，并在树形视图模式下同步刷新右侧树。
+// 排障建议：JSON 页面“无效 / 不显示结果 / 树视图不同步”时，优先从这里开始看。
 function updateJsonTool() {
     const inputEl = document.getElementById('json-input');
     const outputEl = document.getElementById('json-output');
@@ -916,6 +1164,19 @@ function updateJsonTool() {
     }
 }
 
+/**
+ * JSON 压缩按钮入口。
+ *
+ * 与 updateJsonTool() 的“格式化美化”不同，
+ * 这里是把合法 JSON 压成单行文本，
+ * 常用于：
+ * - 贴到请求参数；
+ * - 放进配置项；
+ * - 复制到日志或命令行参数中。
+ *
+ * 排障建议：
+ * - 如果点“压缩”后没有结果，优先看输入是否为空、JSON 是否本身非法。
+ */
 function minifyJsonTool() {
     const inputEl = document.getElementById('json-input');
     const outputEl = document.getElementById('json-output');
@@ -947,6 +1208,22 @@ function minifyJsonTool() {
     }
 }
 
+/**
+ * JSON 自动修复入口。
+ *
+ * 页面上的“尝试修复”按钮会走这里。
+ * 它主要处理一些常见、可恢复的小问题，例如：
+ * - 多余尾逗号；
+ * - 少量引号/转义异常；
+ * - 结构上还能推断的轻微错误。
+ *
+ * 修复成功后会：
+ * 1. 直接把修复结果写回输入区；
+ * 2. 在状态区告诉用户修了几项；
+ * 3. 再调用 updateJsonTool() 重新格式化输出。
+ *
+ * 如果用户说“点了修复但输入框没变化”，先看这里的 result.fixes 是否为空。
+ */
 function tryFixJsonTool() {
     const inputEl = document.getElementById('json-input');
     const errorsEl = document.getElementById('json-errors');
@@ -972,6 +1249,18 @@ function tryFixJsonTool() {
     }
 }
 
+/**
+ * 清空 JSON 工具全部区域。
+ *
+ * 会同时清理：
+ * - 输入区；
+ * - 输出区；
+ * - 错误提示；
+ * - 状态标记；
+ * - 树形视图容器。
+ *
+ * 这相当于把当前 JSON 页面恢复成“刚打开时的空白状态”。
+ */
 function clearJsonTool() {
     const inputEl = document.getElementById('json-input');
     const outputEl = document.getElementById('json-output');
@@ -986,8 +1275,21 @@ function clearJsonTool() {
 }
 
 // JSON 视图切换状态（已在 app_state.js 中定义）
-// let jsonViewMode = 'text';
+// let jsonViewMode = 'text'; // 预留：如后续需要“文本 / 树形”双视图，可从这里继续扩展
 
+/**
+ * 切换 JSON 输出区域的显示方式。
+ *
+ * text 模式：
+ * - 显示纯文本结果框；
+ * - 适合复制、粘贴、再次编辑。
+ *
+ * tree 模式：
+ * - 显示结构化树；
+ * - 更适合外行观察层级、字段嵌套关系。
+ *
+ * 切到 tree 时会立刻调用 updateJsonTreeView() 重新生成树节点。
+ */
 function switchJsonView(mode) {
     jsonViewMode = mode;
     const textView = document.getElementById('json-output-text');
@@ -1009,6 +1311,20 @@ function switchJsonView(mode) {
     }
 }
 
+/**
+ * JSON 树形视图渲染入口。
+ *
+ * 页面位置：tool-json 的树视图区。
+ * 负责内容：
+ * 1. 读取输入框中的 JSON 原文；
+ * 2. 交给 M16 树形模块解析；
+ * 3. 产出可折叠的 HTML 节点树并写入容器。
+ *
+ * 排障建议：
+ * - 切到树视图后一片空白：先看这里；
+ * - 页面提示“树形视图模块未加载”：继续检查 tools_m16_utils.js；
+ * - 树显示错乱：再看输入框里是否真的是合法 JSON。
+ */
 function updateJsonTreeView() {
     const inputEl = document.getElementById('json-input');
     const treeEl = document.getElementById('json-tree-content');
@@ -1023,12 +1339,16 @@ function updateJsonTreeView() {
     treeEl.innerHTML = result.html;
 }
 
+// 点击某个 JSON 树节点前的小三角时会走这里。
+// 它只是把事件转发给 M16 树工具模块，本身不做结构解析。
 function toggleJsonTreeNode(toggle) {
     if (window.DogToolboxM16Utils) {
         window.DogToolboxM16Utils.toggleNode(toggle);
     }
 }
 
+// 展开 JSON 树的所有节点。
+// 对应树视图上的“全部展开”按钮，方便一次看全深层字段。
 function expandAllJsonTree() {
     const container = document.getElementById('json-tree-content');
     if (window.DogToolboxM16Utils && container) {
@@ -1036,6 +1356,8 @@ function expandAllJsonTree() {
     }
 }
 
+// 折叠 JSON 树的所有节点。
+// 对应树视图上的“全部折叠”按钮，数据层级太深时会比较有用。
 function collapseAllJsonTree() {
     const container = document.getElementById('json-tree-content');
     if (window.DogToolboxM16Utils && container) {
@@ -1043,13 +1365,23 @@ function collapseAllJsonTree() {
     }
 }
 
+// 复制 JSON 文本输出区。
+// 注意：复制的是格式化/压缩后的文本框内容，不是树形节点的可见文字。
 function copyJsonOutput(btn) {
     const outputEl = document.getElementById('json-output');
     const text = outputEl?.value || '';
     copyToolText(btn, text);
 }
 
-// JSON 字段排序
+/**
+ * JSON 字段排序按钮入口。
+ *
+ * 适合处理“对象 key 想按名称升序 / 降序排列”的场景。
+ * 重要特点：
+ * - 排序结果只写到输出区；
+ * - 不会偷偷改掉输入区原文；
+ * - 所以用户可以安全地拿原始内容做不同排序试验。
+ */
 function sortJsonTool(order) {
     const inputEl = document.getElementById('json-input');
     const outputEl = document.getElementById('json-output');
@@ -1071,7 +1403,16 @@ function sortJsonTool(order) {
     }
 }
 
-// JSON 转义
+/**
+ * JSON 字符串转义入口。
+ *
+ * 常用于把普通文本变成“可安全放进 JSON 字符串”的形式。
+ * 例如换行、引号、反斜杠会被改写成带转义符的文本。
+ *
+ * 页面理解上，可以把它看成：
+ * - 输入区放原文；
+ * - 输出区放适合嵌入 JSON 的安全字符串。
+ */
 function escapeJsonTool() {
     const inputEl = document.getElementById('json-input');
     const outputEl = document.getElementById('json-output');
@@ -1086,7 +1427,17 @@ function escapeJsonTool() {
     if (statusEl) statusEl.textContent = '✓ 已转义';
 }
 
-// JSON 反转义
+/**
+ * JSON 字符串反转义入口。
+ *
+ * 与 escapeJsonTool() 相反，
+ * 它把类似 \\n、\\\" 这类转义后的文本还原成更接近原始内容的人眼可读文本。
+ *
+ * 常见场景：
+ * - 调试接口返回的字符串字段；
+ * - 还原日志里转义过的片段；
+ * - 检查某段 JSON 字符串真实长什么样。
+ */
 function unescapeJsonTool() {
     const inputEl = document.getElementById('json-input');
     const outputEl = document.getElementById('json-output');
@@ -1109,24 +1460,60 @@ function unescapeJsonTool() {
 }
 
 // ==================== 工具箱：数据格式转换（M18） ====================
+// 对应 tool-data-convert 页面，处理不同结构数据之间的转换和结果展示。
  
 
+/**
+ * 数据格式转换工具初始化入口。
+ *
+ * 页面位置：
+ * - 输入格式按钮组；
+ * - 输出格式按钮组；
+ * - 原始数据输入区；
+ * - 转换结果输出区；
+ * - 自动检测提示区。
+ *
+ * 当前初始化逻辑以“同步按钮高亮状态”为主，
+ * 真正的转换计算发生在 updateDataConvertTool()。
+ */
 function initDataConvertTool() {
     updateDataFormatButtons();
 }
 
+/**
+ * 切换“输入格式”按钮组选中项。
+ *
+ * auto / json / yaml / xml 四种模式会决定：
+ * 当前输入框里的内容，第一步应该按什么方式解析。
+ *
+ * 切换后会立刻重新转换，因此用户能马上看到结果或错误提示变化。
+ */
 function setDataInputFormat(format) {
     dataInputFormat = format;
     updateDataFormatButtons();
     updateDataConvertTool();
 }
 
+/**
+ * 切换“输出格式”按钮组选中项。
+ *
+ * json / yaml / xml 三种模式会决定：
+ * 第二步把统一对象重新输出成哪种文本格式给用户看。
+ */
 function setDataOutputFormat(format) {
     dataOutputFormat = format;
     updateDataFormatButtons();
     updateDataConvertTool();
 }
 
+/**
+ * 刷新数据转换页按钮高亮。
+ *
+ * 这是纯展示层函数，不做实际转换。
+ * 它的意义是让用户清楚看到：
+ * - 当前“输入格式”选中了什么；
+ * - 当前“输出格式”准备转成什么。
+ */
 function updateDataFormatButtons() {
     ['auto', 'json', 'yaml', 'xml'].forEach(fmt => {
         const inBtn = document.getElementById(`data-in-${fmt}`);
@@ -1138,6 +1525,12 @@ function updateDataFormatButtons() {
     });
 }
 
+// 数据格式转换主计算入口。
+// 页面位置：tool-data-convert 的输入区、输出区、错误区、检测提示区。
+// 核心链路分两步：
+// 1) 先按输入格式把内容解析成统一 JS 对象；
+// 2) 再按目标格式把对象序列化成 JSON / YAML / XML。
+// 排障建议：转换失败时先分清是“第一步解析失败”还是“第二步输出失败”，错误文案也是按这两层给出的。
 function updateDataConvertTool() {
     const inputEl = document.getElementById('data-convert-input');
     const outputEl = document.getElementById('data-convert-output');
@@ -1169,7 +1562,7 @@ function updateDataConvertTool() {
     let intermediateObj = null;
     let parseError = null;
 
-    // Step 1: Parse input to JS object
+    // 第一步：先把当前输入解析成统一的 JS 对象
     if (dataInputFormat === 'json' || (dataInputFormat === 'auto' && detectedFormat === 'json')) {
         try {
             intermediateObj = JSON.parse(inputText);
@@ -1211,7 +1604,7 @@ function updateDataConvertTool() {
         return;
     }
 
-    // Step 2: Convert to output format
+    // 第二步：再按用户选中的目标格式重新序列化输出
     let outputText = '';
     let convertError = null;
 
@@ -1244,6 +1637,17 @@ function updateDataConvertTool() {
     outputEl.value = outputText;
 }
 
+/**
+ * 清空数据格式转换页的工作区。
+ *
+ * 会同时清除：
+ * - 输入区；
+ * - 输出区；
+ * - 错误区；
+ * - 自动检测提示。
+ *
+ * 但不会重置输入 / 输出格式按钮当前的选中状态。
+ */
 function clearDataConvertTool() {
     const inputEl = document.getElementById('data-convert-input');
     const outputEl = document.getElementById('data-convert-output');
@@ -1256,6 +1660,8 @@ function clearDataConvertTool() {
     if (detectEl) detectEl.textContent = '';
 }
 
+// 复制数据格式转换结果。
+// 页面上的“复制输出”按钮会走这里；如果没内容则直接不触发复制。
 function copyDataConvertOutput(btn) {
     const outputEl = document.getElementById('data-convert-output');
     if (!outputEl || !outputEl.value) return;
@@ -1263,6 +1669,8 @@ function copyDataConvertOutput(btn) {
 }
 
 /* ========== M11: 文本去重/排序 ========== */
+// 对应 tool-text-sort 页面，负责去重、排序和批量整理文本结果。
+// 页面块一般是“原始文本输入区 + 操作按钮条 + 输出区 + 统计区”。
 function initTextTool() {
     const inputEl = document.getElementById('text-input');
     if (inputEl) {
@@ -1270,6 +1678,8 @@ function initTextTool() {
     }
 }
 
+// 更新文本工具顶部/底部的统计提示。
+// 当前主要展示总行数和去重后行数，方便用户在点按钮前先对数据规模有直观认识。
 function updateTextStats() {
     const inputEl = document.getElementById('text-input');
     const statsEl = document.getElementById('text-stats');
@@ -1282,6 +1692,8 @@ function updateTextStats() {
     statsEl.textContent = text ? `行数: ${lines} | 去重后: ${unique}` : '';
 }
 
+// 文本去重按钮入口。
+// 常见场景：一堆重复行去重后输出到右侧结果区；大小写敏感、是否 trim 由复选框决定。
 function textDeduplicate() {
     const inputEl = document.getElementById('text-input');
     const outputEl = document.getElementById('text-output');
@@ -1293,6 +1705,8 @@ function textDeduplicate() {
     outputEl.value = result;
 }
 
+// 文本排序按钮入口。
+// order 决定升序还是降序，最终结果写到输出区。
 function textSort(order) {
     const inputEl = document.getElementById('text-input');
     const outputEl = document.getElementById('text-output');
@@ -1303,6 +1717,7 @@ function textSort(order) {
     outputEl.value = result;
 }
 
+// 按行倒序排列文本。
 function textReverse() {
     const inputEl = document.getElementById('text-input');
     const outputEl = document.getElementById('text-output');
@@ -1312,6 +1727,7 @@ function textReverse() {
     outputEl.value = result;
 }
 
+// 删除空行。
 function textRemoveEmpty() {
     const inputEl = document.getElementById('text-input');
     const outputEl = document.getElementById('text-output');
@@ -1321,6 +1737,7 @@ function textRemoveEmpty() {
     outputEl.value = result;
 }
 
+// 去掉每一行首尾空白。
 function textTrimLines() {
     const inputEl = document.getElementById('text-input');
     const outputEl = document.getElementById('text-output');
@@ -1330,6 +1747,8 @@ function textTrimLines() {
     outputEl.value = result;
 }
 
+// 为每一行加上行号。
+// 适合把纯文本临时变成“1. xxx / 2. yyy”这类可引用形式。
 function textAddLineNumbers() {
     const inputEl = document.getElementById('text-input');
     const outputEl = document.getElementById('text-output');
@@ -1339,6 +1758,7 @@ function textAddLineNumbers() {
     outputEl.value = result;
 }
 
+// 删除已经存在的行号前缀。
 function textRemoveLineNumbers() {
     const inputEl = document.getElementById('text-input');
     const outputEl = document.getElementById('text-output');
@@ -1348,6 +1768,7 @@ function textRemoveLineNumbers() {
     outputEl.value = result;
 }
 
+// 清空文本整理工具的输入、输出和统计提示。
 function clearTextTool() {
     const inputEl = document.getElementById('text-input');
     const outputEl = document.getElementById('text-output');
@@ -1357,6 +1778,7 @@ function clearTextTool() {
     if (statsEl) statsEl.textContent = '';
 }
 
+// 复制文本整理输出区。
 function copyTextOutput(btn) {
     const outputEl = document.getElementById('text-output');
     const text = outputEl?.value || '';
@@ -1364,6 +1786,8 @@ function copyTextOutput(btn) {
 }
 
 /* ========== M12: 正则表达式测试 ========== */
+// 对应 tool-regex 页面，负责模式输入、匹配结果、替换预览和 flags 切换。
+// 这一块通常是外行最容易迷路的页面之一：模式输入区、待测试文本区、flags 复选框、匹配结果区、替换区都由下面这些函数串起来。
 async function initRegexTool() {
     const presetEl = document.getElementById('regex-preset');
     if (presetEl) {
@@ -1382,6 +1806,8 @@ async function initRegexTool() {
 }
 
 // 正则工具 AI 辅助功能初始化
+// 负责决定“正则工具页”顶部是否显示 AI 生成 / AI 修复按钮。
+// 如果用户说“别人截图里有 AI 按钮，我这里没有”，先看这里是否判断为 tool-regex 未启用 AI。
 async function initRegexAIHelper() {
     if (typeof checkToolAIEnabled !== 'function') return;
 
@@ -1415,6 +1841,7 @@ async function initRegexAIHelper() {
 }
 
 // 显示正则 AI 生成弹窗
+// 页面按钮“✨ AI 生成”点下去后会打开描述输入弹窗，生成成功后自动把结果回填到正则输入框。
 function showRegexAIGenerateModal() {
     if (typeof showAIGenerateModal !== 'function') return;
 
@@ -1430,6 +1857,7 @@ function showRegexAIGenerateModal() {
 }
 
 // 执行正则 AI 修复
+// 当用户已经写了一个正则，但报错或匹配不准时，可通过这里把当前模式交给 AI 修复并回填页面。
 async function executeRegexAIFix() {
     if (typeof executeAIFix !== 'function') return;
 
@@ -1454,6 +1882,8 @@ async function executeRegexAIFix() {
     }
 }
 
+// 从预设下拉框回填一个常用正则模板。
+// 例如邮箱、手机号、URL 等常见表达式通常会在这里注入到 pattern 输入框中。
 function loadRegexPreset() {
     const presetEl = document.getElementById('regex-preset');
     const patternEl = document.getElementById('regex-pattern');
@@ -1470,6 +1900,8 @@ function loadRegexPreset() {
     presetEl.value = '';
 }
 
+// 把 flags 复选框同步成真正的 flags 字符串。
+// 页面上的 g/i/m/s 小勾选框变化后，会统一拼成一个字符串再交给 updateRegexTool()。
 function syncRegexFlags() {
     const flagsEl = document.getElementById('regex-flags');
     if (!flagsEl) return;
@@ -1484,6 +1916,10 @@ function syncRegexFlags() {
     updateRegexTool();
 }
 
+// 正则测试主渲染入口。
+// 页面位置：模式输入区、测试文本区、匹配结果区、匹配数提示、错误区。
+// 负责内容：执行匹配、渲染每个命中项、展示捕获组和位置索引。
+// 排障建议：正则页面“无匹配 / 报错 / 分组展示不对”时，优先看这里。
 function updateRegexTool() {
     const patternEl = document.getElementById('regex-pattern');
     const flagsEl = document.getElementById('regex-flags');
@@ -1538,6 +1974,8 @@ function updateRegexTool() {
     }).join('');
 }
 
+// 正则替换入口。
+// 与 updateRegexTool() 不同，这里处理的是“把匹配到的内容替换成新文本”，结果输出到 replaced 区域。
 function executeRegexReplace() {
     const patternEl = document.getElementById('regex-pattern');
     const flagsEl = document.getElementById('regex-flags');
@@ -1569,6 +2007,8 @@ function executeRegexReplace() {
     replacedEl.value = result;
 }
 
+// 清空正则测试页的所有输入、勾选框和结果区域。
+// 会把 g 标志恢复为默认勾选，避免用户清空后处于不可预期状态。
 function clearRegexTool() {
     const patternEl = document.getElementById('regex-pattern');
     const flagsEl = document.getElementById('regex-flags');
@@ -1594,6 +2034,8 @@ function clearRegexTool() {
     document.getElementById('regex-flag-s').checked = false;
 }
 
+// 复制正则匹配结果区中每条命中的正文。
+// 这里只复制 .regex-match-text，不会复制位置、分组标题等外围 UI 文案。
 function copyRegexMatches(btn) {
     const matchesEl = document.getElementById('regex-matches');
     const items = matchesEl?.querySelectorAll('.regex-match-text') || [];
@@ -1601,6 +2043,7 @@ function copyRegexMatches(btn) {
     copyToolText(btn, text);
 }
 
+// 复制“替换结果”文本框。
 function copyRegexReplaced(btn) {
     const replacedEl = document.getElementById('regex-replaced');
     const text = replacedEl?.value || '';
@@ -1610,14 +2053,22 @@ function copyRegexReplaced(btn) {
 // escapeHtml 已移至 app_state.js
 
 // ========== M13: cURL 解析工具 ==========
- 
+// 对应 tool-curl 页面，负责把原始 cURL 文本解析成结构化请求参数与代码片段。
 
+
+// cURL 工具初始化入口。
+// 页面位置：原始 cURL 输入区、解析结果区、目标语言按钮组、代码输出区。
+// 初始化时会清空旧解析结果，并默认把代码生成语言设为 fetch。
 function initCurlTool() {
     curlState.parsed = null;
     curlState.lang = 'fetch';
     updateCurlLangBtns();
 }
 
+// cURL 解析主入口。
+// 用户点击“解析”按钮后，原始命令会在这里被拆成 method、url、headers、body 等结构化字段，
+// 然后分别写到“解析结果区”和“代码生成区”。
+// 排障建议：如果 cURL 页面第一块就报错，先看这里，再看 DogToolboxM13Utils.parseCurl() 的输出。
 function parseCurlCommand() {
     const inputEl = document.getElementById('curl-input');
     const parsedEl = document.getElementById('curl-parsed');
@@ -1646,6 +2097,8 @@ function parseCurlCommand() {
     generateCurlCode();
 }
 
+// 根据当前已解析的 cURL 结果，生成不同语言的示例代码。
+// 页面上的语言按钮切换不会重新解析 cURL，只会复用 curlState.parsed 在这里重新拼装代码。
 function generateCurlCode() {
     const codeEl = document.getElementById('curl-code');
     if (!codeEl || !curlState.parsed) {
@@ -1679,12 +2132,15 @@ function generateCurlCode() {
     codeEl.value = code;
 }
 
+// 切换 cURL 代码生成语言。
+// 例如 fetch / axios / python / node / php / go，对应下方代码区展示不同模板。
 function setCurlLang(lang) {
     curlState.lang = lang;
     updateCurlLangBtns();
     generateCurlCode();
 }
 
+// 刷新 cURL 语言按钮的 active 状态。
 function updateCurlLangBtns() {
     const langs = ['fetch', 'axios', 'python', 'node', 'php', 'go'];
     langs.forEach(l => {
@@ -1695,6 +2151,8 @@ function updateCurlLangBtns() {
     });
 }
 
+// 清空 cURL 工具的输入、解析结果、代码结果和错误区。
+// 同时会把 curlState.parsed 置空，避免旧结果污染下一次生成。
 function clearCurlTool() {
     const inputEl = document.getElementById('curl-input');
     const parsedEl = document.getElementById('curl-parsed');
@@ -1709,21 +2167,23 @@ function clearCurlTool() {
     curlState.parsed = null;
 }
 
+// 复制 cURL 结构化解析结果。
 function copyCurlParsed(btn) {
     const parsedEl = document.getElementById('curl-parsed');
     copyToolText(btn, parsedEl?.value || '');
 }
 
+// 复制 cURL 生成的代码片段。
 function copyCurlCode(btn) {
     const codeEl = document.getElementById('curl-code');
     copyToolText(btn, codeEl?.value || '');
 }
 
 // ========== cURL 工具联动 ==========
+// 这一段负责把 cURL 解析结果回填到其它工具，或从其它工具接收预填数据。
 
-/**
- * 发送 cURL 解析结果到 HTTP Collections
- */
+// 把当前 cURL 解析结果发送到 HTTP Collections 工具页。
+// 这属于“跨工具跳转/联动”入口；前提是 parseCurlCommand() 已经先把 curlState.parsed 准备好。
 function sendCurlToHttpCollections() {
     if (!curlState.parsed) {
         showToast('请先解析 cURL 命令', 'warning');
@@ -1732,10 +2192,8 @@ function sendCurlToHttpCollections() {
     transferDataToTool('http-collections', curlState.parsed, 'http-request');
 }
 
-/**
- * 从 cURL 解析结果填充 HTTP 请求表单
- * @param {object} parsedCurl - cURL 解析结果
- */
+// 把解析出的 method、url、headers、body 逐项回填到 HTTP 请求页面。
+// 如果用户反馈“从 cURL 跳过去后 URL 带上了，但 Header/Body 没过去”，优先看这里每一段是否命中了对应 DOM。
 function populateHttpFromCurl(parsedCurl) {
     if (!parsedCurl) return;
 
@@ -1780,13 +2238,19 @@ function populateHttpFromCurl(parsedCurl) {
 }
 
 // ========== M14: 颜色转换器 ==========
+// 对应 tool-color 页面，负责颜色值换算、预览块更新和格式复制。
 
+// 颜色工具初始化入口。
+// 页面位置：颜色输入框、颜色预览块、格式输出区、配色推荐区。
 function initColorTool() {
     const inputEl = document.getElementById('color-input');
     if (!inputEl) return;
     inputEl.addEventListener('input', updateColorTool);
 }
 
+// 颜色工具主刷新入口。
+// 负责把用户输入解析成统一颜色对象，再同步更新预览色块、各种格式输出框，以及互补色/类似色等配色区域。
+// 排障建议：颜色能识别但配色区不变时，先看 updateColorPalette() 是否被成功调用。
 function updateColorTool() {
     const inputEl = document.getElementById('color-input');
     const errorsEl = document.getElementById('color-errors');
@@ -1845,11 +2309,15 @@ function updateColorTool() {
     updateColorPalette(color);
 }
 
+// 写入某个颜色格式输出框。
+// 这是多个格式结果框的公共回填函数，避免每种格式都重复写 DOM 赋值。
 function setColorOutput(id, value) {
     const el = document.getElementById(`color-out-${id}`);
     if (el) el.value = value;
 }
 
+// 清空所有颜色输出区域。
+// 包括 HEX/RGB/HSL 等格式框、中心预览色块，以及配色推荐区。
 function clearColorOutputs() {
     const ids = ['hex', 'hexa', 'rgb', 'rgba', 'hsl', 'hsla', 'hsv', 'cmyk'];
     ids.forEach(id => setColorOutput(id, ''));
@@ -1860,6 +2328,8 @@ function clearColorOutputs() {
     clearColorPalette();
 }
 
+// 更新颜色相关配色方案。
+// 页面位置：互补色、三等分色、类似色那几块小色卡区域。
 function updateColorPalette(color) {
     // 互补色
     const complement = DogToolboxM14Utils.getComplementary(color);
@@ -1876,6 +2346,7 @@ function updateColorPalette(color) {
     setColorPaletteSwatch('analog2', analogous[1]);
 }
 
+// 渲染单个配色色块及其文字值。
 function setColorPaletteSwatch(id, color) {
     const swatchEl = document.getElementById(`color-${id}`);
     const valueEl = document.getElementById(`color-${id}-value`);
@@ -1888,6 +2359,7 @@ function setColorPaletteSwatch(id, color) {
     }
 }
 
+// 清空所有配色色卡。
 function clearColorPalette() {
     const ids = ['complement', 'triadic1', 'triadic2', 'analog1', 'analog2'];
     ids.forEach(id => {
@@ -1898,6 +2370,7 @@ function clearColorPalette() {
     });
 }
 
+// 清空颜色工具输入与展示结果。
 function clearColorTool() {
     const inputEl = document.getElementById('color-input');
     const errorsEl = document.getElementById('color-errors');
@@ -1910,19 +2383,26 @@ function clearColorTool() {
     clearColorOutputs();
 }
 
+// 复制某个颜色格式输出框。
 function copyColorOutput(btn, id) {
     const el = document.getElementById(`color-out-${id}`);
     copyToolText(btn, el?.value || '');
 }
 
 // ========== M15: IP 工具 ==========
+// 对应 tool-ip 页面，负责基础 IP 校验与附加信息展示。
 
+// IP 工具初始化入口。
+// 页面位置：IP/CIDR 输入框、基础信息卡片、十进制/十六进制/二进制输出区、CIDR 子网信息区。
 function initIpTool() {
     const inputEl = document.getElementById('ip-input');
     if (!inputEl) return;
     inputEl.addEventListener('input', updateIpTool);
 }
 
+// IP 工具主计算入口。
+// 会先判断用户输入的是普通 IP 还是 CIDR，再分别渲染基础信息和子网信息。
+// 外行排障建议：如果“输入了 IP 却什么都没显示”，先看这里是否被提前 return，再看输入格式是否被判定无效。
 function updateIpTool() {
     const inputEl = document.getElementById('ip-input');
     const errorsEl = document.getElementById('ip-errors');
@@ -2000,12 +2480,16 @@ function updateIpTool() {
     }
 }
 
+// 清空 IP 工具三个基础输出框。
+// 这里只负责 decimal / hex / binary，不处理上方信息卡和 CIDR 面板的显隐。
 function clearIpOutputs() {
     document.getElementById('ip-out-decimal').value = '';
     document.getElementById('ip-out-hex').value = '';
     document.getElementById('ip-out-binary').value = '';
 }
 
+// 清空整个 IP 页面。
+// 包括输入框、错误区、基础信息卡、CIDR 面板和各类转换结果。
 function clearIpTool() {
     const inputEl = document.getElementById('ip-input');
     const errorsEl = document.getElementById('ip-errors');
@@ -2019,6 +2503,7 @@ function clearIpTool() {
     clearIpOutputs();
 }
 
+// 复制某个 IP 输出框。
 function copyIpOutput(btn, type) {
     const idMap = { decimal: 'ip-out-decimal', hex: 'ip-out-hex', binary: 'ip-out-binary' };
     const el = document.getElementById(idMap[type]);
@@ -2026,13 +2511,18 @@ function copyIpOutput(btn, type) {
 }
 
 // ========== M15: Cron 解析 ==========
+// 对应 tool-cron 页面，负责表达式解析、字段说明和自然语言预览。
 
+// Cron 工具初始化入口。
+// 页面位置：Cron 输入框、解析描述区、字段说明区、下次运行时间列表。
 function initCronTool() {
     const inputEl = document.getElementById('cron-input');
     if (!inputEl) return;
     inputEl.addEventListener('input', updateCronTool);
 }
 
+// 从预设按钮/链接快速填入一个 Cron 表达式。
+// 适合页面上“每 5 分钟 / 每天 0 点”这类快捷示例直接触发。
 function loadCronPreset(expr) {
     const inputEl = document.getElementById('cron-input');
     if (inputEl) {
@@ -2041,6 +2531,9 @@ function loadCronPreset(expr) {
     }
 }
 
+// Cron 解析主入口。
+// 负责清空旧结果、兼容紧凑写法、调用解析器生成自然语言说明和未来运行时间列表。
+// 排障建议：Cron 页面主要看这里；如果表达式输入后完全没反应，通常就是这里没跑通或解析器返回 error。
 function updateCronTool() {
     const inputEl = document.getElementById('cron-input');
     const errorsEl = document.getElementById('cron-errors');
@@ -2110,6 +2603,8 @@ function updateCronTool() {
     }
 }
 
+// 清空 Cron 页面。
+// 会把描述区恢复成默认提示文案，并隐藏“下次运行时间”面板。
 function clearCronTool() {
     const inputEl = document.getElementById('cron-input');
     const errorsEl = document.getElementById('cron-errors');
@@ -2127,8 +2622,11 @@ function clearCronTool() {
 }
 
 // ========== M15: SQL 格式化 ==========
- 
+// 对应 tool-sql 页面，负责格式化、压缩和格式错误提示。
 
+
+// SQL 工具初始化入口。
+// 页面位置：SQL 输入区、格式化/压缩模式按钮、输出区、错误区、表名提取区。
 function initSqlTool() {
     const inputEl = document.getElementById('sql-input');
     if (!inputEl) return;
@@ -2136,6 +2634,8 @@ function initSqlTool() {
     setSqlMode('format');
 }
 
+// 切换 SQL 工具当前模式。
+// format 会输出更易读的多行 SQL；minify 则压缩成紧凑文本，适合嵌入脚本或配置。
 function setSqlMode(mode) {
     if (mode !== 'format' && mode !== 'minify') return;
     sqlMode = mode;
@@ -2144,6 +2644,9 @@ function setSqlMode(mode) {
     updateSqlTool();
 }
 
+// SQL 工具主处理入口。
+// 负责读取 SQL 文本、按当前模式格式化/压缩，并在下方额外提取涉及的表名标签。
+// 排障建议：如果 SQL 页面“能输出结果，但表名区空白”，先看 extractTables() 返回值，再看这里的 tablesPanel 渲染。
 function updateSqlTool() {
     const inputEl = document.getElementById('sql-input');
     const outputEl = document.getElementById('sql-output');
@@ -2188,6 +2691,7 @@ function updateSqlTool() {
     }
 }
 
+// 清空 SQL 输入、输出、错误和表名提取区域。
 function clearSqlTool() {
     const inputEl = document.getElementById('sql-input');
     const outputEl = document.getElementById('sql-output');
@@ -2202,6 +2706,7 @@ function clearSqlTool() {
     if (tablesList) tablesList.innerHTML = '';
 }
 
+// 复制 SQL 输出区内容。
 function copySqlOutput(btn) {
     const outputEl = document.getElementById('sql-output');
     copyToolText(btn, outputEl?.value || '');

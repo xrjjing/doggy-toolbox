@@ -1,5 +1,22 @@
-// AI 配置页面逻辑
+/*
+ * 文件总览：AI 设置页前端逻辑。
+ *
+ * 服务页面：web/pages/ai-settings.html。
+ * 主要职责：
+ * - 加载、展示和编辑 Provider 列表；
+ * - 测试连接、拉取模型、切换当前活跃 Provider；
+ * - 加载工具 AI 开关配置，并渲染全局/分类/单工具开关。
+ *
+ * 调用链：页面交互 -> 本文件 -> window.pywebview.api -> api.py -> AIManager / DatabaseManager。
+ *
+ * 排查建议：
+ * - Provider 列表空白：先看 initAISettingsPage()、loadProviders()；
+ * - 工具 AI 开关不生效：看 loadToolAIData()、toggleGlobalAI()、toggleToolAI()。
+ */
 
+// AI 配置页面逻辑：当前文件同时维护 Provider 编辑态和工具 AI 开关页的显示状态。
+
+// Provider 编辑态：新增/编辑 Provider 时，表单草稿和模型列表都挂在这里。
 let currentProviderConfig = {
     id: null,
     type: 'openai',
@@ -7,11 +24,11 @@ let currentProviderConfig = {
     models: []
 };
 
-// 工具 AI 配置缓存
+// 工具 AI 配置缓存：页面切换和开关联动时会频繁读取，先存在前端内存避免重复请求。
 let toolAIDefinitions = null;
 let toolAIConfig = null;
 
-// 初始化 AI 配置页面
+// 页面初始化入口：先等待 pywebview API，再分别加载 Provider 列表和工具 AI 配置。
 async function initAISettingsPage() {
     // 等待 API 就绪后再加载
     await waitForAPIReady();
@@ -20,7 +37,7 @@ async function initAISettingsPage() {
     await loadToolAIData();
 }
 
-// 等待 pywebview API 就绪
+// 等待 pywebview API 就绪：Provider 和工具开关都依赖后端接口，因此页面会先过这一层就绪检查。
 async function waitForAPIReady(maxRetries = 10, delayMs = 200) {
     for (let i = 0; i < maxRetries; i++) {
         if (window.pywebview && window.pywebview.api) {
@@ -32,7 +49,9 @@ async function waitForAPIReady(maxRetries = 10, delayMs = 200) {
     return false;
 }
 
-// 切换主 Tab
+// 主 Tab 切换：用于在“Provider 管理”和“工具 AI 功能开关”两个主区域之间切换。
+// 页面位置：ai-settings 页面主体顶部的两个主标签。
+// 如果用户反馈“点到功能开关页还是停留在 Provider 列表”，先看这里。
 function switchAIMainTab(tabName) {
     // 更新 Tab 按钮状态
     document.querySelectorAll('.ai-main-tab').forEach(tab => {
@@ -50,7 +69,11 @@ function switchAIMainTab(tabName) {
     }
 }
 
-// 加载工具 AI 配置数据
+// 工具 AI 数据加载：从后端并行获取“定义”和“当前开关状态”，再供后续渲染使用。
+// 页面位置：功能开关页的数据入口。
+// 这一层数据会同时喂给分类卡片、全局开关和单工具开关。
+// 后端链路：window.pywebview.api.get_tool_ai_definitions()/get_tool_ai_config()
+//        -> api.py -> 数据库/AI 配置管理层。
 async function loadToolAIData() {
     try {
         const api = window.pywebview && window.pywebview.api;
@@ -69,7 +92,9 @@ async function loadToolAIData() {
     }
 }
 
-// 渲染工具 AI 分类列表
+// 工具 AI 分类渲染：把分类卡片、分类开关、单工具项统一拼装到页面中。
+// 页面位置：ai-settings 页“工具 AI 功能开关”主内容区。
+// 外行用户看到的一整块“分类卡片 + 每个工具开关”就是在这里生成出来的。
 function renderToolAICategories() {
     if (!toolAIDefinitions || !toolAIConfig) {
         console.warn('工具 AI 配置数据未加载');
@@ -125,6 +150,8 @@ function getCategoryIcon(categoryId) {
 }
 
 // 渲染单个工具项
+// 页面位置：某个分类卡片内部的一行工具项。
+// 负责内容：工具名、能力徽章、启用开关。
 function renderToolItem(tool, globalEnabled) {
     const toolConfig = toolAIConfig.tools[tool.id] || { enabled: true, features: {} };
     const isEnabled = toolConfig.enabled !== false;
@@ -162,6 +189,9 @@ function toggleCategory(categoryId) {
 }
 
 // 切换全局 AI 开关
+// 页面触发：功能开关页顶部的“全局 AI 开关”按钮。
+// 这里只是前端入口，真正的启停会通过 pywebview.api 落到后端配置。
+// 后端链路：window.pywebview.api.set_global_ai_enabled() -> api.py -> 配置持久化 -> 其它工具页重新注入按钮。
 async function toggleGlobalAI(enabled) {
     try {
         const api = window.pywebview && window.pywebview.api;
@@ -194,6 +224,10 @@ async function toggleGlobalAI(enabled) {
 }
 
 // 切换单个工具的 AI 开关
+// 页面触发：某个工具行右侧的开关。
+// 如果用户说“总开关开着，但某个工具仍然没有 AI 按钮”，要看这里和 initToolAIButtons()。
+// 后端链路：window.pywebview.api.set_tool_ai_enabled(toolId, enabled)
+//        -> api.py -> 工具 AI 配置表/配置对象 -> refreshAllToolAIButtons()。
 async function toggleToolAI(toolId, enabled) {
     try {
         const api = window.pywebview && window.pywebview.api;
@@ -234,6 +268,7 @@ async function toggleToolAI(toolId, enabled) {
 }
 
 // 更新分类计数
+// 页面位置：每个分类卡片标题右侧的“已启用 x/y”计数。
 function updateCategoryCount(toolId) {
     // 找到工具所属的分类
     for (const category of toolAIDefinitions.categories) {
@@ -254,6 +289,8 @@ function updateCategoryCount(toolId) {
 }
 
 // 全部启用
+// 页面触发：功能开关页中的“全部启用”按钮。
+// 这是批量改写整页工具 AI 开关配置的入口。
 async function enableAllTools() {
     try {
         const api = window.pywebview && window.pywebview.api;
@@ -289,6 +326,7 @@ async function enableAllTools() {
 }
 
 // 全部禁用
+// 页面触发：功能开关页中的“全部禁用”按钮。
 async function disableAllTools() {
     try {
         const api = window.pywebview && window.pywebview.api;
@@ -324,6 +362,8 @@ async function disableAllTools() {
 }
 
 // 初始化 Provider 类型选择监听器
+// 页面位置：Provider 编辑弹窗内的 API 格式等表单控件。
+// 这层主要负责“字段联动”，例如 API 格式切换后自动回填 endpoint 默认值。
 function initProviderTypeListeners() {
     // 监听 API 格式切换，自动更新端点路径
     const apiFormatEl = document.getElementById('api-format');
@@ -339,6 +379,8 @@ function initProviderTypeListeners() {
 }
 
 // 切换 Provider 类别（OpenAI 系列 / Claude）
+// 页面触发：Provider 编辑弹窗顶部的“OpenAI / Claude”分类标签。
+// 这里只决定当前编辑的是哪一类 Provider，并驱动后续表单字段显隐。
 function switchProviderCategory(category) {
     currentProviderConfig.category = category;
 
@@ -364,6 +406,9 @@ function switchProviderCategory(category) {
 }
 
 // 加载 Provider 列表
+// 页面位置：ai-settings 页面左侧/中部的 Provider 卡片列表。
+// 如果 Provider 明明已经存到数据库，但页面没显示，优先从这里往下追。
+// 后端链路：window.pywebview.api.get_ai_providers() -> api.py -> AIManager / DatabaseManager -> SQLite 配置数据。
 async function loadProviders() {
     try {
         const api = window.pywebview && window.pywebview.api;
@@ -383,6 +428,7 @@ async function loadProviders() {
 let currentListCategory = 'openai';
 
 // 切换列表分类
+// 页面位置：Provider 列表上方的“OpenAI / Claude”筛选标签。
 function switchListCategory(category) {
     currentListCategory = category;
 
@@ -396,6 +442,8 @@ function switchListCategory(category) {
 }
 
 // 渲染 Provider 列表
+// 页面位置：Provider 管理主列表区域。
+// 负责内容：卡片标题、统计信息、当前使用标识，以及切换/编辑/删除按钮。
 function renderProviders(providers) {
     const container = document.getElementById('providers-list');
 
@@ -483,6 +531,8 @@ function calculateFailureRate(stats) {
 }
 
 // 打开添加 Provider 弹窗
+// 页面触发：Provider 管理页的“添加 Provider”按钮。
+// 这里会先把表单恢复到“新建”状态，再打开弹窗。
 function openAddProviderModal() {
     currentProviderConfig = {
         id: null,
@@ -509,6 +559,8 @@ function openAddProviderModal() {
 }
 
 // 编辑 Provider
+// 页面触发：Provider 卡片上的“编辑”按钮。
+// 这是 Provider 编辑链路里最重要的入口：会先拉全部 Provider，再把目标配置完整回填到弹窗表单。
 async function editProvider(providerId) {
     try {
         // 获取所有 Provider
@@ -658,12 +710,15 @@ async function editProvider(providerId) {
 }
 
 // 关闭弹窗
+// 页面位置：Provider 编辑弹窗右上角关闭按钮 / 底部取消动作。
 function closeProviderModal() {
     document.getElementById('provider-modal').style.display = 'none';
     resetForm();
 }
 
 // 重置表单
+// 负责把 Provider 编辑弹窗恢复成默认状态。
+// openAddProviderModal() 和 closeProviderModal() 都会依赖它做收口。
 function resetForm() {
     // 重置类型状态 - 默认第三方兼容
     currentProviderConfig.type = 'openai-compatible';
@@ -717,6 +772,8 @@ function resetForm() {
 }
 
 // 更新表单字段（根据 Provider 类型）
+// 页面位置：Provider 编辑弹窗整块表单。
+// 不同 Provider 类型需要展示不同字段，这里的职责就是“控制显示哪些输入项、哪些默认值生效”。
 function updateFormFields() {
     // 获取当前类型
     let type;
@@ -772,6 +829,10 @@ function updateFormFields() {
 }
 
 // 获取模型列表
+// 页面触发：Provider 编辑弹窗里的“获取模型”按钮。
+// 这是“表单临时配置 -> 请求后端探测模型列表 -> 回填模型下拉框”的完整入口。
+// 后端链路：window.pywebview.api.fetch_ai_models(tempConfig)
+//        -> api.py.fetch_ai_models() -> AIManager.fetch_models() -> 对应 Provider 的模型列表接口。
 async function fetchModels() {
     const type = currentProviderConfig.type;
     const baseUrl = document.getElementById('base-url').value.trim();
@@ -834,6 +895,8 @@ async function fetchModels() {
 }
 
 // 更新模型下拉列表
+// 页面位置：Provider 编辑弹窗里的默认模型下拉框。
+// 除了后端返回的模型列表，这里还会补一个“手动输入模型名”的兜底选项。
 function updateModelOptions(models) {
     const modelSelect = document.getElementById('default-model');
     modelSelect.innerHTML = '';
@@ -855,6 +918,8 @@ function updateModelOptions(models) {
 }
 
 // 处理模型选择
+// 页面触发：模型下拉框选择变化。
+// 只有用户切到“手动输入模型名”时，才会把下方输入框展开出来。
 function handleModelSelect(e) {
     const manualGroup = document.getElementById('manual-model-group');
     if (e.target.value === '__manual__') {
@@ -865,6 +930,7 @@ function handleModelSelect(e) {
 }
 
 // 启用手动输入
+// 当获取模型失败、或者用户明确选择手动输入时，会走这里。
 function enableManualModelInput() {
     const modelSelect = document.getElementById('default-model');
     const manualGroup = document.getElementById('manual-model-group');
@@ -887,6 +953,10 @@ function enableManualModelInput() {
 }
 
 // 测试连接
+// 页面触发：Provider 编辑弹窗里的“测试连接”按钮。
+// 这是用户最常点击的排障入口，负责把当前表单草稿组装成临时配置并发给后端测试。
+// 后端链路：window.pywebview.api.test_ai_connection(tempConfig)
+//        -> api.py -> AIManager.test_provider_connection() / provider 层连通性测试。
 async function testConnection() {
     const type = currentProviderConfig.type;
     const baseUrl = document.getElementById('base-url').value.trim();
@@ -946,6 +1016,10 @@ async function testConnection() {
 }
 
 // 保存 Provider
+// 页面触发：Provider 编辑弹窗里的“保存”按钮。
+// 这是 Provider 配置真正落库的入口：会读取整个表单、组装统一 config，再调用 save_ai_provider。
+// 后端链路：window.pywebview.api.save_ai_provider(config)
+//        -> api.py -> AIManager / DatabaseManager -> 写入 Provider 配置与默认模型信息。
 async function saveProvider() {
     const type = currentProviderConfig.type;
     const name = document.getElementById('provider-name').value.trim();
@@ -1040,6 +1114,7 @@ async function saveProvider() {
 }
 
 // 获取选中的模型
+// 统一读取“模型下拉框 / 手动输入框”当前到底选中了什么。
 function getSelectedModel() {
     const modelSelect = document.getElementById('default-model');
     const selectedValue = modelSelect.value;
@@ -1060,6 +1135,10 @@ function generateProviderId() {
 }
 
 // 切换 Provider
+// 页面触发：Provider 卡片上的“切换 / 使用中”按钮。
+// 成功后会重新刷新列表，让“当前使用”徽章和按钮状态同步更新。
+// 后端链路：window.pywebview.api.switch_ai_provider(providerId)
+//        -> api.py -> AIManager 切换当前活跃 Provider -> 前端重新 loadProviders()。
 async function switchProvider(providerId) {
     try {
         const result = await pywebview.api.switch_ai_provider(providerId);
@@ -1076,6 +1155,8 @@ async function switchProvider(providerId) {
 }
 
 // 删除 Provider
+// 页面触发：Provider 卡片上的“删除”按钮。
+// 这是 Provider 管理区里最危险的操作；如果用户说“删完列表没刷新”，要看 delete_ai_provider() 结果和后续 loadProviders()。
 async function deleteProvider(providerId) {
     if (!confirm('确定要删除这个 Provider 吗？')) {
         return;

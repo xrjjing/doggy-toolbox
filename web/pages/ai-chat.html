@@ -1,41 +1,55 @@
+<!--
+页面总览：AI 聊天页：左侧是历史会话，右侧是消息流、输入区和配置抽屉。
+前端入口：app_ai_chat.js -> initAIChatPage() / sendMessage() / startPolling()
+后端链路：api.py -> ai_chat_stream() / get_chat_chunk() -> AIManager / ChatHistoryService
+-->
+
+<!-- 页面骨架：整个聊天页分为“左侧历史栏”和“右侧聊天主区”两大块。 -->
 <div id="page-ai-chat" class="page">
     <div class="ai-chat-layout">
-        <!-- Sidebar: Conversation History -->
+        <!-- 左侧历史栏：负责新建会话、搜索历史、切换已有会话。 -->
         <div id="ai-chat-sidebar" class="chat-sidebar">
             <div class="chat-sidebar-header">
+                <!-- 侧栏顶部操作行：新建会话 + 收起侧栏。 -->
                 <div class="sidebar-header-row">
+                    <!-- 新对话按钮：创建新的 conversation，并让右侧消息区回到初始状态。 -->
                     <button class="ai-btn ai-btn-primary new-chat-btn" onclick="startNewChat()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                         <span>新对话</span>
                     </button>
+                    <!-- 收起按钮：桌面端把左侧历史栏折叠，只保留右侧主聊天区。 -->
                     <button class="icon-btn sidebar-collapse-btn" onclick="toggleChatSidebar(false)" title="收起侧边栏">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>
                     </button>
                 </div>
+                <!-- 历史搜索框：调用 filterChatHistory()，按标题/关键字过滤左侧会话列表。 -->
                 <div class="chat-search-wrapper">
                     <input type="text" id="chat-history-search" placeholder="搜索历史对话..." oninput="filterChatHistory(this.value)">
                     <span class="search-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
                 </div>
             </div>
+            <!-- 历史会话列表：由 app_ai_chat.js 动态渲染 history-item，点击后切换 conversation。 -->
             <div id="chat-history-list" class="chat-history-list">
-                <!-- Conversation items will be injected here via JS -->
             </div>
         </div>
 
-        <!-- Main: Chat Area -->
+        <!-- 右侧主聊天区：包含标题栏、消息流和输入发送区。 -->
         <div class="chat-main">
-            <!-- Chat Header -->
+            <!-- 顶部标题栏：显示当前会话标题，并提供页面级设置入口。 -->
             <div class="chat-header">
                 <div class="chat-header-left">
+                    <!-- 侧栏展开按钮：移动端或折叠状态下重新展开左侧历史栏。 -->
                     <button class="icon-btn chat-sidebar-toggle-btn" onclick="toggleChatSidebar()" title="展开侧边栏">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
                     </button>
+                    <!-- 当前会话标题：切换会话或新建会话时，JS 会同步更新这里的文本。 -->
                     <h2 class="chat-title">
                         <svg class="title-icon" viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="8" cy="14" r="2"/><circle cx="16" cy="14" r="2"/></svg>
                         <span id="current-chat-title">AI 聊天</span>
                     </h2>
                 </div>
                 <div class="chat-header-actions">
+                    <!-- AI 设置按钮：打开右侧设置抽屉，并按需加载 ai-settings.html。 -->
                     <button class="ai-btn ai-btn-outline btn-sm" onclick="openAIChatSettings()">
                         <span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
                         <span class="btn-text">AI 设置</span>
@@ -43,41 +57,50 @@
                 </div>
             </div>
 
-            <!-- Chat Container -->
+            <!-- 消息滚动容器：保证聊天内容独立滚动，不影响标题栏和输入区。 -->
             <div class="chat-container">
-                <!-- Message List -->
+                <!-- 消息渲染区：用户消息、AI 增量回复、搜索结果卡片、工具推荐卡片都会插入这里。 -->
                 <div id="chat-messages" class="chat-messages">
-                    <!-- Messages will be dynamically added via JS -->
                 </div>
             </div>
 
-            <!-- Input Area -->
+            <!-- 底部输入区：上层工具栏负责会话辅助，下层输入框负责真正发消息。 -->
             <div class="chat-input-area">
+                <!-- 输入工具栏：模板、快捷命令说明、网络搜索、思考模式等会话级控制。 -->
                 <div class="chat-input-toolbar">
+                    <!-- Prompt 模板入口：打开模板选择弹窗，选择后可把模板内容回填到输入框。 -->
                     <button class="toolbar-btn" onclick="showChatTemplateSelector()" title="选择 Prompt 模板">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                         <span>模板</span>
                     </button>
+                    <!-- Slash 帮助入口：展示 /tpl /new /settings 等快捷命令的说明。 -->
                     <button class="toolbar-btn" onclick="showSlashCommandHelp()" title="快捷命令帮助">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6-6-6"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
                         <span>/命令</span>
                     </button>
                     <div class="toolbar-divider"></div>
+                    <!-- 网络搜索开关：影响 ai_chat_stream() 的 web_search_enabled 参数。 -->
                     <button id="web-search-toggle" class="toolbar-btn toggle-btn" onclick="toggleWebSearch()" title="网络搜索">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                         <span>搜索</span>
                     </button>
+                    <!-- 思考模式开关：主要给 Claude 类模型使用，影响 thinking_enabled 参数。 -->
                     <button id="thinking-toggle" class="toolbar-btn toggle-btn" onclick="toggleThinking()" title="思考模式 (Claude)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 0 0-8 8c0 3.5 2.5 6.5 6 7.5V19h4v-1.5c3.5-1 6-4 6-7.5a8 8 0 0 0-8-8z"/><line x1="12" y1="22" x2="12" y2="19"/><line x1="9" y1="22" x2="15" y2="22"/></svg>
                         <span>思考</span>
                     </button>
                 </div>
+
+                <!-- 文本输入与发送区：JS 会在这里监听输入、Slash 命令提示和发送动作。 -->
                 <div class="chat-input-wrapper">
-                    <!-- 快捷命令提示框 -->
+                    <!-- Slash 候选浮层：当输入 / 时动态显示候选命令，不手写静态项。 -->
                     <div id="slash-command-popup" class="slash-command-popup" style="display:none">
+                        <!-- Slash 命令列表容器：候选项由 app_ai_chat.js 实时填充。 -->
                         <div class="slash-command-list" id="slash-command-list"></div>
                     </div>
+                    <!-- 主输入框：支持普通消息、/命令 和模板回填后的内容。 -->
                     <textarea id="chat-input" placeholder="输入消息... 输入 / 查看快捷命令" rows="3"></textarea>
+                    <!-- 发送按钮：由 JS 绑定点击事件，读取 chat-input 内容并启动流式对话。 -->
                     <button id="send-btn" class="send-btn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                     </button>
@@ -86,50 +109,62 @@
         </div>
     </div>
 
-    <!-- Mobile Sidebar Overlay -->
+    <!-- 移动端侧栏遮罩：侧栏展开时阻止误点主区，并支持点击空白收起。 -->
     <div id="ai-chat-sidebar-overlay" class="chat-sidebar-overlay" onclick="toggleChatSidebar(false)"></div>
 
-    <!-- AI Settings Modal (Drawer) -->
+    <!-- AI 设置抽屉：聊天页内嵌设置面板的挂载点，不直接把设置表单写死在这里。 -->
     <div id="ai-chat-settings-modal" class="modal" style="display:none">
+        <!-- 抽屉遮罩：点击后关闭右侧设置抽屉。 -->
         <div class="modal-overlay" onclick="closeAIChatSettings()"></div>
+
+        <!-- 抽屉内容挂载区：openAIChatSettings() 后把 ai-settings.html 注入到这里。 -->
         <div class="modal-content modal-large ai-modal" id="ai-settings-drawer-content">
-            <!-- Content from ai-settings.html will be loaded here -->
         </div>
     </div>
 
-    <!-- Template Selector Modal -->
+    <!-- 模板选择弹窗：浏览模板库并选择一个模板插入当前输入框。 -->
     <div id="chat-template-modal" class="modal" style="display:none">
         <div class="modal-overlay" onclick="closeChatTemplateSelector()"></div>
+
         <div class="modal-content">
+            <!-- 模板选择弹窗头部：显示标题，并提供关闭按钮。 -->
             <div class="modal-header">
                 <h3>选择 Prompt 模板</h3>
                 <button class="modal-close" onclick="closeChatTemplateSelector()">&times;</button>
             </div>
+
             <div class="modal-body">
+                <!-- 模板搜索框：按标题/关键字过滤模板列表。 -->
                 <div class="template-search-box">
                     <input type="text" id="chat-template-search" placeholder="搜索模板..." oninput="filterChatTemplates(this.value)">
                 </div>
+                <!-- 模板列表区：由 JS 按分类和关键字动态渲染模板卡片。 -->
                 <div id="chat-template-list" class="chat-template-list">
-                    <!-- 模板列表由 JS 动态渲染 -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Template Variables Modal -->
+    <!-- 模板变量弹窗：模板含变量占位符时，先收集变量值，再生成最终消息。 -->
     <div id="chat-template-vars-modal" class="modal" style="display:none">
         <div class="modal-overlay" onclick="closeChatTemplateVarsModal()"></div>
+
         <div class="modal-content">
+            <!-- 变量填写弹窗头部：说明当前步骤，并提供关闭按钮。 -->
             <div class="modal-header">
                 <h3>填写变量</h3>
                 <button class="modal-close" onclick="closeChatTemplateVarsModal()">&times;</button>
             </div>
+
             <div class="modal-body">
+                <!-- 当前使用的模板 ID：隐藏字段，供应用模板时识别来源模板。 -->
                 <input type="hidden" id="chat-use-template-id">
+                <!-- 变量表单区：变量输入控件由 JS 根据模板内容动态生成。 -->
                 <div id="chat-template-vars-form">
-                    <!-- 变量表单由 JS 动态渲染 -->
                 </div>
             </div>
+
+            <!-- 弹窗底部操作：取消直接关闭；应用会把变量替换后的结果写回 chat-input。 -->
             <div class="modal-footer">
                 <button class="btn btn-ghost" onclick="closeChatTemplateVarsModal()">取消</button>
                 <button class="btn btn-primary" onclick="applyChatTemplate()">应用</button>
@@ -137,15 +172,19 @@
         </div>
     </div>
 
-    <!-- 快捷命令帮助弹窗 -->
+    <!-- 快捷命令帮助弹窗：固定说明常用 / 命令语义，便于新用户快速上手。 -->
     <div id="slash-command-help-modal" class="modal" style="display:none">
         <div class="modal-overlay" onclick="closeSlashCommandHelp()"></div>
+
         <div class="modal-content">
+            <!-- 帮助弹窗头部：展示功能标题，并支持关闭。 -->
             <div class="modal-header">
                 <h3>快捷命令</h3>
                 <button class="modal-close" onclick="closeSlashCommandHelp()">&times;</button>
             </div>
+
             <div class="modal-body">
+                <!-- 模板命令分组：与 Prompt 模板选择和快速使用相关。 -->
                 <div class="slash-help-section">
                     <h4>📝 模板命令</h4>
                     <div class="slash-help-list">
@@ -159,6 +198,7 @@
                         </div>
                     </div>
                 </div>
+                <!-- 会话命令分组：新建、清空、导出当前会话。 -->
                 <div class="slash-help-section">
                     <h4>🔧 会话命令</h4>
                     <div class="slash-help-list">
@@ -176,6 +216,7 @@
                         </div>
                     </div>
                 </div>
+                <!-- 设置命令分组：打开设置或切换模型。 -->
                 <div class="slash-help-section">
                     <h4>⚙️ 设置命令</h4>
                     <div class="slash-help-list">
@@ -189,6 +230,7 @@
                         </div>
                     </div>
                 </div>
+                <!-- 使用提示分组：告诉用户如何触发 Slash 命令提示。 -->
                 <div class="slash-help-section">
                     <h4>💡 提示</h4>
                     <div class="slash-help-list">

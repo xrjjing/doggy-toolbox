@@ -1,15 +1,29 @@
+<!--
+页面总览：变量命名转换 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：7 种格式互转（含中文名称）
+前端入口：app_tools_a.js -> initNamingTool()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-naming -->
+<!-- 页面骨架：上方是标题与清空入口，下方结果网格同时展示多种命名风格。 -->
 <section id="page-tool-naming" class="page">
-		                <div class="page-header">
+
+<!-- 页面头部：说明当前工具用于变量命名风格互转。 -->
+
+<div class="page-header">
 		                    <div class="page-title">
 		                        <h1>变量命名转换</h1>
 		                        <p class="subtitle">7 种格式互转（含中文名称）</p>
 		                    </div>
-		                    <div class="page-actions">
+
+<!-- 页面操作区：提供一键清空，重置输入并同步清空所有命名结果。 -->
+
+<div class="page-actions">
 		                        <button class="btn btn-ghost" onclick="clearNamingTool()">清空</button>
 		                    </div>
 		                </div>
-		                <div class="naming-grid">
+		                <!-- 结果网格：输入任意命名形式后，页面会并列生成多种命名风格并提供复制按钮。 -->
+                <div class="naming-grid">
 		                    <div class="naming-card naming-input">
 		                        <div class="naming-card-header">
 		                            <div class="naming-card-title">输入</div>

@@ -1,11 +1,24 @@
+<!--
+页面总览：HMAC 计算 页：这里主要放输入区、输出区和局部操作按钮，具体交互逻辑由前端工具模块负责。
+补充说明：支持 MD5/SHA1/SHA256/SHA512，多种密钥格式
+前端入口：app_tools_b.js -> initHmacTool()
+-->
+
 <!-- 自动拆分自 web/index.html：tool-hmac -->
+<!-- 页面骨架：上方是标题、批量模式和清空入口，下方依次配置算法/密钥、输入消息并查看签名结果。 -->
 <section id="page-tool-hmac" class="page">
-		                <div class="page-header">
+
+<!-- 页面头部：说明当前工具用于 HMAC 签名计算。 -->
+
+<div class="page-header">
 		                    <div class="page-title">
 		                        <h1>HMAC 计算</h1>
 		                        <p class="subtitle">支持 MD5/SHA1/SHA256/SHA512，多种密钥格式</p>
 		                    </div>
-		                    <div class="page-actions">
+
+<!-- 页面操作区：批量模式决定是否按行签名，清空按钮用于重置全部配置。 -->
+
+<div class="page-actions">
 		                        <label class="tool-check">
 		                            <input type="checkbox" id="hmac-batch">
 		                            批量模式（按行）
@@ -13,7 +26,8 @@
 		                        <button class="btn btn-ghost" onclick="clearHmacTool()">清空</button>
 		                    </div>
 		                </div>
-		                <div class="tool-single hmac-tool">
+<!-- 主工作区：先配置算法和密钥，再输入原始消息，最后在结果区查看和复制签名。 -->
+<div class="tool-single hmac-tool">
 		                    <div class="converter-panel">
 		                        <div class="panel-header">
 		                            <h3>配置</h3>
@@ -64,6 +78,7 @@
 		                    <div class="converter-panel">
 		                        <div class="panel-header">
 		                            <h3>输出</h3>
+		                            <!-- 面板按钮区：围绕当前面板执行复制、清空、模式切换等局部操作。 -->
 		                            <div class="panel-actions">
 		                                <button class="btn btn-sm btn-ghost" onclick="copyHmacOutput(this)">复制</button>
 		                            </div>
