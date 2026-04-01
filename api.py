@@ -12,6 +12,8 @@ import logging
 import os
 import json
 import sys
+import threading
+import time
 from pathlib import Path
 from typing import List
 
@@ -33,11 +35,26 @@ class Api:
     - AI 流式聊天这类跨多层的能力，也会在这里保存少量运行时状态。"""
     # 流式聊天会话超时时间（秒）
     CHAT_SESSION_TTL_SECONDS = 300  # 5 分钟
+    WEB_WATCH_SUFFIXES = {".html", ".css", ".js"}
 
-    def __init__(self, data_dir: Path, debug_mode: bool = False):
+    def __init__(
+        self,
+        data_dir: Path,
+        debug_mode: bool = False,
+        web_dir: Path | None = None,
+        watch_web: bool = False,
+    ):
         self.data_dir = data_dir
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self._debug_mode = debug_mode
+        self._window = None
+        self._web_dir = web_dir
+        self._watch_web = bool(
+            watch_web and debug_mode and web_dir and web_dir.exists()
+        )
+        self._frontend_reload_version = str(time.time_ns())
+        self._frontend_reload_lock = threading.Lock()
+        self._web_watcher_started = False
 
         # 统一数据库初始化（必须最先完成）
         from services.db_manager import DatabaseManager
@@ -87,8 +104,6 @@ class Api:
                 self.prompt_template = PromptTemplateService(self.ai_manager.db)
         except Exception as e:
             logger.warning(f"Prompt 模板服务初始化失败: {e}")
-
-        self._window = None
 
     @staticmethod
     def _resolve_data_paths(data_dir: Path) -> dict:
@@ -155,6 +170,8 @@ class Api:
     def set_window(self, window):
         """设置窗口引用"""
         self._window = window
+        if self._watch_web and not self._web_watcher_started:
+            self._start_web_watcher()
 
     def __dir__(self):
         """限制暴露成员，避免 pywebview 深度遍历内部 Path 导致噪声日志"""
@@ -183,14 +200,87 @@ class Api:
         except Exception as e:
             info["stats_error"] = str(e)
         return info
+
+    def get_frontend_reload_version(self):
+        """前端开发模式初始化：返回当前是否启用了自动刷新与当前版本号。"""
+        return {
+            "enabled": self._watch_web,
+            "version": self._frontend_reload_version,
+        }
+
+    def _collect_web_snapshot(self) -> dict[str, int]:
+        snapshot = {}
+        if not self._web_dir:
+            return snapshot
+
+        for path in self._web_dir.rglob("*"):
+            if not path.is_file():
+                continue
+            if path.suffix.lower() not in self.WEB_WATCH_SUFFIXES:
+                continue
+
+            rel_path = str(path.relative_to(self._web_dir))
+            try:
+                snapshot[rel_path] = path.stat().st_mtime_ns
+            except FileNotFoundError:
+                continue
+
+        return snapshot
+
+    def _start_web_watcher(self):
+        """开发模式：监听前端资源变化，仅更新版本号，真正刷新由前端执行。"""
+        if self._web_watcher_started:
+            return
+        self._web_watcher_started = True
+
+        def worker():
+            logger.info(f"前端自动刷新监听已启动: {self._web_dir}")
+            last_snapshot = self._collect_web_snapshot()
+
+            while True:
+                time.sleep(1.0)
+                try:
+                    current_snapshot = self._collect_web_snapshot()
+                    if current_snapshot == last_snapshot:
+                        continue
+
+                    last_snapshot = current_snapshot
+                    with self._frontend_reload_lock:
+                        self._frontend_reload_version = str(time.time_ns())
+                        latest_version = self._frontend_reload_version
+                    logger.info("检测到 web 目录变更，正在通知前端刷新")
+                    self._notify_frontend_reload(latest_version)
+                except Exception as e:
+                    logger.warning(f"监听 web 目录失败: {e}")
+
+        threading.Thread(
+            target=worker,
+            daemon=True,
+            name="web-hot-reload-watcher",
+        ).start()
+
+    def _notify_frontend_reload(self, version: str):
+        """开发模式：由后端主动推送“前端需要刷新”的事件。"""
+        if not self._window:
+            return
+
+        payload = json.dumps({"version": version}, ensure_ascii=False)
+        script = f"""
+            window.dispatchEvent(new CustomEvent('doggy:frontend-reload', {{
+                detail: {payload}
+            }}));
+        """
+        try:
+            self._window.run_js(script)
+        except Exception as e:
+            logger.debug(f"推送前端刷新事件失败（通常发生在页面重载瞬间）: {e}")
+
     def window_close(self):
         """关闭窗口"""
-        import threading
         import os
 
         def force_exit():
             """延迟强制退出，给 destroy 一点时间清理"""
-            import time
             time.sleep(0.5)
             os._exit(0)
 

@@ -29,6 +29,11 @@ def parse_args():
     parser.add_argument(
         "-d", "--debug", action="store_true", help="启用调试模式（允许打开开发者工具）"
     )
+    parser.add_argument(
+        "--watch-web",
+        action="store_true",
+        help="开发模式：监听 web 目录变化并自动刷新前端页面",
+    )
     return parser.parse_args()
 
 
@@ -65,6 +70,8 @@ def main():
 
     # 运行期数据目录：开发环境落项目目录，打包后落用户主目录。
     data_dir = get_data_dir()
+    # 前端静态资源根目录：index.html 会再按需加载 web/pages/*.html。
+    web_dir = get_base_path() / "web"
 
     # 初始化数据库并执行迁移
     db_path = data_dir / "doggy_toolbox.db"
@@ -86,10 +93,12 @@ def main():
         logger.error(f"数据库初始化失败: {e}")
 
     # 创建前后端桥接对象：后续页面里的 window.pywebview.api.xxx() 都从这里进 Python。
-    api = Api(data_dir, debug_mode=debug_mode)
-
-    # 前端静态资源根目录：index.html 会再按需加载 web/pages/*.html。
-    web_dir = get_base_path() / "web"
+    api = Api(
+        data_dir,
+        debug_mode=debug_mode,
+        web_dir=web_dir,
+        watch_web=args.watch_web and not is_bundled(),
+    )
     window = webview.create_window(
         title="狗狗百宝箱",
         url=str(web_dir / "index.html"),

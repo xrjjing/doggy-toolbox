@@ -47,6 +47,15 @@
 // 诊断面板会用它确认 app_core.js 本身是否已成功加载执行。
 window.__DOG_TOOLBOX_CORE_LOADED__ = true;
 
+// 开发模式前端自动刷新状态：
+// - 由后端维护“资源版本号”，并在文件变更时主动推送事件；
+// - 前端在 pywebview 就绪后安装监听、显示开发模式标记；
+// - 发现版本变化时整页刷新，避免每次改前端都重启整个 GUI。
+const FRONTEND_RELOAD_EVENT_NAME = 'doggy:frontend-reload';
+let frontendReloadVersion = null;
+let frontendHotReloadEnabled = false;
+let frontendHotReloadBridgeStarted = false;
+
 // 毛玻璃透明度映射：用户设置值 -> 实际 CSS 值（幂函数让高值更不透明）
 function mapGlassOpacity(percent) {
     return Math.pow(percent / 100, 0.65);
@@ -590,6 +599,8 @@ async function _handlePywebviewBecameReady() {
     if (!window.pywebview || !window.pywebview.api) return;
     _pywebviewReadyHandledOnce = true;
 
+    startFrontendHotReloadBridge().catch(() => {});
+
     // pywebview 就绪后再同步一次后端配置（主题/毛玻璃/标题栏等）
     syncSettingsFromBackend().catch(() => {});
 
@@ -617,6 +628,74 @@ async function _handlePywebviewBecameReady() {
     } catch (e) {
         console.warn('获取运行信息失败:', e);
     }
+}
+
+// 开发模式前端自动刷新：
+// - 后端只负责汇报当前版本号，并在文件变化时主动推送事件；
+// - 前端初始化时读取一次当前配置，随后只监听事件，不做周期轮询；
+// - 使用 query 参数带上版本号，便于调试时区分这次刷新来自哪次文件改动。
+async function startFrontendHotReloadBridge() {
+    if (frontendHotReloadBridgeStarted) return;
+    if (!window.pywebview || !window.pywebview.api) return;
+    if (typeof window.pywebview.api.get_frontend_reload_version !== 'function') return;
+
+    const first = await window.pywebview.api.get_frontend_reload_version();
+    if (!first || !first.enabled) return;
+
+    frontendHotReloadBridgeStarted = true;
+    frontendHotReloadEnabled = true;
+    frontendReloadVersion = first.version;
+    ensureFrontendDevBadge();
+    window.addEventListener(FRONTEND_RELOAD_EVENT_NAME, handleFrontendReloadEvent);
+}
+
+function handleFrontendReloadEvent(event) {
+    const nextVersion = event?.detail?.version;
+    if (!frontendHotReloadEnabled || !nextVersion) return;
+    if (frontendReloadVersion && nextVersion === frontendReloadVersion) return;
+
+    frontendReloadVersion = nextVersion;
+    reloadFrontendNow('hot');
+}
+
+function reloadFrontendNow(reason = 'manual') {
+    console.log(`[dev] 前端刷新触发，原因: ${reason}`);
+    const url = new URL(window.location.href);
+    url.searchParams.set('__dev_reload', frontendReloadVersion || String(Date.now()));
+    window.location.replace(url.toString());
+}
+
+function ensureFrontendDevBadge() {
+    if (document.getElementById('frontend-dev-badge')) return;
+
+    const badge = document.createElement('div');
+    badge.id = 'frontend-dev-badge';
+    badge.style.cssText = [
+        'position:fixed',
+        'right:12px',
+        'bottom:12px',
+        'z-index:100001',
+        'display:flex',
+        'align-items:center',
+        'gap:8px',
+        'padding:8px 10px',
+        'border-radius:999px',
+        'background:rgba(16,185,129,0.92)',
+        'color:#062b1f',
+        'font-size:12px',
+        'font-weight:600',
+        'box-shadow:0 6px 18px rgba(0,0,0,0.22)',
+        'backdrop-filter:blur(8px)',
+        '-webkit-backdrop-filter:blur(8px)',
+    ].join(';');
+    badge.innerHTML = [
+        '<span>DEV 自动刷新已开启</span>',
+        '<button type="button" id="frontend-dev-badge-refresh" style="border:none;border-radius:999px;padding:4px 8px;background:rgba(255,255,255,0.78);color:#062b1f;cursor:pointer;font-size:12px;font-weight:600;">立即刷新</button>',
+    ].join('');
+    document.body.appendChild(badge);
+
+    const refreshBtn = document.getElementById('frontend-dev-badge-refresh');
+    refreshBtn?.addEventListener('click', () => reloadFrontendNow('badge'));
 }
 
 // 等待 pywebview API 可用：
@@ -1480,6 +1559,11 @@ function initShortcut() {
         if (cmdOrCtrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
             e.preventDefault();
             openSearchModal();
+        }
+        // Ctrl/Cmd + Shift + R / F5 - 手动刷新前端（开发模式更常用）
+        if ((cmdOrCtrl && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'r') || e.key === 'F5') {
+            e.preventDefault();
+            reloadFrontendNow('shortcut');
         }
         // F12 - 打开开发者工具
         if (e.key === 'F12') {
